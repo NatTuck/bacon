@@ -1,0 +1,13 @@
+int
+add(int a, int b)
+{
+    return a + b;
+}
+
+kernel
+add(array2d<int> aa, array2d<int> bb) 
+@ [aa.rows, aa.cols]
+    array2d<int> cc[aa.rows, aa.cols];
+{
+    cc[$y, $x] = add(aa[$y, $x], bb[$y, $x]);
+}

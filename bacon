@@ -1,0 +1,59 @@
+#!/usr/bin/perl
+
+=head1 NAME
+
+bacon - OpenCL frontend, providing a better array compute notation
+
+=head1 SYNOPSIS
+
+bacon [OPTION]... [FILE]
+
+=head1 DESCRIPTION
+
+Generate OpenCL and C++ code from FILE. 
+
+=over
+
+=item -h
+
+Show this documentation.
+
+=back
+
+=cut
+
+use warnings FATAL => 'all';
+use strict;
+
+use 5.10.0;
+
+use Getopt::Std qw(getopts);
+use Data::Dumper;
+
+use Bacon::Lexer qw(make_lexer);
+use Bacon::Parser;
+
+my %opts;
+getopts('h', \%opts);
+
+if (defined $opts{h}) {
+    system(qq{perldoc "$0"});
+    exit(0);
+}
+
+sub parse_error {
+    my ($parser) = @_;
+    warn "Got a parsing error.\n";
+    warn "Value: '", $parser->YYCurval, "'\n";
+    warn "Token:  ", $parser->YYCurtok, "\n";
+    warn "Expect: ", join(' ', $parser->YYExpect), "\n";
+    return 1;
+}
+
+my $source = shift;
+
+my $lexer  = make_lexer($source);
+
+my $parser = Bacon::Parser->new();
+$parser->YYParse(yylex => $lexer, yyerror => \&parse_error);
+
