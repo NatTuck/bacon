@@ -14,6 +14,7 @@ our @EXPORT_OK = qw(make_lexer);
 use File::Slurp;
 
 use Bacon::MatchToken;
+use Bacon::Token;
 
 my @symbols = qw#
     auto break case char const continue default do
@@ -28,8 +29,7 @@ push @symbols, ',';
 
 my @token = (
     SPACE   => '\s+',
-    COMMENT => '(//.*?\n|/\*.*?\*/)',
-    NUMBER => '(0[xX])?[0-9]+(\.[0-9]*)?[uU]?[lL]?',
+    CONSTANT => '(0[xX])?[0-9]+(\.[0-9]*)?[uU]?[lL]?',
     STRING => '\"[^"]*\"',
     IDENTIFIER => '[$]?[A-Za-z_][A-Za-z0-9_]*',
     ELLIPSIS => q("..."),
@@ -72,13 +72,27 @@ sub make_lexer {
     my ($file) = @_;
     my $input = read_file($file);
 
-    my $line  = 0;
+    my $line  = 1;
 
-    return sub { 
+    return sub {
       again:  
         while ($input =~ /^\n/) {
             $input =~ s/^\n//;
             ++$line;
+        }
+
+        if ($input =~ m{^//}) {
+            $input =~ s{\A//.*?$}{}m;
+            goto again;
+        }
+
+        if ($input =~ m{\A/\*.*?\*/}ms) {
+            $input =~ m{\A/\*.*?\*/}ms;
+            my $comment = $&;
+            my @ns = $comment =~ /\n/g;
+            $line += scalar @ns;
+            substr($input, 0, length $comment, '');
+            goto again;
         }
 
         if (length $input == 0) {
@@ -88,12 +102,16 @@ sub make_lexer {
         for my $pat (@pats) {
             my ($sym, $text) = $pat->match(\$input);
             if (defined $sym) {
-                goto again if ($sym eq 'COMMENT' || $sym eq 'SPACE');
-                return ($sym, $text);
+                goto again if $sym eq 'SPACE';
+                my $tok = Bacon::Token->new(
+                    type => $sym, text => $text, line => $line
+                );
+                return ($sym, $tok);
             }
         }
 
-        die "Could not tokenize input: " . substr($input, 0, 16);
+        die "Could not tokenize input near line $line:\n" . 
+            substr($input, 0, 16);
     };
 }
 

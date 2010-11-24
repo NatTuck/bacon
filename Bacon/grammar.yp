@@ -5,53 +5,77 @@
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
+
+use Data::Dumper;
+use Bacon::Program;
+
+sub node_type {
+    my ($node) = @_;
+    if (ref($node) eq 'ARRAY') {
+        return $node->[0];
+    }
+    elsif (ref($node) eq 'Bacon::Token') {
+        return $node->type;
+    }
+    else {
+        die "node_type on unknown object: " . Dumper($node);
+    }
+}
+
 %}
 
 
 %start translation_unit
 
+%expect 1
+
 %%
 
-simple_value
-    : CONSTANT  { say "CONSTANT: $_[1]"; }
-    | IDENTIFIER { say "IDENTIFIER: $_[1]"; }
-    | IDENTIFIER '.' IDENTIFIER { say "field access: $_[1] . $_[3]"; }
-    ;
-
 primary_expression
-    : simple_value
+    : CONSTANT
+    | IDENTIFIER 
     | STRING_LITERAL
     | '(' expression ')'
+        { $_[2] }
     ;
 
 postfix_expression
     : primary_expression
     | postfix_expression '[' argument_expression_list ']'
+        { ['[]', $_[1], $_[3]] }
     | postfix_expression '(' ')'
+        { ['()', $_[1]] }
     | postfix_expression '(' argument_expression_list ')'
+        { ['()', $_[1], $_[3]] }
     | postfix_expression '.' IDENTIFIER
+        { ['.', $_[1], $_[3]] }
     | postfix_expression PTR_OP IDENTIFIER
+        { ['->', $_[1], $_[3]] }
     | postfix_expression INC_OP
+        { ['x++', $_[1]] }
     | postfix_expression DEC_OP
-    ;
-
-simple_value_list
-    : simple_value
-    | simple_value ',' simple_value
+        { ['x--', $_[1]] }
     ;
 
 argument_expression_list
     : assignment_expression
+        { [ $_[1] ] }
     | argument_expression_list ',' assignment_expression
+        { [ @$_[1], $_[3] ] }
     ;
 
 unary_expression
     : postfix_expression
     | INC_OP unary_expression
+        { ['++x', $_[1]] }
     | DEC_OP unary_expression
+        { ['--x', $_[1]] }
     | unary_operator cast_expression
+        { [$_[1], $_[2]] }
     | SIZEOF unary_expression
+        { ['sizeof', $_[2]] }
     | SIZEOF '(' type_name ')'
+        { ['sizeof', $_[3]] }
     ;
 
 unary_operator
@@ -66,74 +90,95 @@ unary_operator
 cast_expression
     : unary_expression
     | '(' type_name ')' cast_expression
+        { ['cast', $_[2], $_[4]] }
     ;
 
 multiplicative_expression
     : cast_expression
     | multiplicative_expression '*' cast_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | multiplicative_expression '/' cast_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | multiplicative_expression '%' cast_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 additive_expression
     : multiplicative_expression
     | additive_expression '+' multiplicative_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | additive_expression '-' multiplicative_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 shift_expression
     : additive_expression
     | shift_expression LEFT_OP additive_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | shift_expression RIGHT_OP additive_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 relational_expression
     : shift_expression
     | relational_expression '<' shift_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | relational_expression '>' shift_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | relational_expression LE_OP shift_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | relational_expression GE_OP shift_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 equality_expression
     : relational_expression
     | equality_expression EQ_OP relational_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     | equality_expression NE_OP relational_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 and_expression
     : equality_expression
     | and_expression '&' equality_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 exclusive_or_expression
     : and_expression
     | exclusive_or_expression '^' and_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 inclusive_or_expression
     : exclusive_or_expression
     | inclusive_or_expression '|' exclusive_or_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 logical_and_expression
     : inclusive_or_expression
     | logical_and_expression AND_OP inclusive_or_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 logical_or_expression
     : logical_and_expression
     | logical_or_expression OR_OP logical_and_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 conditional_expression
     : logical_or_expression
     | logical_or_expression '?' expression ':' conditional_expression
+        { ['?:', $_[1], $_[3], $_[5] ] }
     ;
 
 assignment_expression
     : conditional_expression
     | unary_expression assignment_operator assignment_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 assignment_operator
@@ -153,6 +198,7 @@ assignment_operator
 expression
     : assignment_expression
     | expression ',' assignment_expression
+        { ['binop', $_[2]->text, $_[1], $_[3] ] }
     ;
 
 constant_expression
@@ -161,6 +207,7 @@ constant_expression
 
 declaration
     : declaration_specifiers ';'
+        
     | declaration_specifiers init_declarator_list ';'
     ;
 
@@ -213,7 +260,7 @@ parameterized_type
     ;
 
 type_specifier
-    : parameterized_type '<' simple_type '>' { say "$_[1] of $_[3]"; }
+    : parameterized_type '<' simple_type '>'
     | simple_type
     | VOID
     | struct_or_union_specifier
@@ -286,10 +333,9 @@ declarator
     ;
 
 direct_declarator
-    : IDENTIFIER  { say "declarator ID: $_[1]"; }
+    : IDENTIFIER 
     | '(' declarator ')'
-    | direct_declarator '[' constant_expression ']'
-    | direct_declarator '[' simple_value_list ']'
+    | direct_declarator '[' argument_expression_list ']'
     | direct_declarator '[' ']'
     | direct_declarator '(' parameter_type_list ')'
     | direct_declarator '(' identifier_list ')'
@@ -307,7 +353,6 @@ type_qualifier_list
     : type_qualifier
     | type_qualifier_list type_qualifier
     ;
-
 
 parameter_type_list
     : parameter_list
@@ -361,7 +406,9 @@ initializer
 
 initializer_list
     : initializer
+        { [ $_[1] ] }
     | initializer_list ',' initializer
+        { [ @$_[1], $_[3] ] }
     ;
 
 statement
@@ -375,56 +422,87 @@ statement
 
 labeled_statement
     : IDENTIFIER ':' statement
+        { ['label', $_[1], $_[3] ] }
     | CASE constant_expression ':' statement
+        { ['case', $_[2], $_[4]] }
     | DEFAULT ':' statement
+        { ['default', $_[3]] }
     ;
 
 compound_statement
     : '{' '}'
+        { ['block'] }
     | '{' statement_list '}'
+        { ['block', [], $_[2]] }
     | '{' declaration_list '}'
+        { ['block', $_[2], []] }
     | '{' declaration_list statement_list '}'
+        { ['block', $_[2], $_[3]] }
     ;
 
 declaration_list
     : declaration
+        { [ $_[1] ] } 
     | declaration_list declaration
+        { [ @$_[1], $_[2] ] }
     ;
 
 statement_list
     : statement
+        { [ $_[1] ] } 
     | statement_list statement
+        { [ @$_[1], $_[2] ] }
     ;
 
 expression_statement
     : ';'
+        { ['pass'] }
     | expression ';'
+        { $_[1] }
     ;
 
 selection_statement
     : IF '(' expression ')' statement
+        { ['if', $_[3], $_[5], ['pass']] }
     | IF '(' expression ')' statement ELSE statement
+        { ['if', $_[3], $_[5], ['pass']] }
     | SWITCH '(' expression ')' statement
+        { ['switch', $_[3], $_[5]] }
+    ;
+
+for_var_init
+    : expression_statement
+    | simple_type IDENTIFIER '=' expression_statement
+        { ['var', $_[1], $_[2], $_[4]] }
     ;
 
 iteration_statement
     : WHILE '(' expression ')' statement
+        { ['while', $_[3], $_[5]] }
     | DO statement WHILE '(' expression ')' ';'
-    | FOR '(' expression_statement expression_statement ')' statement
-    | FOR '(' expression_statement expression_statement expression ')' statement
+        { ['doloop', $_[2], $_[5]] }
+    | FOR '(' for_var_init expression_statement ')' statement
+        { ['for', $_[3], $_[4], ['pass'], $_[6]] }
+    | FOR '(' for_var_init expression_statement expression ')' statement
+        { ['for', $_[3], $_[4], $_[5], $_[7]] }
     ;
 
 jump_statement
     : GOTO IDENTIFIER ';'
+        { ['goto', $_[3]] }
     | CONTINUE ';'
     | BREAK ';'
     | RETURN ';'
+        { ['return'] }
     | RETURN expression ';'
+        { ['return', $_[2]] }
     ;
 
 translation_unit
     : external_declaration
+        { $_[0]->YYData->{prog} = Bacon::Program->new()->add($_[1]) }
     | translation_unit external_declaration
+        { $_[1]->add($_[2]) }
     ;
 
 external_declaration
@@ -434,7 +512,8 @@ external_declaration
     ;
 
 dim_spec
-    : '@' '[' simple_value_list ']' 
+    : '@' '[' argument_expression_list ']' 
+        { $_[3] }
     ;
 
 kernel_definition
@@ -443,14 +522,8 @@ kernel_definition
     ;
 
 function_definition
-    : declaration_specifiers declarator declaration_list compound_statement
-        { say "Function def A"; }
-    | declaration_specifiers declarator compound_statement
-        { say "Function def B"; }
-    | declarator declaration_list compound_statement
-        { say "Function def C"; }
+    : declaration_specifiers declarator compound_statement
     | declarator compound_statement
-        { say "Function def D"; }
     ;
 
 %%
