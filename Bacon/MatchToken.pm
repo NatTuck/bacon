@@ -17,15 +17,15 @@ around BUILDARGS => sub {
 
     if ($pattern =~ /^\"(.*)\"$/) {
         my $exact = $1;
-        $class->$orig(name => $name, type => 'exact', exact => $exact);
+        return $class->$orig(name => $name, type => 'exact', exact => $exact);
     }
     elsif ($pattern =~ /^(\W\W?)$/) {
         my $exact = $1;
-        $class->$orig(name => $name, type => 'exact', exact => $exact);
+        return $class->$orig(name => $name, type => 'exact', exact => $exact);
     }
     else {
         my $regex = qr/$pattern/;
-        $class->$orig(name => $name, type => 'regex', regex => $regex);
+        return $class->$orig(name => $name, type => 'regex', regex => $regex);
     }
 };
 

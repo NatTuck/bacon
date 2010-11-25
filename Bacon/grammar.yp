@@ -7,23 +7,37 @@ use strict;
 use 5.10.0;
 
 use Data::Dumper;
-use Bacon::Program;
 
-sub node_type {
-    my ($node) = @_;
-    if (ref($node) eq 'ARRAY') {
-        return $node->[0];
-    }
-    elsif (ref($node) eq 'Bacon::Token') {
-        return $node->type;
-    }
-    else {
-        die "node_type on unknown object: " . Dumper($node);
-    }
+use Bacon::Stmt;
+use Bacon::Expr;
+use Bacon::Token;
+
+sub ss {
+    my ($type, @args) = @_;
+    return Bacon::Stmt->new(type => $type, args => \@args);
+}
+
+sub ee {
+    my ($type, @args) = @_;
+    return Bacon::Expr->new(type => $type, args => \@args);
+}
+
+sub make_unsigned {
+    my ($token) = @_;
+    die "Type not a token" unless ref($token) eq 'Bacon::Token';
+    my $type  = $token->type;
+    my $utype = $type =~ /^U/i ? $type : "U$type";
+    return Bacon::Token->new(
+        type => $utype, text => lc($utype), line => $token->line
+    );
+}
+
+sub make_type {
+    my $type = Bacon::TypeInfo->new();
+    map { $type->add($_) } @_;
 }
 
 %}
-
 
 %start translation_unit
 
@@ -42,19 +56,19 @@ primary_expression
 postfix_expression
     : primary_expression
     | postfix_expression '[' argument_expression_list ']'
-        { ['[]', $_[1], $_[3]] }
+        { ee('[]', $_[1], $_[3]) }
     | postfix_expression '(' ')'
-        { ['()', $_[1]] }
+        { ee('()', $_[1]) }
     | postfix_expression '(' argument_expression_list ')'
-        { ['()', $_[1], $_[3]] }
+        { ee('()', $_[1], $_[3]) }
     | postfix_expression '.' IDENTIFIER
-        { ['.', $_[1], $_[3]] }
+        { ee('.', $_[1], $_[3]) }
     | postfix_expression PTR_OP IDENTIFIER
-        { ['->', $_[1], $_[3]] }
+        { ee('->', $_[1], $_[3]) }
     | postfix_expression INC_OP
-        { ['x++', $_[1]] }
+        { ee('x++', $_[1]) }
     | postfix_expression DEC_OP
-        { ['x--', $_[1]] }
+        { ee('x--', $_[1]) }
     ;
 
 argument_expression_list
@@ -67,15 +81,15 @@ argument_expression_list
 unary_expression
     : postfix_expression
     | INC_OP unary_expression
-        { ['++x', $_[1]] }
+        { ee('++x', $_[1]) }
     | DEC_OP unary_expression
-        { ['--x', $_[1]] }
+        { ee('--x', $_[1]) }
     | unary_operator cast_expression
-        { [$_[1], $_[2]] }
+        { ee($_[1]->text, $_[2]) }
     | SIZEOF unary_expression
-        { ['sizeof', $_[2]] }
+        { ee('sizeof', $_[2]) }
     | SIZEOF '(' type_name ')'
-        { ['sizeof', $_[3]] }
+        { ee('sizeof', $_[3]) }
     ;
 
 unary_operator
@@ -90,95 +104,95 @@ unary_operator
 cast_expression
     : unary_expression
     | '(' type_name ')' cast_expression
-        { ['cast', $_[2], $_[4]] }
+        { ee('cast', $_[2], $_[4]) }
     ;
 
 multiplicative_expression
     : cast_expression
     | multiplicative_expression '*' cast_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | multiplicative_expression '/' cast_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | multiplicative_expression '%' cast_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 additive_expression
     : multiplicative_expression
     | additive_expression '+' multiplicative_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | additive_expression '-' multiplicative_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 shift_expression
     : additive_expression
     | shift_expression LEFT_OP additive_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | shift_expression RIGHT_OP additive_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 relational_expression
     : shift_expression
     | relational_expression '<' shift_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | relational_expression '>' shift_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | relational_expression LE_OP shift_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | relational_expression GE_OP shift_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 equality_expression
     : relational_expression
     | equality_expression EQ_OP relational_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     | equality_expression NE_OP relational_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 and_expression
     : equality_expression
     | and_expression '&' equality_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 exclusive_or_expression
     : and_expression
     | exclusive_or_expression '^' and_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 inclusive_or_expression
     : exclusive_or_expression
     | inclusive_or_expression '|' exclusive_or_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 logical_and_expression
     : inclusive_or_expression
     | logical_and_expression AND_OP inclusive_or_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 logical_or_expression
     : logical_and_expression
     | logical_or_expression OR_OP logical_and_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 conditional_expression
     : logical_or_expression
     | logical_or_expression '?' expression ':' conditional_expression
-        { ['?:', $_[1], $_[3], $_[5] ] }
+        { ee('?:', $_[1], $_[3], $_[5]) }
     ;
 
 assignment_expression
     : conditional_expression
     | unary_expression assignment_operator assignment_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 assignment_operator
@@ -198,7 +212,7 @@ assignment_operator
 expression
     : assignment_expression
     | expression ',' assignment_expression
-        { ['binop', $_[2]->text, $_[1], $_[3] ] }
+        { ee('binop', $_[2]->text, $_[1], $_[3]) }
     ;
 
 constant_expression
@@ -207,12 +221,14 @@ constant_expression
 
 declaration
     : declaration_specifiers ';'
-        
+        { die("Why is this legal? " . Dumper($_[1])) }
     | declaration_specifiers init_declarator_list ';'
+        { [$_[1], $_[2]] }
     ;
 
 declaration_specifiers
     : storage_class_specifier
+        { 
     | storage_class_specifier declaration_specifiers
     | type_specifier
     | type_specifier declaration_specifiers
@@ -222,12 +238,16 @@ declaration_specifiers
 
 init_declarator_list
     : init_declarator
+        { [$_[1]] }
     | init_declarator_list ',' init_declarator
+        { [@$_[1], $_[3]] }
     ;
 
 init_declarator
     : declarator
+        { [$_[1], undef] }
     | declarator '=' initializer
+        { [$_[1], $_[3]] }
     ;
 
 storage_class_specifier
@@ -240,6 +260,7 @@ storage_class_specifier
 
 simple_type
     : UNSIGNED simple_type
+        { make_unsigned($_[2]) }
     | CHAR
     | UCHAR
     | SHORT
@@ -261,17 +282,22 @@ parameterized_type
 
 type_specifier
     : parameterized_type '<' simple_type '>'
+        { [ $_[1], $_[3] ] }
     | simple_type
     | VOID
     | struct_or_union_specifier
+        { die("No structs, unions, or typedefs.") }
     | enum_specifier
-    | TYPE_NAME
+        { die("No structs, unions, or typedefs.") }
     ;
 
 struct_or_union_specifier
     : struct_or_union IDENTIFIER '{' struct_declaration_list '}'
+        { die("No structs, unions, or typedefs.") }
     | struct_or_union '{' struct_declaration_list '}'
+        { die("No structs, unions, or typedefs.") }
     | struct_or_union IDENTIFIER
+        { die("No structs, unions, or typedefs.") }
     ;
 
 struct_or_union
@@ -281,45 +307,64 @@ struct_or_union
 
 struct_declaration_list
     : struct_declaration
+        { make_type($_[1]) }
     | struct_declaration_list struct_declaration
+        { make_type($_[1], $_[2]) }
     ;
 
 struct_declaration
     : specifier_qualifier_list struct_declarator_list ';'
+        { die("No structs, unions, or typedefs.") }
     ;
 
 specifier_qualifier_list
     : type_specifier specifier_qualifier_list
+        { make_type($_[1], $_[2]) }
     | type_specifier
+        { make_type($_[1]) }
     | type_qualifier specifier_qualifier_list
+        { make_type($_[1], $_[2]) }
     | type_qualifier
+        { make_type($_[1]) }
     ;
 
 struct_declarator_list
     : struct_declarator
+        { die("No structs, unions, or typedefs.") }
     | struct_declarator_list ',' struct_declarator
+        { die("No structs, unions, or typedefs.") }
     ;
 
 struct_declarator
     : declarator
+        { die("No structs, unions, or typedefs.") }
     | ':' constant_expression
+        { die("No structs, unions, or typedefs.") }
     | declarator ':' constant_expression
+        { die("No structs, unions, or typedefs.") }
     ;
 
 enum_specifier
     : ENUM '{' enumerator_list '}'
+        { die("No structs, unions, or typedefs.") }
     | ENUM IDENTIFIER '{' enumerator_list '}'
+        { die("No structs, unions, or typedefs.") }
     | ENUM IDENTIFIER
+        { die("No structs, unions, or typedefs.") }
     ;
 
 enumerator_list
     : enumerator
+        { die("No structs, unions, or typedefs.") }
     | enumerator_list ',' enumerator
+        { die("No structs, unions, or typedefs.") }
     ;
 
 enumerator
     : IDENTIFIER
+        { die("No structs, unions, or typedefs.") }
     | IDENTIFIER '=' constant_expression
+        { die("No structs, unions, or typedefs.") }
     ;
 
 type_qualifier
@@ -344,9 +389,13 @@ direct_declarator
 
 pointer
     : '*'
+        { make_type($_[1]) }
     | '*' type_qualifier_list
+        { make_type($_[1], $_[2]) }
     | '*' pointer
+        { make_type($_[1], $_[2]) }
     | '*' type_qualifier_list pointer
+        { make_type($_[1], $_[2], $_[3]) }
     ;
 
 type_qualifier_list
@@ -500,9 +549,9 @@ jump_statement
 
 translation_unit
     : external_declaration
-        { $_[0]->YYData->{prog} = Bacon::Program->new()->add($_[1]) }
+        { $_[0]->YYData->{pgm}->add($_[1]); }
     | translation_unit external_declaration
-        { $_[1]->add($_[2]) }
+        { $_[0]->YYData->{pgm}->add($_[2]); }
     ;
 
 external_declaration

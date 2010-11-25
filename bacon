@@ -34,6 +34,8 @@ $Data::Dumper::Terse = 1;
 use Bacon::Lexer qw(make_lexer);
 use Bacon::Parser;
 
+use Bacon::Program;
+
 my %opts;
 getopts('h', \%opts);
 
@@ -46,7 +48,7 @@ sub parse_error {
     my ($parser) = @_;
     warn "Got a parsing error.\n";
     warn "Value: ", Dumper($parser->YYCurval), "\n";
-    warn "Token:  ", $parser->YYCurtok, "\n";
+    warn "Token: ", $parser->YYCurtok, "\n";
     warn "Expect: ", join(' ', $parser->YYExpect), "\n";
     return 1;
 }
@@ -56,5 +58,7 @@ my $source = shift;
 my $lexer  = make_lexer($source);
 
 my $parser = Bacon::Parser->new();
+$parser->YYData->{pgm} = Bacon::Program->new();
+
 $parser->YYParse(yylex => $lexer, yyerror => \&parse_error);
 say Dumper($parser->YYData);
