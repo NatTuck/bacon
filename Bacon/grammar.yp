@@ -228,7 +228,6 @@ declaration
 
 declaration_specifiers
     : storage_class_specifier
-        { 
     | storage_class_specifier declaration_specifiers
     | type_specifier
     | type_specifier declaration_specifiers
@@ -549,15 +548,16 @@ jump_statement
 
 translation_unit
     : external_declaration
-        { $_[0]->YYData->{pgm}->add($_[1]); }
     | translation_unit external_declaration
-        { $_[0]->YYData->{pgm}->add($_[2]); }
     ;
 
 external_declaration
     : kernel_definition
+        { $_[0]->YYData->{pgm}->add_function($_[1]); }
     | function_definition
+        { $_[0]->YYData->{pgm}->add_function($_[1]); }
     | declaration
+        { $_[0]->YYData->{pgm}->add_constant($_[1]); }
     ;
 
 dim_spec

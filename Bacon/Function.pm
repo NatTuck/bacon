@@ -1,10 +1,12 @@
-package Bacon::Func;
+package Bacon::Function;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
 
 use Moose;
 use namespace::autoclean;
+
+extends 'Bacon::AstNode';
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has args => (is => 'ro', isa => 'ArrayRef[Bacon::Variable]', required => 1);
