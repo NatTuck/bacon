@@ -8,34 +8,9 @@ use 5.10.0;
 
 use Data::Dumper;
 
-use Bacon::Stmt;
-use Bacon::Expr;
 use Bacon::Token;
-
-sub ss {
-    my ($type, @args) = @_;
-    return Bacon::Stmt->new(type => $type, args => \@args);
-}
-
-sub ee {
-    my ($type, @args) = @_;
-    return Bacon::Expr->new(type => $type, args => \@args);
-}
-
-sub make_unsigned {
-    my ($token) = @_;
-    die "Type not a token" unless ref($token) eq 'Bacon::Token';
-    my $type  = $token->type;
-    my $utype = $type =~ /^U/i ? $type : "U$type";
-    return Bacon::Token->new(
-        type => $utype, text => lc($utype), line => $token->line
-    );
-}
-
-sub make_type {
-    my $type = Bacon::TypeInfo->new();
-    map { $type->add($_) } @_;
-}
+use Bacon::Function;
+use Bacon::Variable;
 
 %}
 
@@ -228,11 +203,17 @@ declaration
 
 declaration_specifiers
     : storage_class_specifier
+        { Bacon::Variable->new_by_type($_[1]) }
     | storage_class_specifier declaration_specifiers
+        { $_[2]->add_type($_[1]) }
     | type_specifier
+        { Bacon::Variable->new_by_type($_[1]) }
     | type_specifier declaration_specifiers
+        { $_[2]->add_type($_[1]) }
     | type_qualifier
+        { Bacon::Variable->new_by_type($_[1]) }
     | type_qualifier declaration_specifiers
+        { $_[2]->add_type($_[1]) }
     ;
 
 init_declarator_list
@@ -377,13 +358,19 @@ declarator
     ;
 
 direct_declarator
-    : IDENTIFIER 
-    | '(' declarator ')'
+    : IDENTIFIER
+        { Bacon::Variable->new_by_name($_[1]) }
+    /* | '(' declarator ')' */
     | direct_declarator '[' argument_expression_list ']'
+        { $_[1]->update(dims => $_[3]) }
     | direct_declarator '[' ']'
+        { $_[1]->update(dims => []) }
     | direct_declarator '(' parameter_type_list ')'
+        { Bacon::Function->new(name => $_[1]->name, args => $_[3]) }
     | direct_declarator '(' identifier_list ')'
+        { Bacon::Function->new(name => $_[1]->name, args => $_[3]) }
     | direct_declarator '(' ')'
+        { Bacon::Function->new(name => $_[1]->name, args => $_[3]) }
     ;
 
 pointer
@@ -404,16 +391,19 @@ type_qualifier_list
 
 parameter_type_list
     : parameter_list
-    | parameter_list ',' ELLIPSIS
+    /* | parameter_list ',' ELLIPSIS */
     ;
 
 parameter_list
     : parameter_declaration
+        { [ $_[1] ] }
     | parameter_list ',' parameter_declaration
+        { [ @{$_[1]}, $_[3] ] }
     ;
 
 parameter_declaration
     : declaration_specifiers declarator
+        
     | declaration_specifiers abstract_declarator
     | declaration_specifiers
     ;
@@ -572,7 +562,9 @@ kernel_definition
 
 function_definition
     : declaration_specifiers declarator compound_statement
+        { make_function($_[0], $_[1], $_[2], $_[3]) }
     | declarator compound_statement
+        { make_function($_[0], undef, $_[1], $_[2]) }
     ;
 
 %%

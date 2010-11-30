@@ -104,7 +104,8 @@ sub make_lexer {
             if (defined $sym) {
                 goto again if $sym eq 'SPACE';
                 my $tok = Bacon::Token->new(
-                    type => $sym, text => $text, line => $line
+                    type => $sym,  text => $text, 
+                    file => $file, line => $line
                 );
                 return ($sym, $tok);
             }

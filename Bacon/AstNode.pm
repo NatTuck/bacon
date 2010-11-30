@@ -15,7 +15,13 @@ sub source {
 }
 
 sub gen_code {
-    return "((** Invalid AST Node **))\n";
+    my ($self, $depth) = @_;
+    return $self->indent($depth) . "((** Invalid AST Node **))\n";
+}
+
+sub indent {
+    my ($self, $depth) = @_;
+    return "    " x $depth;
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -8,13 +8,18 @@ use namespace::autoclean;
 
 extends 'Bacon::AstNode';
 
-has name => (is => 'ro', isa => 'Str', required => 1);
-has args => (is => 'ro', isa => 'ArrayRef[Bacon::Variable]', required => 1);
-has retv => (is => 'ro', isa => 'Bacon::Variable', required => 1);
-has vars => (is => 'ro', isa => 'ArrayRef[Bacon::Variable]', required => 1);
-has body => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt]', required => 1);
-has kern => (is => 'ro', isa => 'Bool', required => 1);
-has dims => (is => 'ro', isa => 'ArrayRef[Int]');
+has name => (is => 'rw', isa => 'Str');
+has args => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
+has retv => (is => 'rw', isa => 'Bacon::Variable');
+has vars => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
+has body => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]');
+has kern => (is => 'rw', isa => 'Bool')
+has dims => (is => 'rw', isa => 'ArrayRef[Int]');
+
+sub new_by {
+    my ($class, $key, $val) = @_;
+    return Bacon::Function->new($key => $val);
+}
 
 __PACKAGE__->meta->make_immutable;
 1;

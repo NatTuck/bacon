@@ -13,13 +13,17 @@ has constants => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]',
 has functions => (is => 'rw', isa => 'ArrayRef[Bacon::Function]',
                   default => sub { [] });
 
+use Bacon::Utils;
+
 sub add_constant {
     my ($self, $const) = @_;
+    assert_type($const, 'Bacon::Variable');
     push @{$self->constants}, $const;
 }
 
 sub add_function {
     my ($self, $fun) = @_;
+    assert_type($fun, 'Bacon::Function');
     push @{$self->functions}, $fun;
 }
 
