@@ -11,6 +11,17 @@ use Data::Dumper;
 use Bacon::Token;
 use Bacon::Function;
 use Bacon::Variable;
+use Bacon::CodeBlock;
+
+use Bacon::ReturnStmt;
+
+use Bacon::OpExpr;
+use Bacon::Literal;
+
+sub op {
+    my ($op, @args) = @_;
+    return Bacon::OpExpr->new_args($op, @args);
+}
 
 %}
 
@@ -22,8 +33,11 @@ use Bacon::Variable;
 
 primary_expression
     : CONSTANT
-    | IDENTIFIER 
+        { Bacon::Literal->new_from_token(value => $_[1]) }
+    | IDENTIFIER
+        { Bacon::Variable->new_from_token(name => $_[1]) }
     | STRING_LITERAL
+        { Bacon::Literal->new_from_token(value => $_[1]) }
     | '(' expression ')'
         { $_[2] }
     ;
@@ -31,19 +45,19 @@ primary_expression
 postfix_expression
     : primary_expression
     | postfix_expression '[' argument_expression_list ']'
-        { ee('[]', $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | postfix_expression '(' ')'
-        { ee('()', $_[1]) }
+        { op($_[2], $_[1]) }
     | postfix_expression '(' argument_expression_list ')'
-        { ee('()', $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | postfix_expression '.' IDENTIFIER
-        { ee('.', $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | postfix_expression PTR_OP IDENTIFIER
-        { ee('->', $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | postfix_expression INC_OP
-        { ee('x++', $_[1]) }
+        { op($_[2]->m('post'), $_[1]) }
     | postfix_expression DEC_OP
-        { ee('x--', $_[1]) }
+        { op($_[2]->m('post'), $_[1]) }
     ;
 
 argument_expression_list
@@ -56,15 +70,15 @@ argument_expression_list
 unary_expression
     : postfix_expression
     | INC_OP unary_expression
-        { ee('++x', $_[1]) }
+        { op($_[1]->m('pre'), $_[1]) }
     | DEC_OP unary_expression
-        { ee('--x', $_[1]) }
+        { op($_[1]->m('pre'), $_[1]) }
     | unary_operator cast_expression
-        { ee($_[1]->text, $_[2]) }
+        { op($_[1], $_[2]) }
     | SIZEOF unary_expression
-        { ee('sizeof', $_[2]) }
+        { op($_[1], $_[2]) }
     | SIZEOF '(' type_name ')'
-        { ee('sizeof', $_[3]) }
+        { ee($_[1], $_[3]) }
     ;
 
 unary_operator
@@ -79,83 +93,83 @@ unary_operator
 cast_expression
     : unary_expression
     | '(' type_name ')' cast_expression
-        { ee('cast', $_[2], $_[4]) }
+        { op($_[2], $_[4]) }
     ;
 
 multiplicative_expression
     : cast_expression
     | multiplicative_expression '*' cast_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | multiplicative_expression '/' cast_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | multiplicative_expression '%' cast_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 additive_expression
     : multiplicative_expression
     | additive_expression '+' multiplicative_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | additive_expression '-' multiplicative_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 shift_expression
     : additive_expression
     | shift_expression LEFT_OP additive_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | shift_expression RIGHT_OP additive_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 relational_expression
     : shift_expression
     | relational_expression '<' shift_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | relational_expression '>' shift_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | relational_expression LE_OP shift_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | relational_expression GE_OP shift_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 equality_expression
     : relational_expression
     | equality_expression EQ_OP relational_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     | equality_expression NE_OP relational_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 and_expression
     : equality_expression
     | and_expression '&' equality_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 exclusive_or_expression
     : and_expression
     | exclusive_or_expression '^' and_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 inclusive_or_expression
     : exclusive_or_expression
     | inclusive_or_expression '|' exclusive_or_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 logical_and_expression
     : inclusive_or_expression
     | logical_and_expression AND_OP inclusive_or_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 logical_or_expression
     : logical_and_expression
     | logical_or_expression OR_OP logical_and_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 conditional_expression
@@ -167,7 +181,7 @@ conditional_expression
 assignment_expression
     : conditional_expression
     | unary_expression assignment_operator assignment_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2], $_[1], $_[3]) }
     ;
 
 assignment_operator
@@ -187,7 +201,7 @@ assignment_operator
 expression
     : assignment_expression
     | expression ',' assignment_expression
-        { ee('binop', $_[2]->text, $_[1], $_[3]) }
+        { op($_[2]->text, $_[1], $_[3]) }
     ;
 
 constant_expression
@@ -262,7 +276,7 @@ parameterized_type
 
 type_specifier
     : parameterized_type '<' simple_type '>'
-        { [ $_[1], $_[3] ] }
+        { [todo_here_stuff $_[1], $_[3] ] }
     | simple_type
     | VOID
     | struct_or_union_specifier
@@ -366,11 +380,11 @@ direct_declarator
     | direct_declarator '[' ']'
         { $_[1]->update(dims => []) }
     | direct_declarator '(' parameter_type_list ')'
-        { Bacon::Function->new(name => $_[1]->name, args => $_[3]) }
+        { Bacon::Function->new_from_node($_[1])->update(args => $_[3]) }
     | direct_declarator '(' identifier_list ')'
-        { Bacon::Function->new(name => $_[1]->name, args => $_[3]) }
+        { Bacon::Function->new_from_node($_[1])->update(args => $_[3]) }
     | direct_declarator '(' ')'
-        { Bacon::Function->new(name => $_[1]->name, args => $_[3]) }
+        { Bacon::Function->new_from_node($_[1])->update(args => []) }
     ;
 
 pointer
@@ -460,22 +474,25 @@ statement
 
 labeled_statement
     : IDENTIFIER ':' statement
-        { ['label', $_[1], $_[3] ] }
+        { Bacon::LabeledStmt->new2($_[1], $_[3]) }
     | CASE constant_expression ':' statement
-        { ['case', $_[2], $_[4]] }
+        { Bacon::CaseStmt->new2($_[2], $_[4]) }
     | DEFAULT ':' statement
-        { ['default', $_[3]] }
+        { Bacon::CaseStmt->new2($_[1], $_[3]) }
     ;
 
 compound_statement
     : '{' '}'
-        { ['block'] }
+        { Bacon::CodeBlock->new_from_token(undef => $_[1]) }
     | '{' statement_list '}'
-        { ['block', [], $_[2]] }
+        { Bacon::CodeBlock->new_from_token(undef => $_[1]
+            )->update(code => $_[2]) }
     | '{' declaration_list '}'
-        { ['block', $_[2], []] }
+        { Bacon::CodeBlock->new_from_token(undef => $_[1]
+            )->update(vars => $_[2]) }
     | '{' declaration_list statement_list '}'
-        { ['block', $_[2], $_[3]] }
+        { Bacon::CodeBlock->new_from_token(undef => $_[1]
+            )->update(vars => $_[2], code => $_[3]) }
     ;
 
 declaration_list
@@ -494,24 +511,24 @@ statement_list
 
 expression_statement
     : ';'
-        { ['pass'] }
+        { Bacon::Stmt->new_from_token(undef => $_[1]) }
     | expression ';'
-        { $_[1] }
+        { Bacon::ExprStmt->new_expr($_[1]) }
     ;
 
 selection_statement
     : IF '(' expression ')' statement
-        { ['if', $_[3], $_[5], ['pass']] }
+        { Bacon::IfStmt->new3($_[1], $_[3], $_[5]) }
     | IF '(' expression ')' statement ELSE statement
-        { ['if', $_[3], $_[5], ['pass']] }
+        { Bacon::IfStmt->new4($_[1], $_[3], $_[5], $_[7]) }
     | SWITCH '(' expression ')' statement
-        { ['switch', $_[3], $_[5]] }
+        { Bacon::SwitchStmt->new2($_[3], $_[5]) }
     ;
 
 for_var_init
     : expression_statement
-    | simple_type IDENTIFIER '=' expression_statement
-        { ['var', $_[1], $_[2], $_[4]] }
+    | type_name IDENTIFIER '=' expression_statement
+        { $_[1]->update(name => $_[2], init => $_[4]) }
     ;
 
 iteration_statement
@@ -527,13 +544,12 @@ iteration_statement
 
 jump_statement
     : GOTO IDENTIFIER ';'
-        { ['goto', $_[3]] }
     | CONTINUE ';'
     | BREAK ';'
     | RETURN ';'
-        { ['return'] }
+        { Bacon::ReturnStmt->new_from_token(name => $_[1]) }
     | RETURN expression ';'
-        { ['return', $_[2]] }
+        { Bacon::ReturnStmt->new_from_token(name => $_[1], expr => $_[2]) }
     ;
 
 translation_unit
@@ -562,9 +578,9 @@ kernel_definition
 
 function_definition
     : declaration_specifiers declarator compound_statement
-        { make_function($_[0], $_[1], $_[2], $_[3]) }
+        { Bacon::Function->new_parts($_[1], $_[2], $_[3]) }
     | declarator compound_statement
-        { make_function($_[0], undef, $_[1], $_[2]) }
+        { Bacon::Function->new_parts(undef, $_[1], $_[2]) }
     ;
 
 %%

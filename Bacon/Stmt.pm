@@ -6,8 +6,15 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-has type => (is => 'ro', isa => 'Str', required => 1);
-has args => (is => 'ro', isa => 'Item');
+use Bacon::AstNode;
+extends 'Bacon::AstNode';
+
+use Bacon::Utils;
+
+sub gen_code {
+    my (undef, $depth) = @_;
+    return indent($depth) . "/* pass */ ;\n";
+}
 
 __PACKAGE__->meta->make_immutable;
 1;

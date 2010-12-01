@@ -8,10 +8,12 @@ use namespace::autoclean;
 
 use Bacon::Utils;
 
-extends 'Bacon::AstNode';
+use Bacon::Expr;
+extends 'Bacon::Expr';
 
-has type => (is => 'rw', isa => 'Str');
-has name => (is => 'rw', isa => 'Str');
+has type => (is => 'rw', isa => 'Str', default => "");
+has name => (is => 'rw', isa => 'Str', default => "");
+has init => (is => 'rw', isa => 'Bacon::Expr');
 
 sub gen_code {
     my ($self, $depth) = @_;
@@ -20,26 +22,12 @@ sub gen_code {
 
 sub new_by_type {
     my ($class, $type) = @_;
-    assert_type($type, 'Bacon::Token');
-
-    return $class->new(
-        file => $type->file,
-        line => $type->line,
-        type => $type->text,
-        name => "",
-    );
+    return $class->new_from_token(type => $type);
 }
 
 sub new_by_name {
     my ($class, $name) = @_;
-    assert_type($name, 'Bacon::Token');
-
-    return $class->new(
-        file => $name->file,
-        line => $name->line,
-        type => "",
-        name => $name->text,
-    );
+    return $class->new_from_token(name => $name);
 }
 
 sub add_type {

@@ -1,4 +1,4 @@
-package Bacon::Expr;
+package Bacon::Literal;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -6,8 +6,10 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-use Bacon::AstNode;
-extends 'Bacon::AstNode';
+use Bacon::Expr;
+extends 'Bacon::Expr';
+
+has value => (is => 'ro', isa => 'Str', required => 1);
 
 __PACKAGE__->meta->make_immutable;
 1;
