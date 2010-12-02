@@ -13,7 +13,8 @@ extends 'Bacon::Expr';
 
 has type => (is => 'rw', isa => 'Str', default => "");
 has name => (is => 'rw', isa => 'Str', default => "");
-has init => (is => 'rw', isa => 'Bacon::Expr');
+has init => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
+has dims => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 
 sub gen_code {
     my ($self, $depth) = @_;
@@ -22,13 +23,36 @@ sub gen_code {
 
 sub new_by_type {
     my ($class, $type) = @_;
-    return $class->new_from_token(type => $type);
+
+    if ($type->isa('Bacon::Token')) {
+        return $class->new_from_token(
+            undef => $type, type => $type->text);
+    }
+
+    if ($type->isa('Bacon::Variable')) {
+        return $class->new_from_node($type);
+    }
+
+    confess "What makes you think a " . ref($type) . " is a type?";
+}
+
+sub new_ptype {
+    my ($class, $ptype, $param) = @_;
+    my $tname = $ptype->text . "<" . $param->text . ">";
+    return $class->new_from_token(undef => $ptype, type => $tname);
 }
 
 sub new_by_name {
     my ($class, $name) = @_;
     return $class->new_from_token(name => $name);
 }
+
+
+
+
+
+
+
 
 sub add_type {
     my ($self, $new_type) = @_;

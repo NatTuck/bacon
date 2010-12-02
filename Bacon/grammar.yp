@@ -7,6 +7,7 @@ use strict;
 use 5.10.0;
 
 use Data::Dumper;
+use Carp;
 
 use Bacon::Token;
 use Bacon::Function;
@@ -20,6 +21,13 @@ use Bacon::Literal;
 
 sub op {
     my ($op, @args) = @_;
+    for my $arg (@args) {
+        unless ($arg->isa('Bacon::Expr')) {
+            my $rep = ref($arg) || $arg;
+            $rep .= " '" . $arg->text . "'" if ($rep eq 'Bacon::Token');
+            confess "Arg ($rep) not an Expr";
+        }
+    }
     return Bacon::OpExpr->new_args($op, @args);
 }
 
@@ -51,9 +59,9 @@ postfix_expression
     | postfix_expression '(' argument_expression_list ')'
         { op($_[2], $_[1], $_[3]) }
     | postfix_expression '.' IDENTIFIER
-        { op($_[2], $_[1], $_[3]) }
+        { op($_[2], $_[1], Bacon::Variable->new_from_token(name => $_[3])) }
     | postfix_expression PTR_OP IDENTIFIER
-        { op($_[2], $_[1], $_[3]) }
+        { op($_[2], $_[1], Bacon::Variable->new_from_token(name => $_[3])) }
     | postfix_expression INC_OP
         { op($_[2]->m('post'), $_[1]) }
     | postfix_expression DEC_OP
@@ -78,7 +86,7 @@ unary_expression
     | SIZEOF unary_expression
         { op($_[1], $_[2]) }
     | SIZEOF '(' type_name ')'
-        { ee($_[1], $_[3]) }
+        { die("todo: sizeof type") }
     ;
 
 unary_operator
@@ -175,7 +183,7 @@ logical_or_expression
 conditional_expression
     : logical_or_expression
     | logical_or_expression '?' expression ':' conditional_expression
-        { ee('?:', $_[1], $_[3], $_[5]) }
+        { op($_[2], $_[1], $_[3], $_[5]) }
     ;
 
 assignment_expression
@@ -276,7 +284,7 @@ parameterized_type
 
 type_specifier
     : parameterized_type '<' simple_type '>'
-        { [todo_here_stuff $_[1], $_[3] ] }
+        { Bacon::Variable->new_ptype($_[1], $_[3]) }
     | simple_type
     | VOID
     | struct_or_union_specifier
@@ -376,7 +384,8 @@ direct_declarator
         { Bacon::Variable->new_by_name($_[1]) }
     /* | '(' declarator ')' */
     | direct_declarator '[' argument_expression_list ']'
-        { $_[1]->update(dims => $_[3]) }
+        {   say Dumper($_[3]); 
+            $_[1]->update(dims => $_[3]) }
     | direct_declarator '[' ']'
         { $_[1]->update(dims => []) }
     | direct_declarator '(' parameter_type_list ')'

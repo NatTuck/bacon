@@ -15,7 +15,7 @@ has retv => (is => 'rw', isa => 'Bacon::Variable');
 has vars => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
 has body => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]');
 has kern => (is => 'rw', isa => 'Bool');
-has dims => (is => 'rw', isa => 'ArrayRef[Int]');
+has dist => (is => 'rw', isa => 'Maybe[ArrayRef[Int]]');
 
 sub new_parts {
     my ($class, $specs, $decl, $body) = @_;
