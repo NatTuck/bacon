@@ -11,6 +11,7 @@ has line => (is => 'ro', isa => 'Int', required => 1);
 
 use Bacon::Utils;
 use Data::Dumper;
+use Try::Tiny;
 
 sub new_from_token {
     my ($class, $key, $token, @more) = @_;
@@ -62,7 +63,15 @@ sub update {
     my %pairs = @list;
 
     for my $key (keys %pairs) {
-        $self->$key($pairs{$key});
+        try {
+            $self->$key($pairs{$key});
+        }
+        catch {
+            warn "$_\n";
+            warn "Error setting key '$key' to value:\n" 
+                . Dumper($pairs{$key}) . "\n";
+            confess "Giving up";
+        };
     }
 
     return $self;

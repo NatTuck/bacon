@@ -9,7 +9,8 @@ use namespace::autoclean;
 use Bacon::Utils;
 
 use Bacon::Expr;
-extends 'Bacon::Expr';
+use Bacon::Stmt;
+extends 'Bacon::Expr', 'Bacon::Stmt';
 
 has type => (is => 'rw', isa => 'Str', default => "");
 has name => (is => 'rw', isa => 'Str', default => "");
@@ -36,23 +37,16 @@ sub new_by_type {
     confess "What makes you think a " . ref($type) . " is a type?";
 }
 
-sub new_ptype {
-    my ($class, $ptype, $param) = @_;
-    my $tname = $ptype->text . "<" . $param->text . ">";
-    return $class->new_from_token(undef => $ptype, type => $tname);
-}
-
 sub new_by_name {
     my ($class, $name) = @_;
     return $class->new_from_token(name => $name);
 }
 
-
-
-
-
-
-
+sub new_ptype {
+    my ($class, $ptype, $param) = @_;
+    my $tname = $ptype->text . "<" . $param->text . ">";
+    return $class->new_from_token(undef => $ptype, type => $tname);
+}
 
 sub add_type {
     my ($self, $new_type) = @_;

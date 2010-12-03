@@ -6,8 +6,8 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-use Bacon::AstNode;
-extends 'Bacon::AstNode';
+use Bacon::Stmt;
+extends 'Bacon::Stmt';
 
 has vars => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
 has code => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]');

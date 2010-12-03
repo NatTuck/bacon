@@ -8,6 +8,7 @@ use 5.10.0;
 
 use Data::Dumper;
 use Carp;
+use Try::Tiny;
 
 use Bacon::Token;
 use Bacon::Function;
@@ -15,6 +16,10 @@ use Bacon::Variable;
 use Bacon::CodeBlock;
 
 use Bacon::ReturnStmt;
+use Bacon::ExprStmt;
+use Bacon::WhileLoop;
+use Bacon::ForLoop;
+use Bacon::DoLoop;
 
 use Bacon::OpExpr;
 use Bacon::Literal;
@@ -22,11 +27,16 @@ use Bacon::Literal;
 sub op {
     my ($op, @args) = @_;
     for my $arg (@args) {
-        unless ($arg->isa('Bacon::Expr')) {
-            my $rep = ref($arg) || $arg;
-            $rep .= " '" . $arg->text . "'" if ($rep eq 'Bacon::Token');
-            confess "Arg ($rep) not an Expr";
+        try {
+            unless ($arg->isa('Bacon::Expr')) {
+                my $rep = ref($arg) || $arg;
+                $rep .= " '" . $arg->text . "'" if ($rep eq 'Bacon::Token');
+                confess "Arg ($rep) not an Expr";
+            }
         }
+        catch {
+            confess "Error in op construction: $_ (arg: $arg)";
+        };
     }
     return Bacon::OpExpr->new_args($op, @args);
 }
@@ -53,11 +63,11 @@ primary_expression
 postfix_expression
     : primary_expression
     | postfix_expression '[' argument_expression_list ']'
-        { op($_[2], $_[1], $_[3]) }
+        { op($_[2], $_[1], @{$_[3]}) }
     | postfix_expression '(' ')'
         { op($_[2], $_[1]) }
     | postfix_expression '(' argument_expression_list ')'
-        { op($_[2], $_[1], $_[3]) }
+        { op($_[2], $_[1], @{$_[3]}) }
     | postfix_expression '.' IDENTIFIER
         { op($_[2], $_[1], Bacon::Variable->new_from_token(name => $_[3])) }
     | postfix_expression PTR_OP IDENTIFIER
@@ -72,7 +82,7 @@ argument_expression_list
     : assignment_expression
         { [ $_[1] ] }
     | argument_expression_list ',' assignment_expression
-        { [ @$_[1], $_[3] ] }
+        { [ @{$_[1]}, $_[3] ] }
     ;
 
 unary_expression
@@ -321,13 +331,13 @@ struct_declaration
 
 specifier_qualifier_list
     : type_specifier specifier_qualifier_list
-        { make_type($_[1], $_[2]) }
+        { Bacon::Variable->new_by_type($_[1])->add_type($_[2]) }
     | type_specifier
-        { make_type($_[1]) }
+        { Bacon::Variable->new_by_type($_[1]) }
     | type_qualifier specifier_qualifier_list
-        { make_type($_[1], $_[2]) }
+        { Bacon::Variable->new_by_type($_[1])->add_type($_[2]) }
     | type_qualifier
-        { make_type($_[1]) }
+        { Bacon::Variable->new_by_type($_[1]) }
     ;
 
 struct_declarator_list
@@ -384,8 +394,7 @@ direct_declarator
         { Bacon::Variable->new_by_name($_[1]) }
     /* | '(' declarator ')' */
     | direct_declarator '[' argument_expression_list ']'
-        {   say Dumper($_[3]); 
-            $_[1]->update(dims => $_[3]) }
+        { $_[1]->update(dims => $_[3]) }
     | direct_declarator '[' ']'
         { $_[1]->update(dims => []) }
     | direct_declarator '(' parameter_type_list ')'
@@ -522,7 +531,7 @@ expression_statement
     : ';'
         { Bacon::Stmt->new_from_token(undef => $_[1]) }
     | expression ';'
-        { Bacon::ExprStmt->new_expr($_[1]) }
+        { Bacon::ExprStmt->new2($_[2], $_[1]) }
     ;
 
 selection_statement
@@ -537,18 +546,23 @@ selection_statement
 for_var_init
     : expression_statement
     | type_name IDENTIFIER '=' expression_statement
-        { $_[1]->update(name => $_[2], init => $_[4]) }
+        { $_[1]->update(name => $_[2]->text, init => $_[4]->expr) }
     ;
 
 iteration_statement
     : WHILE '(' expression ')' statement
-        { ['while', $_[3], $_[5]] }
+        { Bacon::WhileLoop->new_from_token(undef => $_[1])
+            ->update(cond => $_[3], body => $_[5]) }
     | DO statement WHILE '(' expression ')' ';'
-        { ['doloop', $_[2], $_[5]] }
+        { Bacon::DoLoop->new_from_token(undef => $_[1])
+            ->update(cond => $_[5], body => $_[2]) }
     | FOR '(' for_var_init expression_statement ')' statement
-        { ['for', $_[3], $_[4], ['pass'], $_[6]] }
+        { Bacon::ForLoop->new_from_token(undef => $_[1])
+            ->update(init => $_[3], cond => $_[4], body => $_[6]) }
     | FOR '(' for_var_init expression_statement expression ')' statement
-        { ['for', $_[3], $_[4], $_[5], $_[7]] }
+        { Bacon::ForLoop->new_from_token(undef => $_[1])
+            ->update(init => $_[3], cond => $_[4]->expr, 
+                     incr => $_[5], body => $_[7]) }
     ;
 
 jump_statement
