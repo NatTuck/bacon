@@ -11,7 +11,12 @@ use Try::Tiny;
 
 sub indent {
     my ($depth) = @_;
-    return "    " x $depth;
+    try {
+        return "    " x $depth;
+    }
+    catch {
+        confess $_;
+    };
 }
 
 sub assert_type {

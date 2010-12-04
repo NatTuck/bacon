@@ -33,11 +33,11 @@ sub gen_code {
     my $code = "/* Bacon::Program: " . $self->source . " */\n\n";
 
     for my $var (@{$self->constants}) {
-        $code .= $var->gen_code;
+        $code .= $var->gen_code(0);
     }
 
     for my $fun (@{$self->functions}) {
-        $code .= $fun->gen_code;
+        $code .= $fun->gen_code(0);
     }
 
     return $code;

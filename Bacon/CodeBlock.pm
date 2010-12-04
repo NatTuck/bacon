@@ -9,8 +9,28 @@ use namespace::autoclean;
 use Bacon::Stmt;
 extends 'Bacon::Stmt';
 
-has vars => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
-has code => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]');
+use Bacon::Utils;
+
+has vars => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]',
+    default => sub { [] });
+has code => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]',
+    default => sub { [] });
+
+sub gen_code {
+    my ($self, $depth) = @_;
+    my $code = indent($depth) . "{\n";
+
+    for my $var (@{$self->vars}) {
+        $code .= $var->gen_code($depth + 1). ";\n";
+    }
+    
+    for my $smt (@{$self->code}) {
+        $code .= $smt->gen_code($depth + 1);
+    }
+
+    $code .= indent($depth) . "}\n";
+    return $code;
+}
 
 __PACKAGE__->meta->make_immutable;
 1;

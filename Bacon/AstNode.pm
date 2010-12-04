@@ -49,8 +49,13 @@ sub update_with {
     for my $attr_obj ($self->meta->get_all_attributes) {
         my $attr = $attr_obj->name;
         if ($other->meta->has_attribute($attr)) {
-            unless (defined $self->$attr) {
+            unless (defined $self->$attr && $self->$attr) {
                 $self->$attr($other->$attr);
+                next;
+            }
+        
+            if (defined $self->$attr && defined $other->$attr) {
+                $self->attr($self->$attr . " " . $other->$attr);
             }
         }
     }
@@ -84,7 +89,7 @@ sub source {
 
 sub gen_code {
     my (undef, $depth) = @_;
-    return indent($depth) . "((** Invalid AST Node **))\n";
+    return indent($depth || 0) . "** ???? **";
 }
 
 __PACKAGE__->meta->make_immutable;

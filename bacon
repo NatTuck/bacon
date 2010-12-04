@@ -61,4 +61,4 @@ my $parser = Bacon::Parser->new();
 $parser->YYData->{pgm} = Bacon::Program->new(file => $source, line => 1);
 $parser->YYParse(yylex => $lexer, yyerror => \&parse_error);
 
-say $parser->YYData->{pgm}->gen_code;
+say $parser->YYData->{pgm}->gen_code(0);

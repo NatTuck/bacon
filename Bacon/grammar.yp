@@ -230,7 +230,7 @@ declaration
     : declaration_specifiers ';'
         { die("Why is this legal? " . Dumper($_[1])) }
     | declaration_specifiers init_declarator_list ';'
-        { [$_[1], $_[2]] }
+        { [ map { $_->update_with($_[1]) } @{$_[2]}  ] }
     ;
 
 declaration_specifiers
@@ -257,9 +257,9 @@ init_declarator_list
 
 init_declarator
     : declarator
-        { [$_[1], undef] }
+        { $_[1] }
     | declarator '=' initializer
-        { [$_[1], $_[3]] }
+        { $_[1]->update(init => $_[3]) }
     ;
 
 storage_class_specifier
@@ -435,8 +435,9 @@ parameter_list
 
 parameter_declaration
     : declaration_specifiers declarator
-        
+        { Bacon::Variable->new_from_node($_[2])->update_with($_[1]); } 
     | declaration_specifiers abstract_declarator
+        { Bacon::Variable->new_from_node($_[2])->update_with($_[1]); } 
     | declaration_specifiers
     ;
 
@@ -515,9 +516,9 @@ compound_statement
 
 declaration_list
     : declaration
-        { [ $_[1] ] } 
+        { $_[1] } 
     | declaration_list declaration
-        { [ @$_[1], $_[2] ] }
+        { [ @{$_[1]}, @{$_[2]} ] }
     ;
 
 statement_list
@@ -596,7 +597,9 @@ dim_spec
 
 kernel_definition
     : KERNEL declarator dim_spec compound_statement
+        { Bacon::Function->new_kernel($_[2], $_[3], undef, $_[4]) }
     | KERNEL declarator dim_spec declaration_list compound_statement
+        { Bacon::Function->new_kernel($_[2], $_[3], $_[4], $_[5]) }
     ;
 
 function_definition

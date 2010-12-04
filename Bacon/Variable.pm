@@ -5,6 +5,7 @@ use 5.10.0;
 
 use Moose;
 use namespace::autoclean;
+use Carp;
 
 use Bacon::Utils;
 
@@ -13,14 +14,10 @@ use Bacon::Stmt;
 extends 'Bacon::Expr', 'Bacon::Stmt';
 
 has type => (is => 'rw', isa => 'Str', default => "");
-has name => (is => 'rw', isa => 'Str', default => "");
+has name => (is => 'rw', isa => 'Maybe[Str]');
 has init => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
 has dims => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 
-sub gen_code {
-    my ($self, $depth) = @_;
-    return $self->indent($depth) . $self->type . " " . $self->name; 
-}
 
 sub new_by_type {
     my ($class, $type) = @_;
@@ -61,6 +58,23 @@ sub add_type {
 
     $self->type(join(' ', keys %types));
     return $self;
+}
+
+sub gen_code {
+    my ($self, $depth) = @_;
+    confess "no name" unless $self->name;
+    my $code = indent($depth) . $self->type . " " . $self->name; 
+
+    if (defined $self->dims) {
+        my @dc = map { $_->gen_code(0) } @{$self->dims};
+        $code .= "[ " . join(", ", @dc) . "]";
+    }
+
+    if (defined $self->init) {
+        $code .= " = " . $self->init->gen_code(0);
+    }
+
+    return $code;
 }
 
 __PACKAGE__->meta->make_immutable;

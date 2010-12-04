@@ -18,13 +18,26 @@ has body => (is => 'rw', isa => 'Bacon::Stmt');
 
 sub gen_code {
     my ($self, $depth) = @_;
-    if (defined $self->expr) {
-        return indent($depth) . "return;\n";
+    my $code = indent($depth) . "for (";
+
+    if (defined $self->init) {
+        $code .= $self->init->gen_code(0);
     }
-    else {
-        return indent($depth) . "return "
-            . $self->expr->gen_code(0) . ";\n";
+    $code .= "; ";
+
+    if (defined $self->cond) {
+        $code .= $self->cond->gen_code(0);
     }
+    $code .= "; ";
+
+    if (defined $self->incr) {
+        $code .= $self->incr->gen_code(0);
+    }
+    $code .= ")\n";
+
+    $code .= $self->body->gen_code($depth);
+
+    return $code;
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -1,6 +1,6 @@
 
 int
-add(int a, int b)
+add_ints(int a, int b)
 { // one line comment
     return a + b;
 }
@@ -15,6 +15,6 @@ add(array2d<int> aa, array2d<int> bb)
     array2d<int> cc[aa.rows, aa.cols];
 {
     for (int ii = 0; ii < aa.cols; ++ii) {
-        cc[$x, ii] = add(aa[$x, ii], bb[$x, ii]);
+        cc[$x, ii] = add_ints(aa[$x, ii], bb[$x, ii]);
     }
 }
