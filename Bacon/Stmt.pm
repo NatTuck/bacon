@@ -11,7 +11,7 @@ extends 'Bacon::AstNode';
 
 use Bacon::Utils;
 
-sub gen_code {
+sub to_opencl {
     my (undef, $depth) = @_;
     return indent($depth) . "/* pass */ ;\n";
 }

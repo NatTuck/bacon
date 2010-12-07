@@ -22,12 +22,12 @@ sub new2 {
     return $self;
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
-    my $code = $self->var->gen_code($depth);
+    my $code = $self->var->to_opencl($depth);
 
     if (defined $self->val) {
-        $code .= " = " . $self->val->gen_code(0);    
+        $code .= " = " . $self->val->to_opencl(0);    
     }
 
     return $code . ";\n";

@@ -13,14 +13,14 @@ use Bacon::Utils;
 
 has expr => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     if (!defined $self->expr) {
         return indent($depth) . "return;\n";
     }
     else {
         return indent($depth) . "return "
-            . $self->expr->gen_code(0) . ";\n";
+            . $self->expr->to_opencl(0) . ";\n";
     }
 }
 

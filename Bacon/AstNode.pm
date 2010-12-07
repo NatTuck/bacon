@@ -87,7 +87,7 @@ sub source {
     return $self->file . ":" . $self->line;
 }
 
-sub gen_code {
+sub to_opencl {
     my (undef, $depth) = @_;
     return indent($depth || 0) . "** ???? **";
 }

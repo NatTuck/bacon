@@ -571,7 +571,8 @@ selection_statement
 for_var_init
     : expression_statement
     | type_name IDENTIFIER '=' expression_statement
-        { $_[1]->update(name => $_[2]->text, init => $_[4]->expr) }
+        { Bacon::DeclStmt->new2($_[1]->update(name => $_[2]->text))
+            ->update(val => $_[4]->expr) }
     ;
 
 iteration_statement

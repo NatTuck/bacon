@@ -13,7 +13,7 @@ sub generate_opencl {
     my ($ast, $basefn) = @_;
 
     open my $out, ">", "gen/$basefn.cl";
-    $out->print($ast->gen_code(0));
+    $out->print($ast->to_opencl(0));
     close($out);
 }
 

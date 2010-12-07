@@ -15,7 +15,6 @@ extends 'Bacon::Expr', 'Bacon::Stmt';
 
 has type => (is => 'rw', isa => 'Str', default => "");
 has name => (is => 'rw', isa => 'Maybe[Str]');
-has init => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
 has dims => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 
 
@@ -60,7 +59,7 @@ sub add_type {
     return $self;
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     confess "no name" unless $self->name;
     my $code = indent($depth);
@@ -72,12 +71,8 @@ sub gen_code {
     $code .= $self->name;
 
     if (defined $self->dims) {
-        my @dc = map { $_->gen_code(0) } @{$self->dims};
-        $code .= "[ " . join(", ", @dc) . "]";
-    }
-
-    if (defined $self->init) {
-        $code .= " = " . $self->init->gen_code(0);
+        my @dc = map { $_->to_opencl(0) } @{$self->dims};
+        $code .= "[" . join(", ", @dc) . "]";
     }
 
     return $code;

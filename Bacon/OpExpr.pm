@@ -27,59 +27,59 @@ sub set_post {
     return $self;
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     my $argc = scalar @{$self->args};
 
     return $self->gen_funcall($depth) if $self->name eq '(';
     return $self->gen_arryref($depth) if $self->name eq '[';
-    return $self->gen_code1($depth) if $argc == 1;
-    return $self->gen_code2($depth) if $argc == 2;
-    return $self->gen_code3($depth) if $argc == 3;
+    return $self->to_opencl1($depth) if $argc == 1;
+    return $self->to_opencl2($depth) if $argc == 2;
+    return $self->to_opencl3($depth) if $argc == 3;
     die "Unknown op: " . $self->name . ", $argc args.";
 }
 
 sub gen_funcall {
     my ($self, $depth) = @_;
     my ($what, @args) = @{$self->args};
-    my @ac = map { $_->gen_code(0) } @args;
-    return indent($depth) . $what->gen_code(0)
+    my @ac = map { $_->to_opencl(0) } @args;
+    return indent($depth) . $what->to_opencl(0)
         . '(' . join(', ', @ac) . ')';
 }
 
 sub gen_arryref {
     my ($self, $depth) = @_;
     my ($what, @args) = @{$self->args};
-    my @ac = map { $_->gen_code(0) } @args;
-    return indent($depth) . $what->gen_code(0) 
+    my @ac = map { $_->to_opencl(0) } @args;
+    return indent($depth) . $what->to_opencl(0) 
         . '[' . join(', ', @ac) . ']';
 }
 
-sub gen_code1 {
+sub to_opencl1 {
     my ($self, $depth) = @_;
     my @args = @{$self->args};
     if ($self->post) {
-        return indent($depth) . "(" . $args[0]->gen_code(0) 
+        return indent($depth) . "(" . $args[0]->to_opencl(0) 
             . $self->name . ")";
     }
     else {
         return indent($depth) . "(" . $self->name 
-            . $args[0]->gen_code(0) . ")";
+            . $args[0]->to_opencl(0) . ")";
     }
 }
 
-sub gen_code2 {
+sub to_opencl2 {
     my ($self, $depth) = @_;
     my @args = @{$self->args};
-    return indent($depth) . "(" . $args[0]->gen_code(0)
-        . $self->name . $args[1]->gen_code(0) . ")";
+    return indent($depth) . "(" . $args[0]->to_opencl(0)
+        . $self->name . $args[1]->to_opencl(0) . ")";
 }
 
-sub gen_code3 {
+sub to_opencl3 {
     my ($self, $depth) = @_;
     my @args = @{$self->args};
-    return indent($depth) . "(" . $args[0]->gen_code(0)
-        . $self->name . $args[1]->gen_code(0) . ")";
+    return indent($depth) . "(" . $args[0]->to_opencl(0)
+        . $self->name . $args[1]->to_opencl(0) . ")";
 }
 
 __PACKAGE__->meta->make_immutable;

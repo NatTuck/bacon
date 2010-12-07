@@ -25,12 +25,12 @@ sub new3 {
     return $self;
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     my $code = indent($depth) . "{\n";
 
     for my $smt (@{$self->body}) {
-        $code .= $smt->gen_code($depth + 1);
+        $code .= $smt->to_opencl($depth + 1);
     }
 
     $code .= indent($depth) . "}\n";

@@ -20,13 +20,13 @@ sub new2 {
     );
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     if (!defined $self->expr) {
         return indent($depth) . "/* pass */;\n";
     }
     else {
-        return indent($depth) . $self->expr->gen_code(0) . ";\n";
+        return indent($depth) . $self->expr->to_opencl(0) . ";\n";
     }
 }
 

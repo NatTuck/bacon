@@ -27,17 +27,17 @@ sub add_function {
     push @{$self->functions}, $fun;
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self) = @_;
 
     my $code = "/* Bacon::Program: " . $self->source . " */\n\n";
 
     for my $var (@{$self->constants}) {
-        $code .= $var->gen_code(0);
+        $code .= $var->to_opencl(0);
     }
 
     for my $fun (@{$self->functions}) {
-        $code .= $fun->gen_code(0);
+        $code .= $fun->to_opencl(0);
     }
 
     return $code;

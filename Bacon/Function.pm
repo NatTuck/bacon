@@ -42,27 +42,28 @@ sub return_type {
     return $self->retv->type;
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     my $code = "/* Function: " . $self->name . 
                " " . $self->source . " */\n";
 
     if ($self->kern) {
-        $code .= "kernel\n";
+        my @dims = map { $_->to_opencl(0) } @{$self->dist};
+        $code .= "kernel void\n";
+        $code .= "/* returns: " . $self->return_type . "\n";
+        $code .= " * distrib: ";
+        $code .= " [" . join(', ', @dims) . "]\n";
+        $code .= " */\n";
     }
-        
-    $code .= $self->return_type . "\n";
+    else {    
+        $code .= $self->return_type . "\n";
+    }
 
     $code .= $self->name . "(";
-    $code .= join(', ', map {$_->gen_code(0)} @{$self->args});
+    $code .= join(', ', map {$_->to_opencl(0)} @{$self->args});
     $code .= ")\n";
     
-    if ($self->kern) {
-        my @dims = map { $_->gen_code(0) } @{$self->dist};
-        $code .= " @ [ " . join(', ', @dims) . "]\n";
-    }
-
-    $code .= $self->body->gen_code(0);
+    $code .= $self->body->to_opencl(0);
 
     $code .= "\n";
 

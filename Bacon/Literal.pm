@@ -13,7 +13,7 @@ use Bacon::Utils;
 
 has value => (is => 'ro', isa => 'Str', required => 1);
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     return indent($depth) . $self->value;
 }

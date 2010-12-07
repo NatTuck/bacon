@@ -29,12 +29,12 @@ sub new3 {
         is_t => $is_t, is_f => $is_f);
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
-    return indent($depth) . "if (" . $self->cond->gen_code(0) . ")\n"
-         . $self->if_t->gen_code($depth + 1) . 
+    return indent($depth) . "if (" . $self->cond->to_opencl(0) . ")\n"
+         . $self->if_t->to_opencl($depth + 1) . 
          ((defined $self->if_f)
-            ? ("\nelse\n" . $self->if_f->gen_code($depth + 1))
+            ? ("\nelse\n" . $self->if_f->to_opencl($depth + 1))
             : ""
          );
 }

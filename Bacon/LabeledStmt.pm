@@ -19,10 +19,10 @@ sub new2 {
     return $class->new_from_token($label, stmt => $stmt);
 }
 
-sub gen_code {
+sub to_opencl {
     my ($self, $depth) = @_;
     return indent($depth) . $self->name . ":\n"
-        .  $self->gen_code($depth + 1);
+        .  $self->to_opencl($depth + 1);
 }
 
 __PACKAGE__->meta->make_immutable;
