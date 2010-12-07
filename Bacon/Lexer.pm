@@ -31,7 +31,6 @@ my @token = (
     SPACE   => '\s+',
     CONSTANT => '(0[xX])?[0-9]+(\.[0-9]*)?[uU]?[lL]?',
     STRING => '\"[^"]*\"',
-    IDENTIFIER => '[$]?[A-Za-z_][A-Za-z0-9_]*',
     ELLIPSIS => q("..."),
     RIGHT_ASSIGN => q(">>="),
     LEFT_ASSIGN => q("<<="),
@@ -61,10 +60,12 @@ for my $sym (@symbols) {
     push @token, qq{"$sym"};
 }
 
+push @token, (IDENTIFIER => '[$]?[A-Za-z_][A-Za-z0-9_]*');
+
 my @pats = ();
 
 while (scalar @token > 0) {
-    my ($pat, $sym) = (pop @token, pop @token);
+    my ($sym, $pat) = (shift @token, shift @token);
     push @pats, Bacon::MatchToken->new($sym, $pat);
 }
 

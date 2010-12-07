@@ -10,11 +10,19 @@ use Data::Dumper;
 use Carp;
 use Try::Tiny;
 
+use Exporter;
+push @ISA, qw(Exporter);
+our @EXPORT = qw(bacon_parse);
+
+use Bacon::Lexer qw(make_lexer);
+
+use Bacon::Program;
 use Bacon::Token;
 use Bacon::Function;
 use Bacon::Variable;
 use Bacon::CodeBlock;
 
+use Bacon::DeclStmt;
 use Bacon::ReturnStmt;
 use Bacon::ExprStmt;
 use Bacon::WhileLoop;
@@ -23,6 +31,27 @@ use Bacon::DoLoop;
 
 use Bacon::OpExpr;
 use Bacon::Literal;
+
+sub parse_error {
+    my ($parser) = @_;
+    warn "Got a parsing error.\n";
+    warn "Value: ", Dumper($parser->YYCurval), "\n";
+    warn "Token: ", $parser->YYCurtok, "\n";
+    warn "Expect: ", join(' ', $parser->YYExpect), "\n";
+    die "Giving up";
+    return 1;
+}
+
+sub bacon_parse {
+    my ($source) = @_;
+
+    my $lexer  = make_lexer($source);
+
+    my $parser = Bacon::Parser->new();
+    $parser->YYData->{pgm} = Bacon::Program->new(file => $source, line => 1);
+    $parser->YYParse(yylex => $lexer, yyerror => \&parse_error);
+    return $parser->YYData->{pgm};
+}
 
 sub op {
     my ($op, @args) = @_;
@@ -73,9 +102,9 @@ postfix_expression
     | postfix_expression PTR_OP IDENTIFIER
         { op($_[2], $_[1], Bacon::Variable->new_from_token(name => $_[3])) }
     | postfix_expression INC_OP
-        { op($_[2]->m('post'), $_[1]) }
+        { op($_[2], $_[1])->set_post }
     | postfix_expression DEC_OP
-        { op($_[2]->m('post'), $_[1]) }
+        { op($_[2], $_[1])->set_post }
     ;
 
 argument_expression_list
@@ -88,9 +117,9 @@ argument_expression_list
 unary_expression
     : postfix_expression
     | INC_OP unary_expression
-        { op($_[1]->m('pre'), $_[1]) }
+        { op($_[1], $_[2]) }
     | DEC_OP unary_expression
-        { op($_[1]->m('pre'), $_[1]) }
+        { op($_[1], $_[2]) }
     | unary_operator cast_expression
         { op($_[1], $_[2]) }
     | SIZEOF unary_expression
@@ -227,9 +256,7 @@ constant_expression
     ;
 
 declaration
-    : declaration_specifiers ';'
-        { die("Why is this legal? " . Dumper($_[1])) }
-    | declaration_specifiers init_declarator_list ';'
+    : declaration_specifiers init_declarator_list ';'
         { [ map { $_->update_with($_[1]) } @{$_[2]}  ] }
     ;
 
@@ -257,9 +284,9 @@ init_declarator_list
 
 init_declarator
     : declarator
-        { $_[1] }
+        { Bacon::DeclStmt->new2($_[1], undef) }
     | declarator '=' initializer
-        { $_[1]->update(init => $_[3]) }
+        { Bacon::DeclStmt->new2($_[1], $_[3]) }
     ;
 
 storage_class_specifier
@@ -502,16 +529,13 @@ labeled_statement
 
 compound_statement
     : '{' '}'
-        { Bacon::CodeBlock->new_from_token(undef => $_[1]) }
+        { Bacon::CodeBlock->new3($_[1], [], []) }
     | '{' statement_list '}'
-        { Bacon::CodeBlock->new_from_token(undef => $_[1]
-            )->update(code => $_[2]) }
+        { Bacon::CodeBlock->new3($_[1], $_[2], []) }
     | '{' declaration_list '}'
-        { Bacon::CodeBlock->new_from_token(undef => $_[1]
-            )->update(vars => $_[2]) }
+        { Bacon::CodeBlock->new3($_[1], [], $_[2]) }
     | '{' declaration_list statement_list '}'
-        { Bacon::CodeBlock->new_from_token(undef => $_[1]
-            )->update(vars => $_[2], code => $_[3]) }
+        { Bacon::CodeBlock->new3($_[1], $_[2], $_[3]) }
     ;
 
 declaration_list
@@ -525,7 +549,7 @@ statement_list
     : statement
         { [ $_[1] ] } 
     | statement_list statement
-        { [ @$_[1], $_[2] ] }
+        { [ @{$_[1]}, $_[2] ] }
     ;
 
 expression_statement
@@ -573,7 +597,8 @@ jump_statement
     | RETURN ';'
         { Bacon::ReturnStmt->new_from_token(name => $_[1]) }
     | RETURN expression ';'
-        { Bacon::ReturnStmt->new_from_token(name => $_[1], expr => $_[2]) }
+        { Bacon::ReturnStmt->new_from_token(name => $_[1])
+            ->update(expr => $_[2]) }
     ;
 
 translation_unit
@@ -596,10 +621,8 @@ dim_spec
     ;
 
 kernel_definition
-    : KERNEL declarator dim_spec compound_statement
-        { Bacon::Function->new_kernel($_[2], $_[3], undef, $_[4]) }
-    | KERNEL declarator dim_spec declaration_list compound_statement
-        { Bacon::Function->new_kernel($_[2], $_[3], $_[4], $_[5]) }
+    : KERNEL declaration_specifiers declarator dim_spec compound_statement
+        { Bacon::Function->new_kernel($_[3], $_[2], $_[4], $_[5]) }
     ;
 
 function_definition

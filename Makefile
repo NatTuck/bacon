@@ -13,5 +13,6 @@ prereqs:
 
 clean:
 	rm -f Bacon/Parser.pm Bacon/grammar.output *~ Bacon/*~
+	rm -rf gen
 
 .PHONY: all clean prereqs

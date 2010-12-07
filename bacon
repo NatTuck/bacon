@@ -31,10 +31,8 @@ use Getopt::Std qw(getopts);
 use Data::Dumper;
 $Data::Dumper::Terse = 1;
 
-use Bacon::Lexer qw(make_lexer);
 use Bacon::Parser;
-
-use Bacon::Program;
+use Bacon::Generate;
 
 my %opts;
 getopts('h', \%opts);
@@ -44,21 +42,6 @@ if (defined $opts{h}) {
     exit(0);
 }
 
-sub parse_error {
-    my ($parser) = @_;
-    warn "Got a parsing error.\n";
-    warn "Value: ", Dumper($parser->YYCurval), "\n";
-    warn "Token: ", $parser->YYCurtok, "\n";
-    warn "Expect: ", join(' ', $parser->YYExpect), "\n";
-    return 1;
-}
-
 my $source = shift;
-
-my $lexer  = make_lexer($source);
-
-my $parser = Bacon::Parser->new();
-$parser->YYData->{pgm} = Bacon::Program->new(file => $source, line => 1);
-$parser->YYParse(yylex => $lexer, yyerror => \&parse_error);
-
-say $parser->YYData->{pgm}->gen_code(0);
+my $ast = bacon_parse($source);
+bacon_generate($ast, $source);

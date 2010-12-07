@@ -3,6 +3,8 @@ use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
 
+use Data::Dumper;
+
 use Moose;
 use namespace::autoclean;
 
@@ -11,20 +13,23 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has vars => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]',
+has body => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]',
     default => sub { [] });
-has code => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]',
-    default => sub { [] });
+
+sub new3 {
+    my ($class, $tok, $vars, $smts) = @_;
+    my @body = (@$vars, @$smts);
+
+    my $self = Bacon::CodeBlock->new_from_token(undef => $_[1]);
+    $self->update(body => \@body);
+    return $self;
+}
 
 sub gen_code {
     my ($self, $depth) = @_;
     my $code = indent($depth) . "{\n";
 
-    for my $var (@{$self->vars}) {
-        $code .= $var->gen_code($depth + 1). ";\n";
-    }
-    
-    for my $smt (@{$self->code}) {
+    for my $smt (@{$self->body}) {
         $code .= $smt->gen_code($depth + 1);
     }
 

@@ -10,11 +10,15 @@ add_ints(int a, int b)
  */
 
 kernel
+array2d<int>
 add(array2d<int> aa, array2d<int> bb) 
 @ [aa.rows]
-    array2d<int> cc[aa.rows, aa.cols];
 {
+    array2d<int> cc[aa.rows, aa.cols];
+
     for (int ii = 0; ii < aa.cols; ++ii) {
         cc[$x, ii] = add_ints(aa[$x, ii], bb[$x, ii]);
     }
+
+    return cc;
 }

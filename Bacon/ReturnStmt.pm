@@ -11,18 +11,11 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has expr => (is => 'ro', isa => 'Bacon::Expr');
-
-sub new2 {
-    my ($class, $tok, $expr) = @_;
-    return $class->new_from_token(
-        undef => $tok, expr => $expr
-    );
-}
+has expr => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
 
 sub gen_code {
     my ($self, $depth) = @_;
-    if (defined $self->expr) {
+    if (!defined $self->expr) {
         return indent($depth) . "return;\n";
     }
     else {

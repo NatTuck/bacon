@@ -28,21 +28,18 @@ sub new_parts {
 }
 
 sub new_kernel {
-    my ($class, $self, $dist, $retv, $body) = @_;
+    my ($class, $self, $rtype, $dist, $body) = @_;
     $self->kern(1);
     $self->dist($dist);
-    $self->retv($retv->[0]);
+    $self->retv($rtype);
     $self->body($body);
     return $self;
 }
 
 sub return_type {
     my ($self) = @_;
-    if (!defined($self->retv) || scalar(@{$self->retv}) == 0) {
-        return "void";
-    }
-
-    return $self->retv->[0]->type;
+    return "void" unless (defined $self->retv);
+    return $self->retv->type;
 }
 
 sub gen_code {
@@ -53,16 +50,16 @@ sub gen_code {
     if ($self->kern) {
         $code .= "kernel\n";
     }
-    else {
-        $code .= $self->return_type . "\n";
-    }
+        
+    $code .= $self->return_type . "\n";
 
     $code .= $self->name . "(";
     $code .= join(', ', map {$_->gen_code(0)} @{$self->args});
     $code .= ")\n";
     
     if ($self->kern) {
-        $code .= $self->retv->gen_code(1) . ";\n";
+        my @dims = map { $_->gen_code(0) } @{$self->dist};
+        $code .= " @ [ " . join(', ', @dims) . "]\n";
     }
 
     $code .= $self->body->gen_code(0);

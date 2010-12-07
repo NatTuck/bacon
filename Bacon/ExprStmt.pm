@@ -22,8 +22,8 @@ sub new2 {
 
 sub gen_code {
     my ($self, $depth) = @_;
-    if (defined $self->expr) {
-        return indent($depth) . ";\n";
+    if (!defined $self->expr) {
+        return indent($depth) . "/* pass */;\n";
     }
     else {
         return indent($depth) . $self->expr->gen_code(0) . ";\n";

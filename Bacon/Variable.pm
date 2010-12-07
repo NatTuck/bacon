@@ -63,7 +63,13 @@ sub add_type {
 sub gen_code {
     my ($self, $depth) = @_;
     confess "no name" unless $self->name;
-    my $code = indent($depth) . $self->type . " " . $self->name; 
+    my $code = indent($depth);
+
+    if ($self->type) {
+        $code .= $self->type . " ";
+    }
+
+    $code .= $self->name;
 
     if (defined $self->dims) {
         my @dc = map { $_->gen_code(0) } @{$self->dims};

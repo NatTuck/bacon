@@ -4,7 +4,7 @@ use strict;
 
 use Exporter;
 our @ISA    = qw(Exporter);
-our @EXPORT = qw(indent assert_type);
+our @EXPORT = qw(indent assert_type in_list);
 
 use Carp;
 use Try::Tiny;
@@ -30,6 +30,14 @@ sub assert_type {
     } catch {
         confess("Exception: $_");
     };
+}
+
+sub in_list {
+    my ($item, @list) = @_;
+    for my $xx (@list) {
+        return 1 if $item eq $xx;
+    }
+    return 0;
 }
 
 1;
