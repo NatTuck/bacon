@@ -22,6 +22,11 @@ sub new2 {
     return $self;
 }
 
+sub declared_variables {
+    my ($self) = @_;
+    return ($self->var,);
+}
+
 sub to_opencl {
     my ($self, $depth) = @_;
     my $code = $self->var->to_opencl($depth);

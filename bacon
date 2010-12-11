@@ -45,3 +45,5 @@ if (defined $opts{h}) {
 my $source = shift;
 my $ast = bacon_parse($source);
 bacon_generate($ast, $source);
+
+

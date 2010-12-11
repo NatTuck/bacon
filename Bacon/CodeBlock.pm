@@ -25,15 +25,37 @@ sub new3 {
     return $self;
 }
 
+# Return a list of variable declarations in this block.
+# 
+
+sub declared_variables {
+    my ($self) = @_;
+    
+    my @vars = ();
+
+    for my $smt (@{$self->body}) {
+        push @vars, $smt->declared_variables;
+    }
+
+    return @vars;
+}
+
 sub to_opencl {
     my ($self, $depth) = @_;
     my $code = indent($depth) . "{\n";
+    $code .= $self->contents_to_opencl($depth);
+    $code .= indent($depth) . "}\n";
+    return $code;
+}
+
+sub contents_to_opencl {
+    my ($self, $depth) = @_;
+    my $code = '';
 
     for my $smt (@{$self->body}) {
         $code .= $smt->to_opencl($depth + 1);
     }
 
-    $code .= indent($depth) . "}\n";
     return $code;
 }
 

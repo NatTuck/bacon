@@ -16,6 +16,11 @@ has cond => (is => 'rw', isa => 'Bacon::Expr');
 has incr => (is => 'rw', isa => 'Bacon::Expr');
 has body => (is => 'rw', isa => 'Bacon::Stmt');
 
+sub declared_variables {
+    my ($self) = @_;
+    return $self->body->declared_variables;
+}
+
 sub to_opencl {
     my ($self, $depth) = @_;
     my $code = indent($depth) . "for (";

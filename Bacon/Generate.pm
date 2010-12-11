@@ -25,7 +25,7 @@ sub generate_cpp {
 
 sub bacon_generate {
     my ($ast, $source) = @_;
-    my ($basefn) = $source =~ /^(.*)\.bcn$/;
+    my ($basefn) = $source =~ /^(.*)\.(bcn|bc)$/;
 
     # Clean up the output directory.
     system "rm -rf ./gen";

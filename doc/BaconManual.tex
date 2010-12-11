@@ -1,0 +1,33 @@
+
+\documentclass{article}
+\begin{document}
+
+\section{Introduction}
+
+Bacon is a front end for OpenCL that provides extra convienience compared
+to the raw OpenCL API and OpenCL C programming language.
+
+Bacon is a data parallel extension to OpenCL C that adds the following
+features:
+
+ - Native 2d and 3d arrays with multi-dimensional addressing syntax.
+
+ - Images as multi-dimensional arrays.
+
+ - Support for "printf debugging".
+
+ - Automatic C++ wrapper generation.
+
+\section{Multi-Dimentional Arrays}
+
+Support is provided for native 2D and 3D arrays. Some examples:
+
+Declare a 2D array with eight rows and four columns:
+$$\hbox{\tt array2d<int> table[8, 4];}$$
+
+Assign the value 8 to the third row, second column of the array.
+$$\hbox{\tt table[2, 1] = table.rows;}$$
+
+
+
+\end{document}

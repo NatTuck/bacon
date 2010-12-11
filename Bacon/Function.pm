@@ -42,8 +42,32 @@ sub return_type {
     return $self->retv->type;
 }
 
+sub expand_vars {
+    my ($self, @vars) = @_;
+
+    my @expanded = ();
+    for my $var (@vars) {
+        push @expanded, $var->expand;
+    }
+
+    # Check for collisions
+    my %name = ();
+    for my $var (@expanded) {
+        my $vn = $var->name;
+        my $fn = $self->name;
+
+        die "Duplicate var '$vn' in function '$fn'"
+            if (defined $name{$fn});
+        $name{$fn} = 1;
+    }
+
+    return @expanded;
+}
+
 sub to_opencl {
     my ($self, $depth) = @_;
+    die "No nested functions" unless($depth == 0);
+
     my $code = "/* Function: " . $self->name . 
                " " . $self->source . " */\n";
 
@@ -62,10 +86,17 @@ sub to_opencl {
     $code .= $self->name . "(";
     $code .= join(', ', map {$_->to_opencl(0)} @{$self->args});
     $code .= ")\n";
-    
-    $code .= $self->body->to_opencl(0);
 
-    $code .= "\n";
+    $code .= "{\n";
+    
+    my @vars = $self->expand_vars($self->body->declared_variables);
+    for my $var (@vars) {
+        $code .= $var->to_opencl(1);
+    }
+
+    $code .= $self->body->contents_to_opencl(1);
+
+    $code .= "}\n\n";
 
     return $code;
 }

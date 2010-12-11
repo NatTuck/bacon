@@ -31,6 +31,7 @@ use Bacon::DoLoop;
 
 use Bacon::OpExpr;
 use Bacon::Literal;
+use Bacon::Identifier;
 
 sub parse_error {
     my ($parser) = @_;
@@ -82,7 +83,7 @@ primary_expression
     : CONSTANT
         { Bacon::Literal->new_from_token(value => $_[1]) }
     | IDENTIFIER
-        { Bacon::Variable->new_from_token(name => $_[1]) }
+        { Bacon::Identifier->new_from_token(name => $_[1]) }
     | STRING_LITERAL
         { Bacon::Literal->new_from_token(value => $_[1]) }
     | '(' expression ')'

@@ -10,8 +10,10 @@ has file => (is => 'ro', isa => 'Str', required => 1);
 has line => (is => 'ro', isa => 'Int', required => 1);
 
 use Bacon::Utils;
+
 use Data::Dumper;
 use Try::Tiny;
+use Clone qw(clone);
 
 sub new_from_token {
     my ($class, $key, $token, @more) = @_;
@@ -85,6 +87,11 @@ sub update {
 sub source {
     my ($self) = @_;
     return $self->file . ":" . $self->line;
+}
+
+sub declared_variables {
+    my ($self) = @_;
+    return ();
 }
 
 sub to_opencl {

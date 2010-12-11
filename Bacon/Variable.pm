@@ -17,7 +17,6 @@ has type => (is => 'rw', isa => 'Str', default => "");
 has name => (is => 'rw', isa => 'Maybe[Str]');
 has dims => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 
-
 sub new_by_type {
     my ($class, $type) = @_;
 
@@ -76,6 +75,18 @@ sub to_opencl {
     }
 
     return $code;
+}
+
+sub expand {
+    my ($self) = @_;
+    die $self->type;
+    if ($self->type =~ /^(.*)\<(.*)\>$/) {
+        my ($ptype, $type) = ($1, $2);    
+        die "Found ptype: $ptype/$type";
+    }
+    else {
+        return ($self,);
+    }
 }
 
 __PACKAGE__->meta->make_immutable;
