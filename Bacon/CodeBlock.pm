@@ -18,6 +18,7 @@ has body => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]',
 
 sub new3 {
     my ($class, $tok, $vars, $smts) = @_;
+
     my @body = (@$vars, @$smts);
 
     my $self = Bacon::CodeBlock->new_from_token(undef => $_[1]);
@@ -26,7 +27,6 @@ sub new3 {
 }
 
 # Return a list of variable declarations in this block.
-# 
 
 sub declared_variables {
     my ($self) = @_;

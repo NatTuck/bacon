@@ -1,21 +1,22 @@
-package Bacon::Variable;
+package Bacon::VarBuilder;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
 
 use Moose;
 use namespace::autoclean;
+
 use Carp;
+use Data::Dumper;
 
 use Bacon::Utils;
+use Bacon::AstNode;
+extends 'Bacon::AstNode';
 
-use Bacon::Expr;
-use Bacon::Stmt;
-extends 'Bacon::Expr', 'Bacon::Stmt';
-
-has type => (is => 'rw', isa => 'Str', default => "");
+has type => (is => 'rw', isa => 'Maybe[Str]');
 has name => (is => 'rw', isa => 'Maybe[Str]');
 has dims => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
+has init => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
 
 sub new_by_type {
     my ($class, $type) = @_;
@@ -25,7 +26,7 @@ sub new_by_type {
             undef => $type, type => $type->text);
     }
 
-    if ($type->isa('Bacon::Variable')) {
+    if ($type->isa('Bacon::VarBuilder')) {
         return $class->new_from_node($type);
     }
 
@@ -79,7 +80,8 @@ sub to_opencl {
 
 sub expand {
     my ($self) = @_;
-    die $self->type;
+    warn Dumper($self) . "\n";
+    confess "Type: " . $self->type;
     if ($self->type =~ /^(.*)\<(.*)\>$/) {
         my ($ptype, $type) = ($1, $2);    
         die "Found ptype: $ptype/$type";
@@ -87,6 +89,33 @@ sub expand {
     else {
         return ($self,);
     }
+}
+
+sub decl_stmt {
+    my ($self) = @_;
+    confess "No name: " . Dumper($self) unless $self->name;
+    confess "No type: " . Dumper($self) unless $self->type;
+
+    confess "Array initializers not supported"
+        if (defined $self->init && defined $self->dims);
+
+    return Bacon::DeclStmt->new(
+        file => $self->file, line => $self->line,
+        type => $self->type, name => $self->name, 
+        dims => $self->dims, init => $self->init
+    );
+}
+
+sub fun_arg {
+    my ($self) = @_;
+    confess "No name: " . Dumper($self) unless $self->name;
+    confess "No type: " . Dumper($self) unless $self->type;
+    confess "Fun Args can't have dims" if $self->dims;
+
+    return Bacon::FunArg->new(
+        file => $self->file, line => $self->line,
+        type => $self->type, name => $self->name, 
+    );
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -7,7 +7,10 @@ use Moose;
 use namespace::autoclean;
 
 use Bacon::Expr;
-extends 'Bacon::Expr';
+use Exporter;
+extends 'Bacon::Expr', 'Exporter';
+
+our @EXPORT_OK = qw(mkop);
 
 use Bacon::Utils;
 
@@ -80,6 +83,14 @@ sub to_opencl3 {
     my @args = @{$self->args};
     return indent($depth) . "(" . $args[0]->to_opencl(0)
         . $self->name . $args[1]->to_opencl(0) . ")";
+}
+
+sub mkop {
+    my ($op, @args) = @_;
+    return Bacon::OpExpr->new(
+        file => $args[0]->file, line => $args[0]->line,
+        name => $op, args => \@args
+    );
 }
 
 __PACKAGE__->meta->make_immutable;

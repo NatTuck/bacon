@@ -12,11 +12,15 @@ use Bacon::AstNode;
 extends 'Bacon::AstNode';
 
 has name => (is => 'rw', isa => 'Str');
-has args => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
-has retv => (is => 'rw', isa => 'Maybe[Bacon::Variable]');
+has args => (is => 'rw', isa => 'ArrayRef[Bacon::FunArg]');
+has retv => (is => 'rw', isa => 'Maybe[Str]');
 has body => (is => 'rw', isa => 'Bacon::CodeBlock');
 has kern => (is => 'rw', isa => 'Bool', default => 0);
 has dist => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
+
+# Symbol table.
+has vtab => (is => 'ro', isa => 'HashRef[VarInfo]', 
+        lazy => 1, builder => 'build_vtab');
 
 sub new_parts {
     my ($class, $specs, $decl, $body) = @_;
@@ -39,7 +43,7 @@ sub new_kernel {
 sub return_type {
     my ($self) = @_;
     return "void" unless (defined $self->retv);
-    return $self->retv->type;
+    return $self->retv;
 }
 
 sub expand_vars {
@@ -50,18 +54,27 @@ sub expand_vars {
         push @expanded, $var->expand;
     }
 
-    # Check for collisions
-    my %name = ();
-    for my $var (@expanded) {
-        my $vn = $var->name;
-        my $fn = $self->name;
-
-        die "Duplicate var '$vn' in function '$fn'"
-            if (defined $name{$fn});
-        $name{$fn} = 1;
-    }
-
     return @expanded;
+}
+
+sub build_vtab {
+    my ($self) = @_;
+    return {};
+}
+
+sub exp_args {
+    my ($self) = @_;
+    my $vars = $self->vtab;
+
+    for my $name (keys %$vars) {
+        my $info = $vars->{$name};
+        next unless $info->is_arg;
+
+    }
+}
+
+sub exp_vars {
+    my ($self) = @_;
 }
 
 sub to_opencl {
@@ -83,18 +96,20 @@ sub to_opencl {
         $code .= $self->return_type . "\n";
     }
 
+    my @args = $self->expand_vars(@{$self->args});
     $code .= $self->name . "(";
-    $code .= join(', ', map {$_->to_opencl(0)} @{$self->args});
+    $code .= join(', ', map {$_->to_opencl(0)} @args);
     $code .= ")\n";
 
     $code .= "{\n";
     
     my @vars = $self->expand_vars($self->body->declared_variables);
     for my $var (@vars) {
-        $code .= $var->to_opencl(1);
+        say "var: ", $var->name;
+        $code .= $var->decl_to_opencl(1);
     }
 
-    $code .= $self->body->contents_to_opencl(1);
+    $code .= $self->body->contents_to_opencl(0);
 
     $code .= "}\n\n";
 

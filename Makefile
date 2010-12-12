@@ -19,4 +19,4 @@ clean:
 	rm -rf gen
 	(cd doc && make clean)
 
-.PHONY: all clean prereqs
+.PHONY: all clean prereqs doc

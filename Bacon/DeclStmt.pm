@@ -7,35 +7,84 @@ use Moose;
 use namespace::autoclean;
 
 use Bacon::Stmt;
-extends 'Bacon::Stmt';
+use Bacon::BaseVar;
+extends 'Bacon::Stmt', 'Bacon::BaseVar';
 
-has var => (is => 'rw', isa => 'Bacon::Variable', required => 1);
-has val => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
+has dims => (is => 'ro', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
+has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 
 use Bacon::Utils;
-
-sub new2 {
-    my ($class, $var, $init) = @_;
-    my $self = $class->new(
-        file => $var->file, line => $var->line,
-        var => $var, val => $init);
-    return $self;
-}
+use Bacon::OpExpr qw(mkop);
 
 sub declared_variables {
     my ($self) = @_;
-    return ($self->var,);
+    return ($self,);
+}
+
+sub new_dimen {
+    my ($self, $name, $val_expr) = @_;
+    return ref($self)->new(
+        file => $self->file, line => $self->line,
+        name => $name, type => 'uint', init => $val_expr
+    );
+}
+
+sub expand_array2d {
+    my ($self, $type) = @_;
+    my $name = $self->name;
+
+    die "Wrong number of dims for array2d"
+        unless scalar @{$self->dims} == 2;
+
+    my $rows_expr = $self->dims->[0];
+    my $cols_expr = $self->dims->[1];
+
+    my $size_expr = mkop('+', 
+        mkop('*', $rows_expr, $cols_expr),
+        $cols_expr
+    );
+
+    my $data = ref($self)->new(
+        file => $self->file, line => $self->line,
+        name => $name . "__data", type => "$type",
+        dims => [ $size_expr ]
+    );
+    my $rows = $self->new_dimen($name . '__rows', $rows_expr);
+    my $cols = $self->new_dimen($name . '__cols', $cols_expr);
+
+    return ($data, $rows, $cols);
 }
 
 sub to_opencl {
     my ($self, $depth) = @_;
-    my $code = $self->var->to_opencl($depth);
+    if (defined $self->init) {
+        my $code = indent($depth);
+        $code .= $self->name . " = " . $self->init->to_opencl(0);    
+        return $code . ";\n";
+    }
+    else {
+        return "";
+    }
+}
 
-    if (defined $self->val) {
-        $code .= " = " . $self->val->to_opencl(0);    
+sub decl_to_opencl {
+    my ($self, $depth) = @_;
+    my $code = indent($depth);
+    $code .= $self->type . ' ' . $self->name;
+
+    if (defined $self->dims) {
+        # TODO: Check that fun is a kernel.
+
+        my @dims = map { $_->to_opencl(0) } @{$self->dims};
+        $code .= '[' . join(', ', @dims) . ']';
     }
 
-    return $code . ";\n";
+    if (defined $self->init) {
+        $code .= ' = ' . $self->init->to_opencl(0); 
+    }
+
+    $code .= ";\n";
+    return $code;
 }
 
 __PACKAGE__->meta->make_immutable;

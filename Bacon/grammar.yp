@@ -19,8 +19,9 @@ use Bacon::Lexer qw(make_lexer);
 use Bacon::Program;
 use Bacon::Token;
 use Bacon::Function;
-use Bacon::Variable;
+use Bacon::FunArg;
 use Bacon::CodeBlock;
+use Bacon::VarBuilder;
 
 use Bacon::DeclStmt;
 use Bacon::ReturnStmt;
@@ -32,6 +33,8 @@ use Bacon::DoLoop;
 use Bacon::OpExpr;
 use Bacon::Literal;
 use Bacon::Identifier;
+
+use Bacon::Utils;
 
 sub parse_error {
     my ($parser) = @_;
@@ -99,9 +102,9 @@ postfix_expression
     | postfix_expression '(' argument_expression_list ')'
         { op($_[2], $_[1], @{$_[3]}) }
     | postfix_expression '.' IDENTIFIER
-        { op($_[2], $_[1], Bacon::Variable->new_from_token(name => $_[3])) }
+        { op($_[2], $_[1], Bacon::Identifier->new_by_name($_[3])) }
     | postfix_expression PTR_OP IDENTIFIER
-        { op($_[2], $_[1], Bacon::Variable->new_from_token(name => $_[3])) }
+        { op($_[2], $_[1], Bacon::Identifier->new_by_name($_[3])) }
     | postfix_expression INC_OP
         { op($_[2], $_[1])->set_post }
     | postfix_expression DEC_OP
@@ -258,20 +261,20 @@ constant_expression
 
 declaration
     : declaration_specifiers init_declarator_list ';'
-        { [ map { $_->update_with($_[1]) } @{$_[2]}  ] }
+        { [ map { $_->update_with($_[1])->decl_stmt } @{$_[2]}  ] }
     ;
 
 declaration_specifiers
     : storage_class_specifier
-        { Bacon::Variable->new_by_type($_[1]) }
+        { Bacon::VarBuilder->new_by_type($_[1]) }
     | storage_class_specifier declaration_specifiers
         { $_[2]->add_type($_[1]) }
     | type_specifier
-        { Bacon::Variable->new_by_type($_[1]) }
+        { Bacon::VarBuilder->new_by_type($_[1]) }
     | type_specifier declaration_specifiers
         { $_[2]->add_type($_[1]) }
     | type_qualifier
-        { Bacon::Variable->new_by_type($_[1]) }
+        { Bacon::VarBuilder->new_by_type($_[1]) }
     | type_qualifier declaration_specifiers
         { $_[2]->add_type($_[1]) }
     ;
@@ -285,9 +288,9 @@ init_declarator_list
 
 init_declarator
     : declarator
-        { Bacon::DeclStmt->new2($_[1], undef) }
+        { $_[1] }
     | declarator '=' initializer
-        { Bacon::DeclStmt->new2($_[1], $_[3]) }
+        { $_[1]->init($_[3]); $_[1] }
     ;
 
 storage_class_specifier
@@ -322,7 +325,7 @@ parameterized_type
 
 type_specifier
     : parameterized_type '<' simple_type '>'
-        { Bacon::Variable->new_ptype($_[1], $_[3]) }
+        { Bacon::VarBuilder->new_ptype($_[1], $_[3]) }
     | simple_type
     | VOID
     | struct_or_union_specifier
@@ -359,13 +362,13 @@ struct_declaration
 
 specifier_qualifier_list
     : type_specifier specifier_qualifier_list
-        { Bacon::Variable->new_by_type($_[1])->add_type($_[2]) }
+        { Bacon::VarBuilder->new_by_type($_[1])->add_type($_[2]) }
     | type_specifier
-        { Bacon::Variable->new_by_type($_[1]) }
+        { Bacon::VarBuilder->new_by_type($_[1]) }
     | type_qualifier specifier_qualifier_list
-        { Bacon::Variable->new_by_type($_[1])->add_type($_[2]) }
+        { Bacon::VarBuilder->new_by_type($_[1])->add_type($_[2]) }
     | type_qualifier
-        { Bacon::Variable->new_by_type($_[1]) }
+        { Bacon::VarBuilder->new_by_type($_[1]) }
     ;
 
 struct_declarator_list
@@ -419,7 +422,7 @@ declarator
 
 direct_declarator
     : IDENTIFIER
-        { Bacon::Variable->new_by_name($_[1]) }
+        { Bacon::VarBuilder->new_by_name($_[1]) }
     /* | '(' declarator ')' */
     | direct_declarator '[' argument_expression_list ']'
         { $_[1]->update(dims => $_[3]) }
@@ -463,9 +466,9 @@ parameter_list
 
 parameter_declaration
     : declaration_specifiers declarator
-        { Bacon::Variable->new_from_node($_[2])->update_with($_[1]); } 
+        { $_[2]->update_with($_[1])->fun_arg; } 
     | declaration_specifiers abstract_declarator
-        { Bacon::Variable->new_from_node($_[2])->update_with($_[1]); } 
+        { $_[2]->update_with($_[1])->fun_arg; } 
     | declaration_specifiers
     ;
 
@@ -531,17 +534,20 @@ labeled_statement
 compound_statement
     : '{' '}'
         { Bacon::CodeBlock->new3($_[1], [], []) }
-    | '{' statement_list '}'
-        { Bacon::CodeBlock->new3($_[1], $_[2], []) }
     | '{' declaration_list '}'
+        { assert_type($_, "Bacon::DeclStmt") for @{$_[2]};
+          Bacon::CodeBlock->new3($_[1], $_[2], []) }
+    | '{' statement_list '}'
         { Bacon::CodeBlock->new3($_[1], [], $_[2]) }
     | '{' declaration_list statement_list '}'
-        { Bacon::CodeBlock->new3($_[1], $_[2], $_[3]) }
+        { assert_type($_, "Bacon::DeclStmt") for @{$_[2]};
+          Bacon::CodeBlock->new3($_[1], $_[2], $_[3]) }
     ;
 
 declaration_list
     : declaration
-        { $_[1] } 
+        { # One declaration declares a list of variables
+          $_[1] } 
     | declaration_list declaration
         { [ @{$_[1]}, @{$_[2]} ] }
     ;
@@ -572,8 +578,7 @@ selection_statement
 for_var_init
     : expression_statement
     | type_name IDENTIFIER '=' expression_statement
-        { Bacon::DeclStmt->new2($_[1]->update(name => $_[2]->text))
-            ->update(val => $_[4]->expr) }
+        { $_[1]->update(name => $_[2]->text, init => $_[4]->expr)->decl_stmt }
     ;
 
 iteration_statement
@@ -624,7 +629,7 @@ dim_spec
 
 kernel_definition
     : KERNEL declaration_specifiers declarator dim_spec compound_statement
-        { Bacon::Function->new_kernel($_[3], $_[2], $_[4], $_[5]) }
+        { Bacon::Function->new_kernel($_[3], $_[2]->type, $_[4], $_[5]) }
     ;
 
 function_definition
