@@ -5,6 +5,7 @@ all: Bacon/Parser.pm doc
 
 Bacon/Parser.pm: Bacon/grammar.yp
 	yapp -v -m Bacon::Parser -o Bacon/Parser.pm Bacon/grammar.yp
+	mv Bacon/grammar.output Bacon/yapp.output
 
 doc:
 	(cd doc && make)
@@ -15,7 +16,7 @@ prereqs:
 	sudo bash -c "yes | cpan -i Moose::Util::TypeConstraints"
 
 clean:
-	rm -f Bacon/Parser.pm Bacon/grammar.output *~ Bacon/*~
+	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~
 	rm -rf gen
 	(cd doc && make clean)
 

@@ -26,19 +26,12 @@ sub new3 {
     return $self;
 }
 
-# Return a list of variable declarations in this block.
-
-sub declared_variables {
+sub kids {
     my ($self) = @_;
-    
-    my @vars = ();
-
-    for my $smt (@{$self->body}) {
-        push @vars, $smt->declared_variables;
-    }
-
-    return @vars;
+    return (@{$self->body});
 }
+
+# Return a list of variable declarations in this block.
 
 sub to_opencl {
     my ($self, $depth) = @_;

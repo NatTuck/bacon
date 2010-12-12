@@ -19,6 +19,7 @@ use Bacon::Lexer qw(make_lexer);
 use Bacon::Program;
 use Bacon::Token;
 use Bacon::Function;
+use Bacon::Kernel;
 use Bacon::FunArg;
 use Bacon::CodeBlock;
 use Bacon::VarBuilder;
@@ -629,14 +630,14 @@ dim_spec
 
 kernel_definition
     : KERNEL declaration_specifiers declarator dim_spec compound_statement
-        { Bacon::Function->new_kernel($_[3], $_[2]->type, $_[4], $_[5]) }
+        { Bacon::Kernel->new4($_[3], $_[2]->type, $_[4], $_[5]) }
     ;
 
 function_definition
     : declaration_specifiers declarator compound_statement
-        { Bacon::Function->new_parts($_[1], $_[2], $_[3]) }
+        { Bacon::Function->new3($_[1], $_[2], $_[3]) }
     | declarator compound_statement
-        { Bacon::Function->new_parts(undef, $_[1], $_[2]) }
+        { Bacon::Function->new3(undef, $_[1], $_[2]) }
     ;
 
 %%

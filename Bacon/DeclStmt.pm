@@ -16,7 +16,7 @@ has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 use Bacon::Utils;
 use Bacon::OpExpr qw(mkop);
 
-sub declared_variables {
+sub find_decls {
     my ($self) = @_;
     return ($self,);
 }

@@ -15,6 +15,12 @@ use Data::Dumper;
 use Try::Tiny;
 use Clone qw(clone);
 
+sub basefn {
+    my ($self) = @_;
+    my ($basefn) = $self->file =~ /^(.*)\.(bcn|bc)$/;
+    return $basefn;
+}
+
 sub new_from_token {
     my ($class, $key, $token, @more) = @_;
     assert_type($token, 'Bacon::Token');
@@ -31,16 +37,16 @@ sub new_from_token {
 sub new_from_node {
     my ($class, $node) = @_;
     assert_type($node, 'Bacon::AstNode');
+    my %attrs = (file => $node->file, line => $node->line);
 
-    my $self = $class->new(file => $node->file, line => $node->line);
-
-    for my $attr_obj ($self->meta->get_all_attributes) {
+    for my $attr_obj ($class->meta->get_all_attributes) {
         my $attr = $attr_obj->name;
         if ($node->meta->has_attribute($attr)) {
-            $self->$attr($node->$attr);
+            $attrs{$attr} = $node->$attr;
         }
     }
-    
+
+    my $self = $class->new(%attrs);
     return $self;
 }
 
@@ -97,6 +103,18 @@ sub declared_variables {
 sub to_opencl {
     my (undef, $depth) = @_;
     return indent($depth || 0) . "** ???? **";
+}
+
+sub kids {
+    my ($self) = @_;
+    return ();
+}
+
+sub find_decls {
+    my ($self) = @_;
+    my @decls = ();
+    push @decls, $_->find_decls for $self->kids;
+    return @decls;
 }
 
 __PACKAGE__->meta->make_immutable;

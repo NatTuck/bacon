@@ -16,9 +16,9 @@ has cond => (is => 'rw', isa => 'Bacon::Expr');
 has incr => (is => 'rw', isa => 'Bacon::Expr');
 has body => (is => 'rw', isa => 'Bacon::Stmt');
 
-sub declared_variables {
+sub kids {
     my ($self) = @_;
-    return $self->body->declared_variables;
+    return ($self->init, $self->cond, $self->incr, $self->body);
 }
 
 sub to_opencl {

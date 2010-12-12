@@ -14,30 +14,24 @@ extends 'Bacon::AstNode';
 has name => (is => 'rw', isa => 'Str');
 has args => (is => 'rw', isa => 'ArrayRef[Bacon::FunArg]');
 has retv => (is => 'rw', isa => 'Maybe[Str]');
-has body => (is => 'rw', isa => 'Bacon::CodeBlock');
-has kern => (is => 'rw', isa => 'Bool', default => 0);
-has dist => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
+has body => (is => 'rw', isa => 'Maybe[Bacon::CodeBlock]');
 
 # Symbol table.
 has vtab => (is => 'ro', isa => 'HashRef[VarInfo]', 
         lazy => 1, builder => 'build_vtab');
 
-sub new_parts {
+use Bacon::Utils;
+
+sub new3 {
     my ($class, $specs, $decl, $body) = @_;
     my $self = $decl->update_with($specs);
-    $self->kern(0);
-    $self->dist(undef);
     $self->body($body);
     return $self;
 }
 
-sub new_kernel {
-    my ($class, $self, $rtype, $dist, $body) = @_;
-    $self->kern(1);
-    $self->dist($dist);
-    $self->retv($rtype);
-    $self->body($body);
-    return $self;
+sub kids {
+    my ($self) = @_;
+    return (@{$self->args}, $self->body);
 }
 
 sub return_type {
@@ -78,23 +72,13 @@ sub exp_vars {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
-    die "No nested functions" unless($depth == 0);
+    my ($self, $pgm) = @_;
+    assert_type($pgm, "Bacon::Program");
 
     my $code = "/* Function: " . $self->name . 
                " " . $self->source . " */\n";
 
-    if ($self->kern) {
-        my @dims = map { $_->to_opencl(0) } @{$self->dist};
-        $code .= "kernel void\n";
-        $code .= "/* returns: " . $self->return_type . "\n";
-        $code .= " * distrib: ";
-        $code .= " [" . join(', ', @dims) . "]\n";
-        $code .= " */\n";
-    }
-    else {    
-        $code .= $self->return_type . "\n";
-    }
+    $code .= $self->return_type . "\n";
 
     my @args = $self->expand_vars(@{$self->args});
     $code .= $self->name . "(";
@@ -103,9 +87,8 @@ sub to_opencl {
 
     $code .= "{\n";
     
-    my @vars = $self->expand_vars($self->body->declared_variables);
+    my @vars = $self->expand_vars($self->find_decls);
     for my $var (@vars) {
-        say "var: ", $var->name;
         $code .= $var->decl_to_opencl(1);
     }
 
