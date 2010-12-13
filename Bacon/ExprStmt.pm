@@ -13,6 +13,11 @@ use Bacon::Utils;
 
 has expr => (is => 'ro', isa => 'Bacon::Expr');
 
+sub kids {
+    my ($self) = @_;
+    return ($self->expr,);
+}
+
 sub new2 {
     my ($class, $tok, $expr) = @_;
     return $class->new_from_token(

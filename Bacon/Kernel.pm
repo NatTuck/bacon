@@ -52,6 +52,38 @@ sub find_return_var {
     return $var->name;
 }
 
+sub init_magic_variables {
+    my ($self) = @_;
+    my @vars = grep { 
+        $_->isa('Bacon::Identifier') && $_->name =~ /^\$/
+    } $self->subnodes;
+
+    my %seen = ();
+
+    for my $var (@vars) {
+        $seen{$var->name} = 1;
+    }
+
+    my $code = '';
+
+    if ($seen{'$x'}) {
+        $code .= indent(1);
+        $code .= "int _bacon__Sx = get_global_id(0);\n";
+    }
+    
+    if ($seen{'$y'}) {
+        $code .= indent(1);
+        $code .= "int _bacon__Sy = get_global_id(1);\n";
+    }
+    
+    if ($seen{'$z'}) {
+        $code .= indent(1);
+        $code .= "int _bacon__Sz = get_global_id(2);\n";
+    }
+
+    return $code;
+}
+
 sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");
@@ -79,6 +111,8 @@ sub to_opencl {
     $code .= ")\n";
 
     $code .= "{\n";
+
+    $code .= $self->init_magic_variables;
     
     my @vars = $self->expanded_vars;
     for my $var (@vars) {
