@@ -40,7 +40,8 @@ sub to_opencl {
     my $argc = scalar @{$self->args};
 
     return $self->gen_funcall($depth) if $self->name eq '(';
-    return $self->gen_arryref($depth) if $self->name eq '[';
+    return $self->gen_arrayref($depth) if $self->name eq '[';
+    return $self->gen_fieldref($depth) if $self->name eq '.';
     return $self->to_opencl1($depth) if $argc == 1;
     return $self->to_opencl2($depth) if $argc == 2;
     return $self->to_opencl3($depth) if $argc == 3;
@@ -55,12 +56,28 @@ sub gen_funcall {
         . '(' . join(', ', @ac) . ')';
 }
 
-sub gen_arryref {
+sub gen_arrayref {
     my ($self, $depth) = @_;
     my ($what, @args) = @{$self->args};
     my @ac = map { $_->to_opencl(0) } @args;
     return indent($depth) . $what->to_opencl(0) 
         . '[' . join(', ', @ac) . ']';
+}
+
+sub gen_fieldref {
+    my ($self, $depth) = @_;
+    my $argc = scalar @{$self->args};
+    die "Wrong number of args in field reference" unless $argc == 2;
+
+    my $aa = $self->args->[0];
+    my $bb = $self->args->[1];
+
+    if ($aa->isa("Bacon::Identifier") && $bb->isa("Bacon::Identifier")) {
+        return $aa->name . "__" . $bb->name;
+    }
+    else {
+        return $self->to_opencl2($depth) if $argc == 2;
+    }
 }
 
 sub to_opencl1 {
