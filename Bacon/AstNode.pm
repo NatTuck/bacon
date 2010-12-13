@@ -110,11 +110,13 @@ sub kids {
     return ();
 }
 
-sub find_decls {
+sub subnodes {
     my ($self) = @_;
-    my @decls = ();
-    push @decls, $_->find_decls for $self->kids;
-    return @decls;
+    my @subnodes = ();
+    for (grep { defined $_ } $self->kids) {
+        push @subnodes, $_->subnodes;
+    }
+    return ($self, @subnodes);
 }
 
 __PACKAGE__->meta->make_immutable;

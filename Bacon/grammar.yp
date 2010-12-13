@@ -22,7 +22,7 @@ use Bacon::Function;
 use Bacon::Kernel;
 use Bacon::FunArg;
 use Bacon::CodeBlock;
-use Bacon::VarBuilder;
+use Bacon::BuildVar;
 
 use Bacon::DeclStmt;
 use Bacon::ReturnStmt;
@@ -267,15 +267,15 @@ declaration
 
 declaration_specifiers
     : storage_class_specifier
-        { Bacon::VarBuilder->new_by_type($_[1]) }
+        { Bacon::BuildVar->new_by_type($_[1]) }
     | storage_class_specifier declaration_specifiers
         { $_[2]->add_type($_[1]) }
     | type_specifier
-        { Bacon::VarBuilder->new_by_type($_[1]) }
+        { Bacon::BuildVar->new_by_type($_[1]) }
     | type_specifier declaration_specifiers
         { $_[2]->add_type($_[1]) }
     | type_qualifier
-        { Bacon::VarBuilder->new_by_type($_[1]) }
+        { Bacon::BuildVar->new_by_type($_[1]) }
     | type_qualifier declaration_specifiers
         { $_[2]->add_type($_[1]) }
     ;
@@ -326,7 +326,7 @@ parameterized_type
 
 type_specifier
     : parameterized_type '<' simple_type '>'
-        { Bacon::VarBuilder->new_ptype($_[1], $_[3]) }
+        { Bacon::BuildVar->new_ptype($_[1], $_[3]) }
     | simple_type
     | VOID
     | struct_or_union_specifier
@@ -363,13 +363,13 @@ struct_declaration
 
 specifier_qualifier_list
     : type_specifier specifier_qualifier_list
-        { Bacon::VarBuilder->new_by_type($_[1])->add_type($_[2]) }
+        { Bacon::BuildVar->new_by_type($_[1])->add_type($_[2]) }
     | type_specifier
-        { Bacon::VarBuilder->new_by_type($_[1]) }
+        { Bacon::BuildVar->new_by_type($_[1]) }
     | type_qualifier specifier_qualifier_list
-        { Bacon::VarBuilder->new_by_type($_[1])->add_type($_[2]) }
+        { Bacon::BuildVar->new_by_type($_[1])->add_type($_[2]) }
     | type_qualifier
-        { Bacon::VarBuilder->new_by_type($_[1]) }
+        { Bacon::BuildVar->new_by_type($_[1]) }
     ;
 
 struct_declarator_list
@@ -423,7 +423,7 @@ declarator
 
 direct_declarator
     : IDENTIFIER
-        { Bacon::VarBuilder->new_by_name($_[1]) }
+        { Bacon::BuildVar->new_by_name($_[1]) }
     /* | '(' declarator ')' */
     | direct_declarator '[' argument_expression_list ']'
         { $_[1]->update(dims => $_[3]) }

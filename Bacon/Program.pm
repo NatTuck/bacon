@@ -27,13 +27,18 @@ sub add_function {
     push @{$self->functions}, $fun;
 }
 
+sub kids {
+    my ($self) = @_;
+    return @{$self->functions};
+}
+
 sub to_opencl {
     my ($self) = @_;
 
     my $code = "/* Bacon::Program: " . $self->source . " */\n\n";
 
     for my $var (@{$self->constants}) {
-        die "Global constants not yet supported"
+        die "Global constants not yet supported";
         #$code .= $var->to_opencl(0);
     }
 

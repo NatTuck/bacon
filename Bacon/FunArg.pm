@@ -7,8 +7,8 @@ use Moose;
 use namespace::autoclean;
 
 use Bacon::AstNode;
-use Bacon::BaseVar;
-extends 'Bacon::AstNode', 'Bacon::BaseVar';
+use Bacon::Variable;
+extends 'Bacon::AstNode', 'Bacon::Variable';
 
 use Bacon::Utils;
 

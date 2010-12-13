@@ -30,6 +30,11 @@ sub set_post {
     return $self;
 }
 
+sub kids {
+    my ($self) = @_;
+    return @{$self->args};
+}
+
 sub to_opencl {
     my ($self, $depth) = @_;
     my $argc = scalar @{$self->args};

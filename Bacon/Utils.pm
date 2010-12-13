@@ -22,6 +22,12 @@ sub indent {
 sub assert_type {
     my ($obj, $expect_type) = @_;
 
+    confess("Got undef instead of '$expect_type'")
+        unless (defined $obj);
+
+    confess("Got non-object instead of '$expect_type")
+        unless (ref $obj);
+
     try {
         unless ($obj->isa($expect_type)) {
             my $actual_type = ref($obj);

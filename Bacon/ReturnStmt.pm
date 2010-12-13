@@ -13,6 +13,22 @@ use Bacon::Utils;
 
 has expr => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
 
+sub kids {
+    my ($self) = @_;
+    return ($self->expr,);
+}
+
+sub find_retvar {
+    my ($self) = @_;
+
+    unless ($self->expr->isa("Bacon::Identifier")) {
+        my $where = $self->source;
+        die "Item returned must be a single variable name at $where\n";
+    }
+
+    return ($self->expr,);
+}
+
 sub to_opencl {
     my ($self, $depth) = @_;
     if (!defined $self->expr) {

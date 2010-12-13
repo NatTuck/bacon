@@ -13,17 +13,18 @@ extends 'Bacon::AstNode';
 
 has name => (is => 'rw', isa => 'Str');
 has args => (is => 'rw', isa => 'ArrayRef[Bacon::FunArg]');
-has retv => (is => 'rw', isa => 'Maybe[Str]');
+has retv => (is => 'rw', isa => 'Str', default => 'void');
 has body => (is => 'rw', isa => 'Maybe[Bacon::CodeBlock]');
 
 # Symbol table.
-has vtab => (is => 'ro', isa => 'HashRef[VarInfo]', 
+has vtab => (is => 'rw', isa => 'Maybe[Item]',
         lazy => 1, builder => 'build_vtab');
 
 use Bacon::Utils;
 
 sub new3 {
     my ($class, $specs, $decl, $body) = @_;
+    assert_type($body, 'Bacon::CodeBlock');
     my $self = $decl->update_with($specs);
     $self->body($body);
     return $self;
@@ -31,44 +32,48 @@ sub new3 {
 
 sub kids {
     my ($self) = @_;
+    assert_type($self->body, "Bacon::CodeBlock");
     return (@{$self->args}, $self->body);
-}
-
-sub return_type {
-    my ($self) = @_;
-    return "void" unless (defined $self->retv);
-    return $self->retv;
-}
-
-sub expand_vars {
-    my ($self, @vars) = @_;
-
-    my @expanded = ();
-    for my $var (@vars) {
-        push @expanded, $var->expand;
-    }
-
-    return @expanded;
 }
 
 sub build_vtab {
     my ($self) = @_;
-    return {};
-}
+    my $vtab = {};
 
-sub exp_args {
-    my ($self) = @_;
-    my $vars = $self->vtab;
-
-    for my $name (keys %$vars) {
-        my $info = $vars->{$name};
-        next unless $info->is_arg;
-
+    for my $var (@{$self->args}, $self->find_decls) {
+        my $name = $var->name;
+        confess "Duplicate variable '$name'" if (defined $vtab->{$name});
+        $vtab->{$name} = $var;
     }
+
+    assert_type($_, 'Bacon::Variable') for (values %{$vtab});
+    die "Function has no variables?" if (scalar keys %$vtab == 0);
+    return $vtab;
 }
 
-sub exp_vars {
+sub find_decls {
     my ($self) = @_;
+    return grep { $_->isa('Bacon::DeclStmt') } $self->subnodes;
+}
+
+sub expanded_args {
+    my ($self) = @_;
+    my @unexp = grep { $_->isa('Bacon::FunArg') } values %{$self->vtab};
+    my @args = ();
+    for my $arg (@unexp) {
+        push @args, $arg->expand;
+    }
+    return @args;
+}
+
+sub expanded_vars {
+    my ($self) = @_;
+    my @unexp = grep { !$_->isa('Bacon::FunArg') } values %{$self->vtab};
+    my @vars = ();
+    for my $var (@unexp) {
+        push @vars, $var->expand;
+    }
+    return @vars;
 }
 
 sub to_opencl {
@@ -78,18 +83,18 @@ sub to_opencl {
     my $code = "/* Function: " . $self->name . 
                " " . $self->source . " */\n";
 
-    $code .= $self->return_type . "\n";
+    $code .= $self->retv . "\n";
 
-    my @args = $self->expand_vars(@{$self->args});
+    my @args = $self->expanded_args;
     $code .= $self->name . "(";
-    $code .= join(', ', map {$_->to_opencl(0)} @args);
+    $code .= join(', ', map {$_->to_opencl} @args);
     $code .= ")\n";
 
     $code .= "{\n";
     
-    my @vars = $self->expand_vars($self->find_decls);
+    my @vars = $self->expanded_vars;
     for my $var (@vars) {
-        $code .= $var->decl_to_opencl(1);
+        $code .= $var->to_opencl . ";\n";
     }
 
     $code .= $self->body->contents_to_opencl(0);

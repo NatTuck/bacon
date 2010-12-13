@@ -7,18 +7,22 @@ use Moose;
 use namespace::autoclean;
 
 use Bacon::Stmt;
-use Bacon::BaseVar;
-extends 'Bacon::Stmt', 'Bacon::BaseVar';
+use Bacon::Variable;
+extends 'Bacon::Stmt', 'Bacon::Variable';
 
 has dims => (is => 'ro', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 
 use Bacon::Utils;
 use Bacon::OpExpr qw(mkop);
+use Bacon::FunArg;
 
-sub find_decls {
+sub kids {
     my ($self) = @_;
-    return ($self,);
+    my @kids = ();
+    push @kids, @{$self->dims} if (defined $self->dims);
+    push @kids, $self->init if (defined $self->init);
+    return @kids;
 }
 
 sub new_dimen {
@@ -53,6 +57,14 @@ sub expand_array2d {
     my $cols = $self->new_dimen($name . '__cols', $cols_expr);
 
     return ($data, $rows, $cols);
+}
+
+sub to_funarg {
+    my ($self) = @_;
+    return Bacon::FunArg->new(
+        file => $self->file, line => $self->line,
+        name => $self->name, type => $self->type,
+    );
 }
 
 sub to_opencl {

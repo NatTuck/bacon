@@ -1,4 +1,4 @@
-package Bacon::VarBuilder;
+package Bacon::BuildVar;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -26,7 +26,7 @@ sub new_by_type {
             undef => $type, type => $type->text);
     }
 
-    if ($type->isa('Bacon::VarBuilder')) {
+    if ($type->isa('Bacon::BuildVar')) {
         return $class->new_from_node($type);
     }
 
