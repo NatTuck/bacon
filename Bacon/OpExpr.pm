@@ -13,10 +13,19 @@ extends 'Bacon::Expr', 'Exporter';
 our @EXPORT_OK = qw(mkop);
 
 use Bacon::Utils;
+use Bacon::RawText;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has args => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]');
 has post => (is => 'rw', isa => 'Bool', default => 0);
+
+sub mkop {
+    my ($op, @args) = @_;
+    return Bacon::OpExpr->new(
+        file => $args[0]->file, line => $args[0]->line,
+        name => $op, args => \@args
+    );
+}
 
 sub new_args {
     my ($class, $op, @args) = @_;
@@ -59,9 +68,59 @@ sub gen_funcall {
 sub gen_arrayref {
     my ($self, $depth) = @_;
     my ($what, @args) = @{$self->args};
+    my $dims = scalar @args;
+
+    return $self->gen_aref1($depth) if $dims == 1;
+    return $self->gen_aref2($depth) if $dims == 2;
+    return $self->gen_aref3($depth) if $dims == 3;
+    
+    confess "Array indexing must be 1, 2, or 3D";
     my @ac = map { $_->to_opencl(0) } @args;
     return indent($depth) . $what->to_opencl(0) 
         . '[' . join(', ', @ac) . ']';
+}
+
+sub gen_aref1 {
+    my ($self, $depth) = @_;
+    my ($what, $expr) = @{$self->args};
+    my $code = indent($depth);
+    $code .= $what->to_opencl(0);
+    $code .= '[' . $expr->to_opencl(0) . ']';
+    return $code;
+}
+
+sub gen_aref2 {
+    my ($self, $depth) = @_;
+    my ($what, $row, $col) = @{$self->args};
+    assert_type($what, "Bacon::Identifier");
+
+    my $name = $what->name;
+    my $cols = mkraw($name . "__cols");
+
+    my $expr = mkop('+', $col, mkop('*', $row, $cols));
+
+    my $code = indent($depth) . $name;
+    $code .= '[' . $expr->to_opencl(0) . ']';
+    return $code;
+}
+
+sub gen_aref3 {
+    my ($self, $depth) = @_;
+    my ($what, $dep, $row, $col) = @{$self->args};
+    assert_type($what, "Bacon::Identifier");
+
+    my $name = $what->name;
+    my $rows = mkraw($name . "__rows");
+    my $cols = mkraw($name . "__cols");
+    
+    my $dep_off = mkop('*', $dep, mkop('*', $rows, $cols));
+    my $row_off = mkop('*', $row, $cols);
+    my $expr0 = mkop('+', $dep_off, $row_off);
+    my $expr  = mkop('+', $col, $expr0);
+
+    my $code = indent($depth) . $name;
+    $code .= '[' . $expr->to_opencl(0) . ']';
+    return $code;
 }
 
 sub gen_fieldref {
@@ -105,14 +164,6 @@ sub to_opencl3 {
     my @args = @{$self->args};
     return indent($depth) . "(" . $args[0]->to_opencl(0)
         . $self->name . $args[1]->to_opencl(0) . ")";
-}
-
-sub mkop {
-    my ($op, @args) = @_;
-    return Bacon::OpExpr->new(
-        file => $args[0]->file, line => $args[0]->line,
-        name => $op, args => \@args
-    );
 }
 
 __PACKAGE__->meta->make_immutable;

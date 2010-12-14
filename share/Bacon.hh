@@ -4,27 +4,34 @@ namespace Bacon {
 
 #include <CL/cl.hpp>
 
-using std::size_t;
+class BaseContext {
+  public:
+    BaseContext();
+    ~BaseContext();
+};
 
 template <class NumT>
-class Array2D {
+class BaseBuffer {
   public:
-    const size_t rows;
-    const size_t cols;
+    const cl_uint size;
 
   private:
     NumT* data_ptr;
 };
 
 template <class NumT>
-class Array3D {
+class Array2D : public BaseBuffer {
   public:
-    const size_t rows;
-    const size_t cols;
-    const size_t deep;
+    const cl_uint rows;
+    const cl_uint cols;
+};
 
-  private:
-    NumT* data_ptr;
+template <class NumT>
+class Array3D : public BaseBuffer {
+  public:
+    const cl_uint deep;
+    const cl_uint rows;
+    const cl_uint cols;
 };
 
 } // namespace Bacon
