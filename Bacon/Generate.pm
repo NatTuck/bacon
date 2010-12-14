@@ -8,6 +8,8 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(bacon_generate);
 
 use IO::Handle;
+use Text::Template;
+use autodie;
 
 sub generate_opencl {
     my ($ast) = @_;
@@ -31,6 +33,19 @@ sub generate_cpp {
     close($cpp);
 }
 
+sub gen_from_template {
+    my ($file, %hash) = @_;
+
+    my $tpl = Text::Template->new(
+        TYPE => 'FILE',  
+        SOURCE => "share/$file.tpl",
+        DELIMITERS => ['<%', '%>']
+    );
+
+    open my $out, ">", "gen/$file";
+    $out->print($tpl->fill_in(HASH => \%hash));
+    close($out);
+}
 
 sub bacon_generate {
     my ($ast) = @_;
@@ -47,7 +62,7 @@ sub bacon_generate {
     generate_cpp($ast);
 
     # Generate Makefile
-    system("touch gen/Makefile");
+    gen_from_template("Makefile", target => $basefn); 
 }
 
 1;
