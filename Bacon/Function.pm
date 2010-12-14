@@ -14,7 +14,7 @@ extends 'Bacon::AstNode';
 has name => (is => 'rw', isa => 'Str');
 has args => (is => 'rw', isa => 'ArrayRef[Bacon::FunArg]');
 has retv => (is => 'rw', isa => 'Str', default => 'void');
-has body => (is => 'rw', isa => 'Maybe[Bacon::CodeBlock]');
+has body => (is => 'rw', isa => 'Maybe[Bacon::Stmt::Block]');
 
 # Symbol table.
 has vtab => (is => 'rw', isa => 'Maybe[Item]',
@@ -24,7 +24,7 @@ use Bacon::Utils;
 
 sub new3 {
     my ($class, $specs, $decl, $body) = @_;
-    assert_type($body, 'Bacon::CodeBlock');
+    assert_type($body, 'Bacon::Stmt::Block');
     my $self = $decl->update_with($specs);
     $self->body($body);
     return $self;
@@ -32,7 +32,6 @@ sub new3 {
 
 sub kids {
     my ($self) = @_;
-    assert_type($self->body, "Bacon::CodeBlock");
     return (@{$self->args}, $self->body);
 }
 
@@ -40,20 +39,16 @@ sub build_vtab {
     my ($self) = @_;
     my $vtab = {};
 
-    for my $var (@{$self->args}, $self->find_decls) {
+    my @decls = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->subnodes;
+
+    for my $var (@{$self->args}, @decls) {
         my $name = $var->name;
         confess "Duplicate variable '$name'" if (defined $vtab->{$name});
         $vtab->{$name} = $var;
     }
 
-    assert_type($_, 'Bacon::Variable') for (values %{$vtab});
     die "Function has no variables?" if (scalar keys %$vtab == 0);
     return $vtab;
-}
-
-sub find_decls {
-    my ($self) = @_;
-    return grep { $_->isa('Bacon::DeclStmt') } $self->subnodes;
 }
 
 sub expanded_args {

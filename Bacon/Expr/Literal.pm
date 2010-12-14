@@ -1,4 +1,4 @@
-package Bacon::Literal;
+package Bacon::Expr::Literal;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;

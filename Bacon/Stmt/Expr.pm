@@ -1,4 +1,4 @@
-package Bacon::ExprStmt;
+package Bacon::Stmt::Expr;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;

@@ -1,4 +1,4 @@
-package Bacon::SwitchStmt;
+package Bacon::Stmt::Switch;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;

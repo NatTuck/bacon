@@ -1,4 +1,4 @@
-package Bacon::CodeBlock;
+package Bacon::Stmt::Block;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -15,16 +15,6 @@ use Bacon::Utils;
 
 has body => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]',
     default => sub { [] });
-
-sub new3 {
-    my ($class, $tok, $vars, $smts) = @_;
-
-    my @body = (@$vars, @$smts);
-
-    my $self = Bacon::CodeBlock->new_from_token(undef => $_[1]);
-    $self->update(body => \@body);
-    return $self;
-}
 
 sub kids {
     my ($self) = @_;

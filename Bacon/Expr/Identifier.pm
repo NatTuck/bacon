@@ -1,4 +1,4 @@
-package Bacon::Identifier;
+package Bacon::Expr::Identifier;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -10,7 +10,6 @@ use Carp;
 use Bacon::Utils;
 
 use Bacon::Expr;
-use Bacon::Stmt;
 extends 'Bacon::Expr';
 
 has name => (is => 'rw', isa => 'Str');
@@ -26,18 +25,6 @@ sub to_opencl {
     # Rename "magic" variables.
     $name =~ s/^\$/_bacon__S/;
     return $name;
-}
-
-sub expand {
-    my ($self) = @_;
-    die $self->type;
-    if ($self->type =~ /^(.*)\<(.*)\>$/) {
-        my ($ptype, $type) = ($1, $2);    
-        die "Found ptype: $ptype/$type";
-    }
-    else {
-        return ($self,);
-    }
 }
 
 __PACKAGE__->meta->make_immutable;

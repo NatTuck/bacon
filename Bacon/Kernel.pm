@@ -17,7 +17,7 @@ use Bacon::Utils;
 
 sub new4 {
     my ($class, $fun, $rtype, $dist, $body) = @_;
-    assert_type($body, 'Bacon::CodeBlock');
+    assert_type($body, 'Bacon::Stmt::Block');
     my $self = $class->new(
         file => $fun->file, line => $fun->line,
         name => $fun->name, args => $fun->args,
@@ -28,10 +28,9 @@ sub new4 {
 
 sub find_return_var {
     my ($self) = @_;
-    return undef unless (defined $self->retv);
 
     my $name = $self->name;
-    my @rets = grep { $_->isa('Bacon::ReturnStmt') } $self->subnodes;
+    my @rets = grep { $_->isa('Bacon::Stmt::Return') } $self->subnodes;
     
     if (scalar @rets == 0 || !defined $rets[0]->expr) {
         die "Kernel '$name' has return type but doesn't return a value.\n";

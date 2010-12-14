@@ -1,4 +1,4 @@
-package Bacon::ForLoop;
+package Bacon::Stmt::For;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;

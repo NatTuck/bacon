@@ -1,4 +1,4 @@
-package Bacon::DeclStmt;
+package Bacon::Stmt::VarDecl;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -6,15 +6,14 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-use Bacon::Stmt;
-use Bacon::Variable;
-extends 'Bacon::Stmt', 'Bacon::Variable';
+extends 'Bacon::Stmt';
+with 'Bacon::Variable';
 
 has dims => (is => 'ro', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 
 use Bacon::Utils;
-use Bacon::OpExpr qw(mkop);
+use Bacon::Expr::BinaryOp qw(mkop);
 use Bacon::FunArg;
 
 sub kids {

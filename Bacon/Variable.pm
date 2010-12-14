@@ -1,14 +1,9 @@
 package Bacon::Variable;
 use warnings FATAL => 'all';
-use strict;
 use 5.10.0;
 use feature 'switch';
 
-use Moose;
-use namespace::autoclean;
-
-use Carp;
-use Data::Dumper;
+use Moose::Role;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has type => (is => 'ro', isa => 'Str', required => 1);
@@ -31,5 +26,4 @@ sub expand {
     }
 }
 
-__PACKAGE__->meta->make_immutable;
 1;

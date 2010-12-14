@@ -1,4 +1,4 @@
-package Bacon::ReturnStmt;
+package Bacon::Stmt::Return;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -25,7 +25,7 @@ sub to_opencl {
     if ($fun->isa("Bacon::Kernel")) {
         if (defined $self->expr) {
             die "Must return exactly one variable"
-                unless ($self->expr->isa("Bacon::Identifier"));
+                unless ($self->expr->isa("Bacon::Expr::Identifier"));
         }
         
         $code .= indent($depth) . "return;\n";

@@ -12,6 +12,7 @@ has line => (is => 'ro', isa => 'Int', required => 1);
 use Bacon::Utils;
 
 use Data::Dumper;
+use Scalar::Util qw(blessed);
 use Try::Tiny;
 use Clone qw(clone);
 
@@ -21,7 +22,7 @@ sub basefn {
     return $basefn;
 }
 
-sub new_from_token {
+sub new_from_token0 {
     my ($class, $key, $token, @more) = @_;
     assert_type($token, 'Bacon::Token');
 
@@ -32,6 +33,29 @@ sub new_from_token {
     return $class->new(
         file => $token->file, line => $token->line, @more
     );
+}
+
+sub new_attrs {
+    my ($class, @data) = @_;
+    my ($file, $line) = ('dunno', 12345678);
+
+    for my $obj (reverse @data) {
+        $file = $obj->file if(blessed($obj) && $obj->can('file'));
+        $line = $obj->line if(blessed($obj) && $obj->can('line'));
+        $obj = $obj->text
+            if (blessed($obj) && $obj->isa('Bacon::Token'));
+    }
+
+    my $count = scalar @data;
+    unless ($count % 2 == 0) {
+        confess "Uneven array would make bad hash";
+    }
+
+    return $class->new(file => $file, line => $line, @data);
+}
+
+sub new_from_token {
+    goto &new_attrs;
 }
 
 sub new_from_node {

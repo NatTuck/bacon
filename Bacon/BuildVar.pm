@@ -7,16 +7,15 @@ use Moose;
 use namespace::autoclean;
 
 use Carp;
-use Data::Dumper;
 
-use Bacon::Utils;
-use Bacon::AstNode;
 extends 'Bacon::AstNode';
 
 has type => (is => 'rw', isa => 'Maybe[Str]');
 has name => (is => 'rw', isa => 'Maybe[Str]');
 has dims => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 has init => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
+
+use Bacon::Utils;
 
 sub new_by_type {
     my ($class, $type) = @_;
@@ -99,7 +98,7 @@ sub decl_stmt {
     confess "Array initializers not supported"
         if (defined $self->init && defined $self->dims);
 
-    return Bacon::DeclStmt->new(
+    return Bacon::Stmt::VarDecl->new(
         file => $self->file, line => $self->line,
         type => $self->type, name => $self->name, 
         dims => $self->dims, init => $self->init

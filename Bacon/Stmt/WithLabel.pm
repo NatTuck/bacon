@@ -1,4 +1,4 @@
-package Bacon::LabeledStmt;
+package Bacon::Stmt::WithLabel;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;

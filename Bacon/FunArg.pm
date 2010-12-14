@@ -6,9 +6,8 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-use Bacon::AstNode;
-use Bacon::Variable;
-extends 'Bacon::AstNode', 'Bacon::Variable';
+extends 'Bacon::AstNode';
+with 'Bacon::Variable';
 
 use Bacon::Utils;
 

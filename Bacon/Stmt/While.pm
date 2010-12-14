@@ -1,4 +1,4 @@
-package Bacon::DoLoop;
+package Bacon::Stmt::While;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -16,7 +16,7 @@ has body => (is => 'rw', isa => 'Bacon::Stmt');
 
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
-    die "TODO: DoLoop->to_opencl";
+    die "Implement while->to_opencl\n";
 }
 
 __PACKAGE__->meta->make_immutable;
