@@ -87,17 +87,17 @@ sub to_opencl {
 
     my @args = $self->expanded_args;
     $code .= $self->name . "(";
-    $code .= join(', ', map {$_->to_opencl} @args);
+    $code .= join(', ', map { $_->to_opencl($self, 0) } @args);
     $code .= ")\n";
 
     $code .= "{\n";
     
     my @vars = $self->expanded_vars;
     for my $var (@vars) {
-        $code .= $var->to_opencl . ";\n";
+        $code .= $var->to_opencl($self, 0) . ";\n";
     }
 
-    $code .= $self->body->contents_to_opencl(0);
+    $code .= $self->body->contents_to_opencl($self, 0);
 
     $code .= "}\n\n";
 

@@ -40,7 +40,7 @@ sub expand_array2d {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, undef, $depth) = @_;
     die "Unexpanded fun arg" if $self->type =~ /\<.*\>/;
     my $code = $self->type . " " . $self->name;
     return $code;

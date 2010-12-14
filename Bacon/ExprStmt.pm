@@ -26,12 +26,12 @@ sub new2 {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     if (!defined $self->expr) {
         return indent($depth) . "/* pass */;\n";
     }
     else {
-        return indent($depth) . $self->expr->to_opencl(0) . ";\n";
+        return indent($depth) . $self->expr->to_opencl($fun, 0) . ";\n";
     }
 }
 

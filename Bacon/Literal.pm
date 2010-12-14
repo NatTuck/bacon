@@ -14,7 +14,7 @@ use Bacon::Utils;
 has value => (is => 'ro', isa => 'Str', required => 1);
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, undef, $depth) = @_;
     return indent($depth) . $self->value;
 }
 

@@ -15,14 +15,8 @@ has cond => (is => 'rw', isa => 'Bacon::Expr');
 has body => (is => 'rw', isa => 'Bacon::Stmt');
 
 sub to_opencl {
-    my ($self, $depth) = @_;
-    if (defined $self->expr) {
-        return indent($depth) . "return;\n";
-    }
-    else {
-        return indent($depth) . "return "
-            . $self->expr->to_opencl(0) . ";\n";
-    }
+    my ($self, $fun, $depth) = @_;
+    die "Implement while->to_opencl\n";
 }
 
 __PACKAGE__->meta->make_immutable;

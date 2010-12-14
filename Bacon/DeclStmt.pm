@@ -68,10 +68,10 @@ sub to_funarg {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     if (defined $self->init) {
         my $code = indent($depth);
-        $code .= $self->name . " = " . $self->init->to_opencl(0);    
+        $code .= $self->name . " = " . $self->init->to_opencl($fun, 0);    
         return $code . ";\n";
     }
     else {
@@ -80,19 +80,19 @@ sub to_opencl {
 }
 
 sub decl_to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my $code = indent($depth);
     $code .= $self->type . ' ' . $self->name;
 
     if (defined $self->dims) {
         # TODO: Check that fun is a kernel.
 
-        my @dims = map { $_->to_opencl(0) } @{$self->dims};
+        my @dims = map { $_->to_opencl($fun, 0) } @{$self->dims};
         $code .= '[' . join(', ', @dims) . ']';
     }
 
     if (defined $self->init) {
-        $code .= ' = ' . $self->init->to_opencl(0); 
+        $code .= ' = ' . $self->init->to_opencl($fun, 0); 
     }
 
     $code .= ";\n";

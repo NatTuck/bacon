@@ -18,26 +18,29 @@ sub kids {
     return ($self->expr,);
 }
 
-sub find_retvar {
-    my ($self) = @_;
-
-    unless ($self->expr->isa("Bacon::Identifier")) {
-        my $where = $self->source;
-        die "Item returned must be a single variable name at $where\n";
-    }
-
-    return ($self->expr,);
-}
-
 sub to_opencl {
-    my ($self, $depth) = @_;
-    if (!defined $self->expr) {
-        return indent($depth) . "return;\n";
+    my ($self, $fun, $depth) = @_;
+    my $code = '';
+
+    if ($fun->isa("Bacon::Kernel")) {
+        if (defined $self->expr) {
+            die "Must return exactly one variable"
+                unless ($self->expr->isa("Bacon::Identifier"));
+        }
+        
+        $code .= indent($depth) . "return;\n";
     }
     else {
-        return indent($depth) . "return "
-            . $self->expr->to_opencl(0) . ";\n";
+        if (!defined $self->expr) {
+            $code .= indent($depth) . "return;\n";
+        }
+        else {
+            $code .= indent($depth) . "return "
+                . $self->expr->to_opencl($fun, 0) . ";\n";
+        }
     }
+    
+    return $code;
 }
 
 __PACKAGE__->meta->make_immutable;

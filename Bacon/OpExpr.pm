@@ -45,34 +45,34 @@ sub kids {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my $argc = scalar @{$self->args};
 
-    return $self->gen_funcall($depth) if $self->name eq '(';
-    return $self->gen_arrayref($depth) if $self->name eq '[';
-    return $self->gen_fieldref($depth) if $self->name eq '.';
-    return $self->to_opencl1($depth) if $argc == 1;
-    return $self->to_opencl2($depth) if $argc == 2;
-    return $self->to_opencl3($depth) if $argc == 3;
+    return $self->gen_funcall($fun, $depth) if $self->name eq '(';
+    return $self->gen_arrayref($fun, $depth) if $self->name eq '[';
+    return $self->gen_fieldref($fun, $depth) if $self->name eq '.';
+    return $self->to_opencl1($fun, $depth) if $argc == 1;
+    return $self->to_opencl2($fun, $depth) if $argc == 2;
+    return $self->to_opencl3($fun, $depth) if $argc == 3;
     die "Unknown op: " . $self->name . ", $argc args.";
 }
 
 sub gen_funcall {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my ($what, @args) = @{$self->args};
-    my @ac = map { $_->to_opencl(0) } @args;
-    return indent($depth) . $what->to_opencl(0)
+    my @ac = map { $_->to_opencl($fun, 0) } @args;
+    return indent($depth) . $what->to_opencl($fun, 0)
         . '(' . join(', ', @ac) . ')';
 }
 
 sub gen_arrayref {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my ($what, @args) = @{$self->args};
     my $dims = scalar @args;
 
-    return $self->gen_aref1($depth) if $dims == 1;
-    return $self->gen_aref2($depth) if $dims == 2;
-    return $self->gen_aref3($depth) if $dims == 3;
+    return $self->gen_aref1($fun, $depth) if $dims == 1;
+    return $self->gen_aref2($fun, $depth) if $dims == 2;
+    return $self->gen_aref3($fun, $depth) if $dims == 3;
     
     confess "Array indexing must be 1, 2, or 3D";
     my @ac = map { $_->to_opencl(0) } @args;
@@ -81,16 +81,16 @@ sub gen_arrayref {
 }
 
 sub gen_aref1 {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my ($what, $expr) = @{$self->args};
     my $code = indent($depth);
-    $code .= $what->to_opencl(0);
-    $code .= '[' . $expr->to_opencl(0) . ']';
+    $code .= $what->to_opencl($fun, 0);
+    $code .= '[' . $expr->to_opencl($fun, 0) . ']';
     return $code;
 }
 
 sub gen_aref2 {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my ($what, $row, $col) = @{$self->args};
     assert_type($what, "Bacon::Identifier");
 
@@ -100,12 +100,12 @@ sub gen_aref2 {
     my $expr = mkop('+', $col, mkop('*', $row, $cols));
 
     my $code = indent($depth) . $name;
-    $code .= '[' . $expr->to_opencl(0) . ']';
+    $code .= '[' . $expr->to_opencl($fun, 0) . ']';
     return $code;
 }
 
 sub gen_aref3 {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my ($what, $dep, $row, $col) = @{$self->args};
     assert_type($what, "Bacon::Identifier");
 
@@ -119,12 +119,12 @@ sub gen_aref3 {
     my $expr  = mkop('+', $col, $expr0);
 
     my $code = indent($depth) . $name;
-    $code .= '[' . $expr->to_opencl(0) . ']';
+    $code .= '[' . $expr->to_opencl($fun, 0) . ']';
     return $code;
 }
 
 sub gen_fieldref {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my $argc = scalar @{$self->args};
     die "Wrong number of args in field reference" unless $argc == 2;
 
@@ -135,35 +135,35 @@ sub gen_fieldref {
         return $aa->name . "__" . $bb->name;
     }
     else {
-        return $self->to_opencl2($depth) if $argc == 2;
+        return $self->to_opencl2($fun, $depth) if $argc == 2;
     }
 }
 
 sub to_opencl1 {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my @args = @{$self->args};
     if ($self->post) {
-        return indent($depth) . "(" . $args[0]->to_opencl(0) 
+        return indent($depth) . "(" . $args[0]->to_opencl($fun, 0) 
             . $self->name . ")";
     }
     else {
         return indent($depth) . "(" . $self->name 
-            . $args[0]->to_opencl(0) . ")";
+            . $args[0]->to_opencl($fun, 0) . ")";
     }
 }
 
 sub to_opencl2 {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my @args = @{$self->args};
-    return indent($depth) . "(" . $args[0]->to_opencl(0)
-        . $self->name . $args[1]->to_opencl(0) . ")";
+    return indent($depth) . "(" . $args[0]->to_opencl($fun, 0)
+        . $self->name . $args[1]->to_opencl($fun, 0) . ")";
 }
 
 sub to_opencl3 {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my @args = @{$self->args};
-    return indent($depth) . "(" . $args[0]->to_opencl(0)
-        . $self->name . $args[1]->to_opencl(0) . ")";
+    return indent($depth) . "(" . $args[0]->to_opencl($fun, 0)
+        . $self->name . $args[1]->to_opencl($fun, 0) . ")";
 }
 
 __PACKAGE__->meta->make_immutable;

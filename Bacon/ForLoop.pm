@@ -22,11 +22,11 @@ sub kids {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     my $code = indent($depth) . "for (";
 
     if (defined $self->init) {
-        $code .= $self->init->to_opencl(0);
+        $code .= $self->init->to_opencl($fun, 0);
         chomp($code);
         $code .= " ";
     }
@@ -35,16 +35,16 @@ sub to_opencl {
     }
 
     if (defined $self->cond) {
-        $code .= $self->cond->to_opencl(0);
+        $code .= $self->cond->to_opencl($fun, 0);
     }
     $code .= "; ";
 
     if (defined $self->incr) {
-        $code .= $self->incr->to_opencl(0);
+        $code .= $self->incr->to_opencl($fun, 0);
     }
     $code .= ")\n";
 
-    $code .= $self->body->to_opencl($depth);
+    $code .= $self->body->to_opencl($fun, $depth);
 
     return $code;
 }

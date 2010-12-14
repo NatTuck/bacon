@@ -21,9 +21,8 @@ sub new3 {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
-    return indent($depth) . $self->name . ":\n"
-        .  $self->to_opencl($depth + 1);
+    my ($self, $fun, $depth) = @_;
+    die "TODO: Implement 'Bacon::SwitchStmt->to_opencl";
 }
 
 __PACKAGE__->meta->make_immutable;

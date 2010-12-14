@@ -21,7 +21,7 @@ sub new_by_name {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, undef, $depth) = @_;
     my $name = $self->name;
     # Rename "magic" variables.
     $name =~ s/^\$/_bacon__S/;

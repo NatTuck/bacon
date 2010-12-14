@@ -20,9 +20,9 @@ sub new2 {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
+    my ($self, $fun, $depth) = @_;
     return indent($depth) . $self->name . ":\n"
-        .  $self->to_opencl($depth + 1);
+        .  $self->to_opencl($fun, $depth + 1);
 }
 
 __PACKAGE__->meta->make_immutable;

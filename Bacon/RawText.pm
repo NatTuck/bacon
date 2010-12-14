@@ -25,7 +25,7 @@ sub mkraw {
 }
 
 sub to_opencl {
-    my ($self)  = @_;
+    my ($self, undef, undef)  = @_;
     return $self->text;
 }
 

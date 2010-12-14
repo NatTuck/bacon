@@ -91,7 +91,7 @@ sub to_opencl {
     my $code = "/* Kernel: " . $self->name . 
                " " . $self->source . " */\n";
 
-    my @dims = map { $_->to_opencl(0) } @{$self->dist};
+    my @dims = map { $_->to_opencl($self, 0) } @{$self->dist};
     $code .= "kernel void\n";
     $code .= "/* returns: " . $self->retv . "\n";
     $code .= " * distrib: ";
@@ -107,7 +107,7 @@ sub to_opencl {
     
     my @args = $self->expanded_args;
     $code .= $self->name . "(";
-    $code .= join(', ', map {$_->to_opencl(0)} @args);
+    $code .= join(', ', map {$_->to_opencl($self, 0)} @args);
     $code .= ")\n";
 
     $code .= "{\n";
@@ -116,10 +116,10 @@ sub to_opencl {
     
     my @vars = $self->expanded_vars;
     for my $var (@vars) {
-        $code .= $var->decl_to_opencl(1);
+        $code .= $var->decl_to_opencl($self, 1);
     }
 
-    $code .= $self->body->contents_to_opencl(0);
+    $code .= $self->body->contents_to_opencl($self, 0);
 
     $code .= "}\n\n";
 

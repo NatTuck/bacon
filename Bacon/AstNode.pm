@@ -101,7 +101,7 @@ sub declared_variables {
 }
 
 sub to_opencl {
-    my (undef, $depth) = @_;
+    my (undef, $fun, $depth) = @_;
     return indent($depth || 0) . "** ???? **";
 }
 

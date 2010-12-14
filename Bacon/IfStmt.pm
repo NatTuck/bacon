@@ -30,11 +30,11 @@ sub new3 {
 }
 
 sub to_opencl {
-    my ($self, $depth) = @_;
-    return indent($depth) . "if (" . $self->cond->to_opencl(0) . ")\n"
-         . $self->if_t->to_opencl($depth + 1) . 
+    my ($self, $fun, $depth) = @_;
+    return indent($depth) . "if (" . $self->cond->to_opencl($fun, 0) . ")\n"
+         . $self->if_t->to_opencl($fun, $depth + 1) . 
          ((defined $self->if_f)
-            ? ("\nelse\n" . $self->if_f->to_opencl($depth + 1))
+            ? ("\nelse\n" . $self->if_f->to_opencl($fun, $depth + 1))
             : ""
          );
 }
