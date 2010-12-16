@@ -46,4 +46,15 @@ sub in_list {
     return 0;
 }
 
+sub cpp_type {
+    my ($type) = @_;
+
+    if ($type =~ /^(\w)(.*)\<(.*)\>$/) {
+        return uc($1) . ($2) . cpp_type($3);
+    }
+    else {
+        return 'cl_' . $type;
+    }
+}
+
 1;

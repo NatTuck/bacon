@@ -24,21 +24,25 @@ sub generate_cpp {
     my ($ast) = @_;
     my $basefn = $ast->basefn;
 
-    open my $hdr, ">", "gen/$basefn.hh";
-    $hdr->print($ast->to_wrapper_hh);
-    close($hdr);
-    
-    open my $cpp, ">", "gen/$basefn.cc";
-    $cpp->print($ast->to_wrapper_cc);
-    close($cpp);
+    gen_from_template(
+        "$basefn.hh", "UserClass.hh.tpl",
+        name => $basefn, 
+        prototypes => $ast->to_wrapper_hh,
+    );
+
+    gen_from_template(
+        "$basefn.cc", "UserClass.cc.tpl",
+        name => $basefn, 
+        functions => $ast->to_wrapper_cc,
+    );
 }
 
 sub gen_from_template {
-    my ($file, %hash) = @_;
+    my ($file, $src, %hash) = @_;
 
     my $tpl = Text::Template->new(
         TYPE => 'FILE',  
-        SOURCE => "share/$file.tpl",
+        SOURCE => "share/$src",
         DELIMITERS => ['<%', '%>']
     );
 
@@ -62,7 +66,7 @@ sub bacon_generate {
     generate_cpp($ast);
 
     # Generate Makefile
-    gen_from_template("Makefile", target => $basefn); 
+    gen_from_template("Makefile", "Makefile.tpl", target => $basefn); 
 }
 
 1;

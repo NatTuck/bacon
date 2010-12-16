@@ -32,6 +32,11 @@ sub kids {
     return @{$self->functions};
 }
 
+sub kernels {
+    my ($self) = @_;
+    return grep { $_->isa('Bacon::Kernel') } @{$self->functions};
+}
+
 sub to_opencl {
     my ($self) = @_;
 
@@ -59,12 +64,12 @@ sub to_wrapper_cc {
 
 sub to_wrapper_hh {
     my ($self) = @_;
-    my $guard = "BACON_" . uc($self->basefn) . "_HH_GUARD";
-    my $code = "";
-    $code .= "#ifndef $guard\n";
-    $code .= "#define $guard\n";
-    $code .= "\n\n";
-    $code .= "#endif\n";
+    my $code = "";    
+
+    for my $fun ($self->kernels) {
+        $code .= $fun->to_wrapper_hh($self);
+    }
+    
     return $code;
 }
 

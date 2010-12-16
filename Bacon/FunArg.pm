@@ -16,6 +16,11 @@ sub declared_variables {
     return ($self->var,);
 }
 
+sub to_funarg {
+    my ($self) = @_;
+    return $self;
+}
+
 sub new_dimen {
     my ($self, $name) = @_;
     return ref($self)->new(

@@ -125,5 +125,14 @@ sub to_opencl {
     return $code;
 }
 
+sub to_wrapper_hh {
+    my ($self) = @_;
+}
+
+sub to_wrapper_cc {
+    my ($self) = @_;
+
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

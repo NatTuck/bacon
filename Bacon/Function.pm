@@ -99,5 +99,15 @@ sub to_opencl {
     return $code;
 }
 
+sub to_wrapper_hh {
+    my ($self, $pgm) = @_;
+    confess "Non-kernel functions don't produce C++ code.";
+}
+
+sub to_wrapper_cc {
+    my ($self, $pgm) = @_;
+    confess "Non-kernel functions don't produce C++ code.";
+}
+
 __PACKAGE__->meta->make_immutable;
 1;
