@@ -64,9 +64,10 @@ sub to_wrapper_cc {
 
 sub to_wrapper_hh {
     my ($self) = @_;
-    my $code = "";    
+    my $code = "/* Prototypes */\n";
 
     for my $fun ($self->kernels) {
+        $code .= "/* Kernel: " . $fun->name . " */\n";
         $code .= $fun->to_wrapper_hh($self);
     }
     

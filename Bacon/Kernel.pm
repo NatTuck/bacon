@@ -127,10 +127,12 @@ sub to_opencl {
 
 sub to_wrapper_hh {
     my ($self) = @_;
+    return "((** prototype **))\n";
 }
 
 sub to_wrapper_cc {
     my ($self) = @_;
+    return "((** body **))\n";
 
 }
 
