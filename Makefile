@@ -14,7 +14,7 @@ prereqs:
 	sudo apt-get install libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl
 
 test: all
-	./bacon Add.bc && (cat gen/Add.cl; cat gen/Add.hh)
+	./bacon Add.bc && (cat gen/Add.cl; cat gen/Add.hh; cat gen/Add.cc)
 
 clean:
 	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~

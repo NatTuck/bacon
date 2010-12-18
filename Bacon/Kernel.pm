@@ -125,15 +125,75 @@ sub to_opencl {
     return $code;
 }
 
+sub wrapper_args {
+    my ($self) = @_;
+    return map { $_->to_wrapper_hh } @{$self->args};
+}
+
 sub to_wrapper_hh {
     my ($self) = @_;
-    return "((** prototype **))\n";
+    return indent(1)
+        . cpp_type($self->retv) . " "
+        . $self->name
+        . '('
+        . join(', ', $self->wrapper_args)
+        . ");\n";
+}
+
+sub wrapper_range {
+    my ($self) = @_;
+    return join(', ', map {$_->to_dim} @{$self->dist});
+}
+
+sub decl_return_var {
+    my ($self) = @_;
+    my $type = cpp_type($self->retv);
+    my $name = $self->find_return_var;
+    # TODO: Return var vtab can't just be a funarg.
+    die Dumper($self->vtab->{$name});
+}
+
+sub wrapper_body {
+    my ($self) = @_;
+    my $name  = $self->name;
+    my @lines = ();
+
+    unless ($self->retv eq 'void') {
+        push @lines, $self->decl_return_var;
+        push @lines, ''; 
+    }
+
+    push @lines, qq{Kernel kern(ctx.pgm, "$name");};
+    
+    push @lines, '';
+   
+    my $argn = 0;
+    for my $arg ($self->expanded_args) {
+        my $arg_name = $arg->cc_name;
+        push @lines, "kern.setArg($argn, $arg_name);";
+        $argn++;
+    }
+
+    push @lines, '';
+
+    my $range = $self->wrapper_range;
+    push @lines, qq{NDRange range($range);};
+
+
+    return @lines;
 }
 
 sub to_wrapper_cc {
     my ($self) = @_;
-    return "((** body **))\n";
-
+    my $class = $self->basefn;
+    my $name  = $self->name;
+    return cpp_type($self->retv) . "\n"
+        . $class . "::" . $name
+        . '('
+        . join(', ', $self->wrapper_args)
+        . ")\n{\n"
+        . join("\n", map { indent(1) . $_ } $self->wrapper_body)
+        . "\n}\n\n";
 }
 
 __PACKAGE__->meta->make_immutable;

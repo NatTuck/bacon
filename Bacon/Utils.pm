@@ -4,7 +4,7 @@ use strict;
 
 use Exporter;
 our @ISA    = qw(Exporter);
-our @EXPORT = qw(indent assert_type in_list);
+our @EXPORT = qw(indent assert_type in_list cpp_type);
 
 use Carp;
 use Try::Tiny;
@@ -49,8 +49,8 @@ sub in_list {
 sub cpp_type {
     my ($type) = @_;
 
-    if ($type =~ /^(\w)(.*)\<(.*)\>$/) {
-        return uc($1) . ($2) . cpp_type($3);
+    if ($type =~ /^(\w)(.*)(\d\w)\<(.*)\>$/) {
+        return uc($1) . ($2) . uc($3) . '<' . cpp_type($4) . '>';
     }
     else {
         return 'cl_' . $type;

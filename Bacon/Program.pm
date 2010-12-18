@@ -56,18 +56,20 @@ sub to_opencl {
 
 sub to_wrapper_cc {
     my ($self) = @_;
-    my $header = $self->basefn . ".hh";
-    my $code = "/* C++ wrapper implementation */\n";
-    $code .= qq{#include "$header"\n};
+    my $code = "/* Generated Methods */\n";
+
+    for my $fun ($self->kernels) {
+        $code .= $fun->to_wrapper_cc($self);
+    }
+
     return $code;
 }
 
 sub to_wrapper_hh {
     my ($self) = @_;
-    my $code = "/* Prototypes */\n";
+    my $code = indent(1) . "/* Generated prototypes */\n";
 
     for my $fun ($self->kernels) {
-        $code .= "/* Kernel: " . $fun->name . " */\n";
         $code .= $fun->to_wrapper_hh($self);
     }
     

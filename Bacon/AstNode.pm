@@ -143,5 +143,10 @@ sub subnodes {
     return ($self, @subnodes);
 }
 
+sub to_dim {
+    my ($self) = @_;
+    confess "Object of type " . ref($self) . " not a dim";
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

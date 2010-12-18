@@ -50,5 +50,25 @@ sub to_opencl {
     return $code;
 }
 
+sub to_wrapper_hh {
+    my ($self) = @_;
+    return cpp_type($self->type) . ' ' . $self->name;
+}
+
+sub wrapper_args {
+    my ($self) = @_;
+    my $type = $self->type;
+
+    return $self->expand_array2d_cc if ($type =~ /^array2d/i);
+    return $self->name;
+}
+
+sub cc_name {
+    my ($self) = @_;
+    my $name = $self->name;
+    $name =~ s/__/./;
+    return $name;
+}
+
 __PACKAGE__->meta->make_immutable;
 1;
