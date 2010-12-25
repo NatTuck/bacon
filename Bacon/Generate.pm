@@ -67,6 +67,11 @@ sub bacon_generate {
 
     # Generate Makefile
     gen_from_template("Makefile", "Makefile.tpl", target => $basefn); 
+
+    # Copy some generic stuff.
+    my @files = grep { !/\.tpl$/ } `ls share`;
+    chomp @files;
+    map { system("cp share/$_ gen") } @files;
 }
 
 1;

@@ -3,7 +3,10 @@
 
 /* Don't make changes here, they're likely to mysteriously vanish. */
 
-#include "gen/<% $name %>.hh"
+#include "<% $name %>.hh"
+
+using namespace Bacon;
+using namespace cl;
 
 // Constructor
 <% $name %>::<% $name %>()

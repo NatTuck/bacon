@@ -1,8 +1,19 @@
 
-namespace Bacon {
+#include <utility>
+using std::make_pair;
 
-#include "gen/BaconContext.hh"
+#include <sstream>
+#include <fstream>
+#include <iostream>
+using std::cerr;
+using std::endl;
+
+#include "BaconContext.hh"
 using namespace cl;
+
+#include "cl_perror.hh"
+
+namespace Bacon {
 
 void
 context_error_callback(const char* msg, const void* extra_data, 
@@ -14,7 +25,7 @@ context_error_callback(const char* msg, const void* extra_data,
 
 Context::Context()
 {
-    dev = find_best_device();
+    dev = best_opencl_device();
 
     std::vector<cl::Device> devs;
     devs.push_back(dev);
@@ -93,7 +104,7 @@ Context::load_opencl_program(std::string src_fn)
     }
 
     build << "\n\n";
-    pgm_src = build.str();
+    std::string pgm_src = build.str();
 
     // Now, the (ptr, length) pairs we need are just
     // pointers into that string's data buffer.

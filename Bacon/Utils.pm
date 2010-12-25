@@ -4,7 +4,7 @@ use strict;
 
 use Exporter;
 our @ISA    = qw(Exporter);
-our @EXPORT = qw(indent assert_type in_list cpp_type);
+our @EXPORT = qw(indent assert_type in_list cpp_type cpp_header_type);
 
 use Carp;
 use Try::Tiny;
@@ -55,6 +55,14 @@ sub cpp_type {
     else {
         return 'cl_' . $type;
     }
+}
+
+sub cpp_header_type {
+    my ($type) = @_;
+    $type = cpp_type($type);
+    return ($type =~ /\<.*\>/)
+        ? "Bacon::$type"
+        : $type;
 }
 
 1;

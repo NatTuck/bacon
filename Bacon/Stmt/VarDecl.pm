@@ -84,7 +84,7 @@ sub decl_to_opencl {
     $code .= $self->type . ' ' . $self->name;
 
     if (defined $self->dims) {
-        # TODO: Check that fun is a kernel.
+        assert_type($fun, 'Bacon::Kernel');
 
         my @dims = map { $_->to_opencl($fun, 0) } @{$self->dims};
         $code .= '[' . join(', ', @dims) . ']';
@@ -96,6 +96,13 @@ sub decl_to_opencl {
 
     $code .= ";\n";
     return $code;
+}
+
+sub cpp_dims {
+    my ($self, $fun) = @_;
+    my @dims = map { $_->to_opencl($fun, 0) } @{$self->dims};
+    map { s/__/./ } @dims;
+    return join(', ', @dims);
 }
 
 __PACKAGE__->meta->make_immutable;

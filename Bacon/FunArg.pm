@@ -16,11 +16,6 @@ sub declared_variables {
     return ($self->var,);
 }
 
-sub to_funarg {
-    my ($self) = @_;
-    return $self;
-}
-
 sub new_dimen {
     my ($self, $name) = @_;
     return ref($self)->new(
@@ -52,7 +47,7 @@ sub to_opencl {
 
 sub to_wrapper_hh {
     my ($self) = @_;
-    return cpp_type($self->type) . ' ' . $self->name;
+    return cpp_header_type($self->type) . ' ' . $self->name;
 }
 
 sub wrapper_args {

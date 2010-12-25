@@ -99,9 +99,7 @@ sub to_opencl {
 
     if ($self->retv ne 'void') {
         my $vname = $self->find_return_var;
-        my $var = $self->vtab->{$vname};
-        my $arg = $var->to_funarg;
-        $self->vtab->{$vname} = $arg;
+        $self->vtab->{$vname}->retv(1);
     }
     
     my @args = $self->expanded_args;
@@ -133,7 +131,7 @@ sub wrapper_args {
 sub to_wrapper_hh {
     my ($self) = @_;
     return indent(1)
-        . cpp_type($self->retv) . " "
+        . cpp_header_type($self->retv) . " "
         . $self->name
         . '('
         . join(', ', $self->wrapper_args)
@@ -149,8 +147,9 @@ sub decl_return_var {
     my ($self) = @_;
     my $type = cpp_type($self->retv);
     my $name = $self->find_return_var;
-    # TODO: Return var vtab can't just be a funarg.
-    die Dumper($self->vtab->{$name});
+    my $retv = $self->vtab->{$name};
+    my $dims = $retv->cpp_dims($self);
+    return "$type $name($dims);";
 }
 
 sub wrapper_body {
@@ -179,6 +178,10 @@ sub wrapper_body {
     my $range = $self->wrapper_range;
     push @lines, qq{NDRange range($range);};
 
+    push @lines, 'Event done;';
+    push @lines, 'ctx.queue.enqueueNDRangeKernel('
+        . 'kern, NullRange, range, NullRange, 0, &done);';
+    push @lines, 'done.wait();';
 
     return @lines;
 }

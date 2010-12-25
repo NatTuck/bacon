@@ -7,6 +7,7 @@ use Moose::Role;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has type => (is => 'ro', isa => 'Str', required => 1);
+has retv => (is => 'rw', isa => 'Bool', default => 0);
 
 sub expand {
     my ($self) = @_;

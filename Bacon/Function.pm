@@ -53,9 +53,13 @@ sub build_vtab {
 
 sub expanded_args {
     my ($self) = @_;
-    my @unexp = grep { $_->isa('Bacon::FunArg') } values %{$self->vtab};
+    my @unexp = grep { $_->isa('Bacon::FunArg') || $_->retv } 
+        values %{$self->vtab};
     my @args = ();
     for my $arg (@unexp) {
+        unless ($arg->isa('Bacon::FunArg')) {
+            $arg = $arg->to_funarg;
+        }
         push @args, $arg->expand;
     }
     return @args;
@@ -63,7 +67,8 @@ sub expanded_args {
 
 sub expanded_vars {
     my ($self) = @_;
-    my @unexp = grep { !$_->isa('Bacon::FunArg') } values %{$self->vtab};
+    my @unexp = grep { !$_->isa('Bacon::FunArg') && !$_->retv } 
+        values %{$self->vtab};
     my @vars = ();
     for my $var (@unexp) {
         push @vars, $var->expand;
