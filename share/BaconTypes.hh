@@ -2,6 +2,7 @@
 #define BACON_TYPES_HH
 
 #include <cassert>
+#include <iostream>
 
 #define __CL_ENABLE_EXCEPTIONS 1
 #include <CL/cl.hpp>
@@ -67,12 +68,14 @@ class BaseBuffer {
     {
         assert(ctx != 0);
         ctx->queue.enqueueWriteBuffer(buffer, true, 0, byte_size(), data.get());
+        on_gpu = true;
     }
 
     void recv_dev()
     {
         assert(ctx != 0);
         ctx->queue.enqueueReadBuffer(buffer, true, 0, byte_size(), data.get());
+        on_gpu = false;
     }
 
     size_t byte_size()
