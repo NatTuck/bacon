@@ -42,6 +42,11 @@ sub to_opencl {
     my ($self, undef, $depth) = @_;
     die "Unexpanded fun arg" if $self->type =~ /\<.*\>/;
     my $code = $self->type . " " . $self->name;
+
+    if ($self->type =~ /\*/) {
+        $code = "global $code";
+    }
+
     return $code;
 }
 
@@ -62,6 +67,7 @@ sub cc_name {
     my ($self) = @_;
     my $name = $self->name;
     $name =~ s/__/./;
+    $name =~ s/data$/get_buffer()/;
     return $name;
 }
 

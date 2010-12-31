@@ -40,7 +40,7 @@ sub kernels {
 sub to_opencl {
     my ($self) = @_;
 
-    my $code = "/* Bacon::Program: " . $self->source . " */\n\n";
+    my $code = "/* Bacon::Program: " . $self->source . " */\n";
 
     for my $var (@{$self->constants}) {
         die "Global constants not yet supported";
@@ -51,6 +51,7 @@ sub to_opencl {
         $code .= $fun->to_opencl($self);
     }
 
+    $code .= "/* vim: ft=c \n */\n\n";
     return $code;
 }
 

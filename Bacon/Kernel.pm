@@ -53,8 +53,9 @@ sub find_return_var {
 
 sub init_magic_variables {
     my ($self) = @_;
+
     my @vars = grep { 
-        $_->isa('Bacon::Identifier') && $_->name =~ /^\$/
+        $_->isa('Bacon::Expr::Identifier') 
     } $self->subnodes;
 
     my %seen = ();
@@ -149,7 +150,10 @@ sub decl_return_var {
     my $name = $self->find_return_var;
     my $retv = $self->vtab->{$name};
     my $dims = $retv->cpp_dims($self);
-    return "$type $name($dims);";
+    return (
+        "$type $name($dims);",
+        "$name.set_context(&ctx);"
+    );
 }
 
 sub wrapper_body {
@@ -161,6 +165,14 @@ sub wrapper_body {
         push @lines, $self->decl_return_var;
         push @lines, ''; 
     }
+    
+    for my $arg (@{$self->args}) {
+        if ($arg->type =~ /\<.*\>/) {
+            push @lines, $arg->name . ".set_context(&ctx);";
+        }
+    }
+        
+    push @lines, ''; 
 
     push @lines, qq{Kernel kern(ctx.pgm, "$name");};
     
@@ -173,6 +185,7 @@ sub wrapper_body {
         $argn++;
     }
 
+
     push @lines, '';
 
     my $range = $self->wrapper_range;
@@ -182,6 +195,11 @@ sub wrapper_body {
     push @lines, 'ctx.queue.enqueueNDRangeKernel('
         . 'kern, NullRange, range, NullRange, 0, &done);';
     push @lines, 'done.wait();';
+
+    unless ($self->retv eq 'void') {
+        my $rv_name = $self->find_return_var;
+        push @lines, "return $rv_name;";
+    }
 
     return @lines;
 }

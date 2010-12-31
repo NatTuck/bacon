@@ -58,7 +58,7 @@ sub gen_aref2 {
     my $expr = mkop('+', $col, mkop('*', $row, $cols));
 
     return indent($depth) 
-        . $self->name
+        . $self->name . "__data"
         . '[' 
         . $expr->to_opencl($fun, 0) 
         . ']';
@@ -79,7 +79,7 @@ sub gen_aref3 {
     my $expr  = mkop('+', $col, $expr0);
 
     return indent($depth) 
-        . $self->name
+        . $self->name . "__data"
         . '[' 
         . $expr->to_opencl($fun, 0) 
         . ']';

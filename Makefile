@@ -16,6 +16,7 @@ prereqs:
 test: all
 	./bacon Add.bc
 	(cd gen && make)
+	gen/test
 
 clean:
 	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~

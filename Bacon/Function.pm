@@ -23,9 +23,9 @@ has vtab => (is => 'rw', isa => 'Maybe[Item]',
 use Bacon::Utils;
 
 sub new3 {
-    my ($class, $specs, $decl, $body) = @_;
+    my ($class, $specs, $self, $body) = @_;
     assert_type($body, 'Bacon::Stmt::Block');
-    my $self = $decl->update_with($specs);
+    $self->retv($specs->type);
     $self->body($body);
     return $self;
 }

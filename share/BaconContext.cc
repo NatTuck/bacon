@@ -5,6 +5,7 @@ using std::make_pair;
 #include <sstream>
 #include <fstream>
 #include <iostream>
+using std::cout;
 using std::cerr;
 using std::endl;
 
@@ -105,6 +106,11 @@ Context::load_opencl_program(std::string src_fn)
 
     build << "\n\n";
     std::string pgm_src = build.str();
+
+    if (pgm_src.empty()) {
+        cerr << "Epic fail" << endl;
+        exit(1);
+    }
 
     // Now, the (ptr, length) pairs we need are just
     // pointers into that string's data buffer.
