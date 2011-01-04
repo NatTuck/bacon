@@ -3,9 +3,9 @@
 using std::cout;
 using std::endl;
 
-#include "Bacon.hh"
-#include "Add.hh"
-#include "cl_perror.hh"
+#include "gen/Bacon.hh"
+#include "gen/Add.hh"
+#include "gen/cl_perror.hh"
 
 void
 run_test()

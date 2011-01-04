@@ -13,14 +13,18 @@ doc:
 prereqs:
 	sudo apt-get install libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl
 
-test: all
-	./bacon Add.bc
-	(cd gen && make)
-	gen/test
+examples: all
+	find examples -maxdepth 1 -mindepth 1 -type d \
+		        -exec sh -c '(cd {} && make)' \;
+
+test: examples
+	prove examples/*/*.t
 
 clean:
 	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~
 	rm -rf gen
 	(cd doc && make clean)
+	find examples -maxdepth 1 -mindepth 1 -type d \
+		-exec sh -c '(cd {} && make clean)' \;
 
 .PHONY: all clean prereqs test doc

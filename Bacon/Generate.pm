@@ -11,6 +11,8 @@ use IO::Handle;
 use Text::Template;
 use autodie;
 
+use Bacon::CLEnv qw(ocl_write_perror ocl_ccflags ocl_ldflags);
+
 sub generate_opencl {
     my ($ast) = @_;
     my $basefn = $ast->basefn;
@@ -40,11 +42,13 @@ sub generate_cpp {
 sub gen_from_template {
     my ($file, $src, %hash) = @_;
 
+    my $base = $ENV{BACON_BASE};
+
     my $tpl = Text::Template->new(
         TYPE => 'FILE',  
-        SOURCE => "share/$src",
+        SOURCE => "$base/share/$src",
         DELIMITERS => ['<%', '%>']
-    );
+    ) or die "Template construction failed for $base/share/$src";
 
     open my $out, ">", "gen/$file";
     $out->print($tpl->fill_in(HASH => \%hash));
@@ -66,12 +70,20 @@ sub bacon_generate {
     generate_cpp($ast);
 
     # Generate Makefile
-    gen_from_template("Makefile", "Makefile.tpl", target => $basefn); 
+    gen_from_template("Makefile", "Makefile.tpl", 
+        target  => $basefn,
+        CCFLAGS => ocl_ccflags(),
+        LDFLAGS => ocl_ldflags(),
+    ); 
 
     # Copy some generic stuff.
-    my @files = grep { !/\.tpl$/ } `ls share`;
+    my $base = $ENV{BACON_BASE};
+    my @files = grep { !/\.tpl$/ } `ls $base/share`;
     chomp @files;
-    map { system("cp share/$_ gen") } @files;
+    map { system("cp $base/share/$_ gen") } @files;
+
+    # Generate opencl_perror code.
+    ocl_write_perror("gen");    
 }
 
 1;

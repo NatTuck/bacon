@@ -6,44 +6,57 @@ bacon - OpenCL frontend, providing a better array compute notation
 
 =head1 SYNOPSIS
 
-bacon [OPTION]... [FILE]
+ bacon [OPTION]... [FILE]
+
+ Options:
+   --help           Print this message
+   --ccflags        Output g++ include flags to build output.
+   --ldflags        Output linker flags to build output.
+
+ Otherwise, writes some OpenCL and C++ code in './gen' from the
+ provided Bacon C source file.
 
 =head1 DESCRIPTION
 
-Generate OpenCL and C++ code from FILE. 
-
-=over
-
-=item -h
-
-Show this documentation.
-
-=back
+Given a source file Foo.bc, this tool will generate a C++ header
+file called gen/Foo.hh that defines a Foo class with a method for
+each kernel in the Bacon C source file.
 
 =cut
 
 use warnings FATAL => 'all';
 use strict;
-
 use 5.10.0;
 
-use Getopt::Std qw(getopts);
-use Data::Dumper;
-$Data::Dumper::Terse = 1;
+use FindBin qw($Bin);
+$ENV{BACON_BASE} = $Bin;
+use lib $Bin;
 
+use Bacon::CLEnv qw(ocl_ccflags ocl_ldflags);
 use Bacon::Parser;
 use Bacon::Generate;
 
-my %opts;
-getopts('h', \%opts);
+use Getopt::Long qw(GetOptions);
+use Pod::Usage;
 
-if (defined $opts{h}) {
-    system(qq{perldoc "$0"});
+my %opt = ();
+GetOptions(\%opt, 'help', 'ccflags', 'ldflags');
+
+if (defined $opt{help}) {
+    pod2usage(1);
+}
+
+if (defined $opt{ccflags}) {
+    say ocl_ccflags();
     exit(0);
 }
 
-my $source = shift;
+if (defined $opt{ldflags}) {
+    say ocl_ldflags();
+    exit(0);
+}
+
+my $source = shift || pod2usage(1);
 my $ast = bacon_parse($source);
 bacon_generate($ast);
-
 
