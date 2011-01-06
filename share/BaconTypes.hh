@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <fstream>
 
 #define __CL_ENABLE_EXCEPTIONS 1
 #include <CL/cl.hpp>
@@ -81,6 +82,13 @@ class BaseBuffer {
     size_t byte_size()
     {
         return size * sizeof(NumT);
+    }
+
+    void read(std::ifstream in_file)
+    {
+        for(int ii = 0; ii < size; ++ii) {
+            read some bytes
+        }    
     }
     
     const cl_uint size;
