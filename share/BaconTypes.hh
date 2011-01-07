@@ -84,11 +84,23 @@ class BaseBuffer {
         return size * sizeof(NumT);
     }
 
-    void read(std::ifstream in_file)
+    void read_items(std::ifstream in_file)
     {
-        for(int ii = 0; ii < size; ++ii) {
-            read some bytes
-        }    
+        for (int ii = 0; ii < size; ++ii) {
+            in_file >> data[ii];
+        }
+        
+        on_gpu = false;
+    }
+
+    void write_items(std::ofstream out_file)
+    {
+        if (on_gpu)
+            recv_dev();
+
+        for (int ii = 0; ii < size; ++ii) {
+            out_file << data[ii];
+        }
     }
     
     const cl_uint size;
@@ -110,10 +122,29 @@ class Array2D : public BaseBuffer<NumT> {
         // do nothing
     }
 
-    NumT
-    get(cl_uint yy, cl_uint xx)
+    static Array2D<NumT> new_from_stream(std::ifstream in_file)
+    {
+        int rows, cols;
+        in_file >> rows;
+        in_file >> cols;
+
+        Array2D<NumT> aa(rows, cols);
+        aa.read_items(in_file);
+
+        return aa;
+    }
+
+    NumT get(cl_uint yy, cl_uint xx)
     {
         return BaseBuffer<NumT>::get(yy*cols + xx);
+    }
+
+    void write(std::ofstream out_file)
+    {
+        out_file << rows;
+        out_file << cols;
+
+        write_items(out_file);
     }
 
     const cl_uint rows;
