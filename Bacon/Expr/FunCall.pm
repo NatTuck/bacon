@@ -26,6 +26,14 @@ sub kids {
 
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
+
+    if ($self->name eq 'fail') {
+        return indent($depth) 
+            . '__bacon__fail = 1;'
+            . 
+            
+    }
+
     my @args = @{$self->args};
     my @ac   = map { $_->to_opencl($fun, 0) } @args;
     return indent($depth) 
