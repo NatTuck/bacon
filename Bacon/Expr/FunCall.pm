@@ -28,9 +28,14 @@ sub to_opencl {
     my ($self, $fun, $depth) = @_;
 
     if ($self->name eq 'fail') {
-        return indent($depth) 
-            . '__bacon__fail = 1;'
-            . 
+        my $string = $self->args[0];
+        my $err_no = $fun->lookup_string($string);
+
+        my $code = indent($depth) . "__bacon__fail = $err_no;\n"
+
+        if (scalar @{$self->args} > 1) {
+
+        }
             
     }
 

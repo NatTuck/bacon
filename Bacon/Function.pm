@@ -20,6 +20,10 @@ has body => (is => 'rw', isa => 'Maybe[Bacon::Stmt::Block]');
 has vtab => (is => 'rw', isa => 'Maybe[Item]',
         lazy => 1, builder => 'build_vtab');
 
+# Error table.
+has etab => (is => 'rw', isa => 'Item', default => sub { {} });
+has enum => (is => 'rw', isa => 'Int',  default => 1);
+
 use Bacon::Utils;
 
 sub new3 {
@@ -49,6 +53,10 @@ sub build_vtab {
 
     die "Function has no variables?" if (scalar keys %$vtab == 0);
     return $vtab;
+}
+
+sub lookup_error_string {
+
 }
 
 sub expanded_args {
