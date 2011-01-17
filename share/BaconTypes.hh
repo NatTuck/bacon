@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #define __CL_ENABLE_EXCEPTIONS 1
 #include <CL/cl.hpp>
@@ -84,7 +85,7 @@ class BaseBuffer {
         return size * sizeof(NumT);
     }
 
-    void read_items(std::ifstream in_file)
+    void read_items(std::istream& in_file)
     {
         for (int ii = 0; ii < size; ++ii) {
             in_file >> data[ii];
@@ -93,7 +94,7 @@ class BaseBuffer {
         on_gpu = false;
     }
 
-    void write_items(std::ofstream out_file)
+    void write_items(std::ostream& out_file)
     {
         if (on_gpu)
             recv_dev();
@@ -101,6 +102,21 @@ class BaseBuffer {
         for (int ii = 0; ii < size; ++ii) {
             out_file << data[ii];
         }
+    }
+
+    void read(std::ostream&);
+    void write(std::istream&);
+
+    void read(std::string fname)
+    {
+        std::ifstream in_file(fname);
+        read(in_file);
+    }
+
+    void write(std::string fname)
+    {
+        std::ofstream out_file(fname);
+        write(out_file);
     }
     
     const cl_uint size;
@@ -139,12 +155,29 @@ class Array2D : public BaseBuffer<NumT> {
         return BaseBuffer<NumT>::get(yy*cols + xx);
     }
 
-    void write(std::ofstream out_file)
+    void write(std::ostream& out_file)
     {
         out_file << rows;
         out_file << cols;
 
-        write_items(out_file);
+        BaseBuffer<NumT>::write_items(out_file);
+    }
+
+    void read(std::istream& in_file)
+    {
+        long rr, cc;
+
+        in_file >> rr; rows = (cl_uint) rr;
+        in_file >> cc; cols = (cl_uint) cc;
+
+        BaseBuffer<NumT>::read_items(in_file);
+    }
+
+    std::string to_string()
+    {
+        std::ostringstream out_string;
+        write(out_string);
+        return out_string.str();
     }
 
     const cl_uint rows;

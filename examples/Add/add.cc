@@ -6,6 +6,7 @@ using std::endl;
 #include <string>
 using std::string;
 
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "gen/Bacon.hh"
@@ -43,16 +44,23 @@ run_test(string c_file, string a_file, string b_file)
     }
 }
 
+void
+show_usage()
+{
+    cout << "Usage: ./add -o output -a matrix1 -b matrix2" << endl;
+    exit(1);
+}
+
 int 
 main(int argc, char* argv[])
 {
     int opt;
     
-    string a_file(""):
+    string a_file("");
     string b_file("");
     string c_file(""); 
 
-    while ((opt = getopt(argc, argv, "")) != -1) {
+    while ((opt = getopt(argc, argv, "ha:b:o")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
