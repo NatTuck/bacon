@@ -56,7 +56,13 @@ sub build_vtab {
 }
 
 sub lookup_error_string {
+    my ($self, $string) = @_;
+    
+    unless (defined $self->etab->{$string}) {
+        $self->etab->{$string} = $self->enum++;
+    }
 
+    return $self->etab->{$string}
 }
 
 sub expanded_args {
