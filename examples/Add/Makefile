@@ -3,7 +3,7 @@ BINARY=add
 
 BACON=../../bacon
 
-CXXFLAGS=$(shell $(BACON) --ccflags)
+CXXFLAGS=-g $(shell $(BACON) --ccflags)
 LDFLAGS =$(shell $(BACON) --ldflags)
 
 BCS=$(shell ls *.bc)

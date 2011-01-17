@@ -12,7 +12,7 @@ with 'Bacon::Variable';
 has dims => (is => 'ro', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 
-use Bacon::Utils;
+use Bacon::Utils qw(name_to_cc indent);
 use Bacon::Expr::BinaryOp qw(mkop);
 use Bacon::FunArg;
 
@@ -100,8 +100,7 @@ sub decl_to_opencl {
 
 sub cpp_dims {
     my ($self, $fun) = @_;
-    my @dims = map { $_->to_opencl($fun, 0) } @{$self->dims};
-    map { s/__/./ } @dims;
+    my @dims = map { name_to_cc($_->to_opencl($fun, 0)) } @{$self->dims};
     return join(', ', @dims);
 }
 

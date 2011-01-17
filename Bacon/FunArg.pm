@@ -63,13 +63,5 @@ sub wrapper_args {
     return $self->name;
 }
 
-sub cc_name {
-    my ($self) = @_;
-    my $name = $self->name;
-    $name =~ s/__/./;
-    $name =~ s/data$/get_buffer()/;
-    return $name;
-}
-
 __PACKAGE__->meta->make_immutable;
 1;

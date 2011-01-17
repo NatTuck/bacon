@@ -141,7 +141,7 @@ sub to_wrapper_hh {
 
 sub wrapper_range {
     my ($self) = @_;
-    return join(', ', map {$_->to_dim} @{$self->dist});
+    return join(', ', map { $_->to_dim } @{$self->dist});
 }
 
 sub decl_return_var {

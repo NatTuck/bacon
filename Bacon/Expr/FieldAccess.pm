@@ -33,7 +33,7 @@ sub to_opencl {
 
 sub to_dim {
     my ($self) = @_;
-    return $self->name . "." . $self->field;
+    return name_to_cc($self->name . "__" . $self->field);
 }
 
 __PACKAGE__->meta->make_immutable;

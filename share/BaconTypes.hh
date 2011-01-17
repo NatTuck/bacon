@@ -19,15 +19,22 @@ namespace Bacon {
 template <class NumT>
 class BaseBuffer {
   public:
-    BaseBuffer(cl_uint xx) 
-        : size(xx), on_gpu(false), ctx(0)
+    BaseBuffer(cl_uint nn) 
+        : data_size(nn), on_gpu(false), ctx(0)
     {
-        data = boost::shared_array<NumT>(new NumT[size]);
+        reallocate(nn);
     }
 
     ~BaseBuffer()
     {
         // do nothing
+    }
+
+    void reallocate(int nn)
+    {
+        data_size = nn;
+        data_ptr = boost::shared_array<NumT>(new NumT[nn]);
+        on_gpu = false;
     }
 
     void set_context(Bacon::Context* context)
@@ -40,162 +47,167 @@ class BaseBuffer {
 
     void fill(NumT vv)
     {
-        for(int ii = 0; ii < size; ++ii)
-            data[ii] = vv;
+        for(int ii = 0; ii < size(); ++ii)
+            data_ptr[ii] = vv;
         on_gpu = false;
     }
 
-    cl::Buffer get_buffer()
+    cl::Buffer data()
     {
         if (!on_gpu)
             send_dev();
         return buffer;
     }
 
-    NumT* get_data()
-    {
-        if (on_gpu)
-            recv_dev();
-        return data;
-    }
-
     NumT get(cl_uint xx)
     {
         if (on_gpu)
             recv_dev();
-        return data[xx];
+        return data_ptr[xx];
     }
 
     void send_dev()
     {
         assert(ctx != 0);
-        ctx->queue.enqueueWriteBuffer(buffer, true, 0, byte_size(), data.get());
+        ctx->queue.enqueueWriteBuffer(buffer, true, 0, byte_size(), data_ptr.get());
         on_gpu = true;
     }
 
     void recv_dev()
     {
         assert(ctx != 0);
-        ctx->queue.enqueueReadBuffer(buffer, true, 0, byte_size(), data.get());
+        ctx->queue.enqueueReadBuffer(buffer, true, 0, byte_size(), data_ptr.get());
         on_gpu = false;
     }
 
     size_t byte_size()
     {
-        return size * sizeof(NumT);
+        return size() * sizeof(NumT);
     }
 
-    void read_items(std::istream& in_file)
+    void read_items(std::istream* in_file)
     {
-        for (int ii = 0; ii < size; ++ii) {
-            in_file >> data[ii];
+        for (int ii = 0; ii < size(); ++ii) {
+            *in_file >> data_ptr[ii];
         }
         
         on_gpu = false;
     }
 
-    void write_items(std::ostream& out_file)
+    void write_items(std::ostream* out_file)
     {
         if (on_gpu)
             recv_dev();
 
-        for (int ii = 0; ii < size; ++ii) {
-            out_file << data[ii];
+        for (int ii = 0; ii < size(); ++ii) {
+            *out_file << data_ptr[ii] << " ";
         }
+
+        *out_file << std::endl;
     }
 
-    void read(std::ostream&);
-    void write(std::istream&);
+    virtual void write(std::ostream*) = 0;
+    virtual void read(std::istream*) = 0;
 
-    void read(std::string fname)
+    cl_uint size()
     {
-        std::ifstream in_file(fname);
-        read(in_file);
+        return data_size;
     }
 
-    void write(std::string fname)
-    {
-        std::ofstream out_file(fname);
-        write(out_file);
-    }
-    
-    const cl_uint size;
+ protected:
+    cl_uint data_size;
 
-  private:
     bool on_gpu;
 
     Bacon::Context* ctx;
     cl::Buffer buffer;
-    boost::shared_array<NumT> data;
+    boost::shared_array<NumT> data_ptr;
 };
 
 template <class NumT>
 class Array2D : public BaseBuffer<NumT> {
   public:
     Array2D(cl_uint yy, cl_uint xx) 
-        : rows(yy), cols(xx), BaseBuffer<NumT>(yy*xx)
+        : data_rows(yy), data_cols(xx), BaseBuffer<NumT>(yy*xx)
     {
         // do nothing
     }
 
-    static Array2D<NumT> new_from_stream(std::ifstream in_file)
-    {
-        int rows, cols;
-        in_file >> rows;
-        in_file >> cols;
-
-        Array2D<NumT> aa(rows, cols);
-        aa.read_items(in_file);
-
-        return aa;
-    }
-
     NumT get(cl_uint yy, cl_uint xx)
     {
-        return BaseBuffer<NumT>::get(yy*cols + xx);
+        return BaseBuffer<NumT>::get(yy * cols() + xx);
     }
 
-    void write(std::ostream& out_file)
+    void read(std::istream* in_file)
     {
-        out_file << rows;
-        out_file << cols;
+        *in_file >> data_rows;
+        *in_file >> data_cols;
 
-        BaseBuffer<NumT>::write_items(out_file);
-    }
-
-    void read(std::istream& in_file)
-    {
-        long rr, cc;
-
-        in_file >> rr; rows = (cl_uint) rr;
-        in_file >> cc; cols = (cl_uint) cc;
-
+        BaseBuffer<NumT>::reallocate(data_rows * data_cols);
         BaseBuffer<NumT>::read_items(in_file);
     }
 
-    std::string to_string()
+    void write(std::ostream* out_file)
     {
-        std::ostringstream out_string;
-        write(out_string);
-        return out_string.str();
+        *out_file << rows() << " ";
+        *out_file << cols() << "\n";
+
+        for (int ii = 0; ii < rows(); ++ii) {
+            for (int jj = 0; jj < cols(); ++jj) {
+                *out_file << get(ii, jj) << " ";
+            }
+            * out_file << "\n";
+        }
     }
 
-    const cl_uint rows;
-    const cl_uint cols;
+    cl_uint rows()
+    {
+        return data_rows;
+    }
+
+    cl_uint cols()
+    {
+        return data_cols;
+    }
+
+  private:
+    cl_uint data_rows;
+    cl_uint data_cols;
 };
 
 template <class NumT>
 class Array3D : public BaseBuffer<NumT> {
   public:
     Array3D(cl_uint zz, cl_uint yy, cl_uint xx) 
-        : deep(zz), rows(yy), cols(xx), BaseBuffer<NumT>(zz*yy*xx)
+        : data_deep(zz), data_rows(yy), data_cols(xx), BaseBuffer<NumT>(zz*yy*xx)
     {
         // do nothing
     }
 
-    const cl_uint deep;
-    const cl_uint rows;
-    const cl_uint cols;
+    NumT get(int zz, int yy, int xx)
+    {
+        return BaseBuffer<NumT>::get(zz * rows() * cols() + yy * cols() + xx);
+    }
+
+    cl_uint deep() 
+    {
+        return data_deep;
+    }
+
+    cl_uint rows()
+    {
+        return data_rows;
+    }
+
+    cl_uint cols()
+    {
+        return data_cols;
+    }
+
+  private:
+    cl_uint data_deep;
+    cl_uint data_rows;
+    cl_uint data_cols;
 };
 
 } // namespace Bacon

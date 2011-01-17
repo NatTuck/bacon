@@ -4,7 +4,7 @@ use strict;
 
 use Exporter;
 our @ISA    = qw(Exporter);
-our @EXPORT = qw(indent assert_type in_list cpp_type cpp_header_type);
+our @EXPORT = qw(indent assert_type in_list cpp_type cpp_header_type name_to_cc);
 
 use Carp;
 use Try::Tiny;
@@ -63,6 +63,15 @@ sub cpp_header_type {
     return ($type =~ /\<.*\>/)
         ? "Bacon::$type"
         : $type;
+}
+
+sub name_to_cc {
+    my ($name) = @_;
+    if ($name =~ /__/) {
+        $name =~ s/__/./;
+        $name =~ s/$/()/;
+    }
+    return $name;
 }
 
 1;
