@@ -20,6 +20,7 @@ use Bacon::Stmt::Switch;
 use Bacon::Stmt::VarDecl;
 use Bacon::Stmt::While;
 use Bacon::Stmt::WithLabel;
+use Bacon::Stmt::Error;
 
 use Bacon::Expr;
 use Bacon::Expr::ArrayIndex;
@@ -29,6 +30,7 @@ use Bacon::Expr::FieldAccess;
 use Bacon::Expr::FunCall;
 use Bacon::Expr::Identifier;
 use Bacon::Expr::Literal;
+use Bacon::Expr::String;
 use Bacon::Expr::UnaryOp;
 
 1;

@@ -23,6 +23,7 @@ my @symbols = qw#
     struct switch typedef union unsigned void volatile
     while inline
     kernel array2d array3d image2d image3d
+    fail assert
     + - * / { } ( ) [ ] < > ; @ : = & ! ~ % ^ | ? .
 #;
 push @symbols, ',';

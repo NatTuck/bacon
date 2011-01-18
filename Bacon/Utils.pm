@@ -49,6 +49,8 @@ sub in_list {
 sub cpp_type {
     my ($type) = @_;
 
+    return 'void' if($type eq 'void');
+
     if ($type =~ /^(\w)(.*)(\d\w)\<(.*)\>$/) {
         return uc($1) . ($2) . uc($3) . '<' . cpp_type($4) . '>';
     }

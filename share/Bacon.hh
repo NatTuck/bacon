@@ -3,5 +3,6 @@
 
 #include "BaconTypes.hh"
 #include "BaconContext.hh"
+#include "BaconError.hh"
 
 #endif

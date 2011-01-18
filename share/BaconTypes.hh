@@ -19,6 +19,12 @@ namespace Bacon {
 template <class NumT>
 class BaseBuffer {
   public:
+    BaseBuffer()
+        : data_size(0), on_gpu(false), ctx(0)
+    {
+        // do nothing
+    }
+
     BaseBuffer(cl_uint nn) 
         : data_size(nn), on_gpu(false), ctx(0)
     {
@@ -125,8 +131,59 @@ class BaseBuffer {
 };
 
 template <class NumT>
+class Array : public BaseBuffer<NumT> {
+  public:
+    Array()
+        : BaseBuffer<NumT>()
+    {
+        // do nothing
+    }
+
+    Array(cl_uint nn)
+        : BaseBuffer<NumT>(nn)
+    {
+        // do nothing
+    }
+
+    NumT get(cl_uint xx)
+    {
+        return BaseBuffer<NumT>::get(xx);
+    }
+
+    void read(std::istream* in_file)
+    {
+        cl_uint nn;
+        *in_file >> nn;
+
+        BaseBuffer<NumT>::reallocate(nn);
+        BaseBuffer<NumT>::read_items(in_file);
+    }
+
+    void write(std::ostream* out_file)
+    {
+        *out_file << cols() << "\n";
+
+        for (int jj = 0; jj < cols(); ++jj) {
+            *out_file << get(jj) << " ";
+        }
+        *out_file << "\n";
+    }    
+
+    cl_uint cols()
+    {
+        return BaseBuffer<NumT>::data_size;
+    }
+};
+
+template <class NumT>
 class Array2D : public BaseBuffer<NumT> {
   public:
+    Array2D()
+        : data_rows(0), data_cols(0), BaseBuffer<NumT>()
+    {
+        // do nothing
+    }
+
     Array2D(cl_uint yy, cl_uint xx) 
         : data_rows(yy), data_cols(xx), BaseBuffer<NumT>(yy*xx)
     {

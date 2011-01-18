@@ -1,4 +1,4 @@
-package Bacon::Expr::Literal;
+package Bacon::Expr::String;
 use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
@@ -15,7 +15,11 @@ has value => (is => 'ro', isa => 'Str', required => 1);
 
 sub new1 {
     my ($class, $token) = @_;
-
+    return $class->new(
+        file  => $token->file,
+        line  => $token->line,
+        value => eval $token->text
+    );
 }
 
 sub to_opencl {

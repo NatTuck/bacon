@@ -26,5 +26,6 @@ clean:
 	(cd doc && make clean)
 	find examples -maxdepth 1 -mindepth 1 -type d \
 		-exec sh -c '(cd {} && make clean)' \;
+	find . -name "*~" -exec rm {} \; 
 
 .PHONY: all clean prereqs test doc

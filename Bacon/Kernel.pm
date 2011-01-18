@@ -26,6 +26,17 @@ sub new4 {
     return $self;
 }
 
+sub lookup_error_string {
+    my ($self, $string) = @_;
+    
+    unless (defined $self->etab->{$string}) {
+        $self->enum($self->enum + 1);
+        $self->etab->{$string} = $self->enum;
+    }
+
+    return $self->etab->{$string}
+}
+
 sub find_return_var {
     my ($self) = @_;
 
@@ -103,9 +114,11 @@ sub to_opencl {
         $self->vtab->{$vname}->retv(1);
     }
     
-    my @args = $self->expanded_args;
+    my @args = map {$_->to_opencl($self, 0)} $self->expanded_args;
+    push @args, 'global long* _bacon__status';
+
     $code .= $self->name . "(";
-    $code .= join(', ', map {$_->to_opencl($self, 0)} @args);
+    $code .= join(', ', @args);
     $code .= ")\n";
 
     $code .= "{\n";
@@ -126,7 +139,8 @@ sub to_opencl {
 
 sub wrapper_args {
     my ($self) = @_;
-    return map { $_->to_wrapper_hh } @{$self->args};
+    my @args = map { $_->to_wrapper_hh } @{$self->args};
+    return @args;
 }
 
 sub to_wrapper_hh {
@@ -171,7 +185,13 @@ sub wrapper_body {
             push @lines, $arg->name . ".set_context(&ctx);";
         }
     }
-        
+
+    push @lines, ''; 
+
+    push @lines, 'Bacon::Array<cl_long> status(2);';
+    push @lines, 'status.fill(0);';
+    push @lines, 'status.set_context(&ctx);';
+
     push @lines, ''; 
 
     push @lines, qq{Kernel kern(ctx.pgm, "$name");};
@@ -185,7 +205,7 @@ sub wrapper_body {
         $argn++;
     }
 
-
+    push @lines, "kern.setArg($argn, status.data());";
     push @lines, '';
 
     my $range = $self->wrapper_range;
@@ -196,12 +216,33 @@ sub wrapper_body {
         . 'kern, NullRange, range, NullRange, 0, &done);';
     push @lines, 'done.wait();';
 
+    push @lines, '';
+
+    push @lines, 'if (status.get(0)) {';
+    push @lines, $self->error_code_switch;
+    push @lines, '}';
+
     unless ($self->retv eq 'void') {
         my $rv_name = $self->find_return_var;
         push @lines, "return $rv_name;";
     }
 
     return @lines;
+}
+
+sub error_code_switch {
+    my ($self) = @_;
+    my @lines = 'switch (status.get(0)) {';
+
+    for my $string (keys %{$self->etab}) {
+        my $err_no = $self->etab->{$string};
+        push @lines, qq{  case $err_no: throw Bacon::Error("$string", status.get(1));};
+    }
+
+    push @lines, '  default: throw Bacon::Error("Unknown Error", status.get(1));';
+    push @lines, '}';
+
+    return map { "    " . $_ } @lines;
 }
 
 sub to_wrapper_cc {

@@ -1,0 +1,18 @@
+/* -*- c -*- */
+
+kernel
+void
+test_errors(array2d<int> aa) 
+    @ [aa.rows, aa.cols]
+{
+    int val = aa[$y, $x];
+    val = val + 1;
+
+    if (val > 10) {
+        fail("Value was greater than 10", val);
+    }
+
+    assert(val >= 0, "Value should be non-negative", val);
+
+    aa[$y, $x] = val;
+}

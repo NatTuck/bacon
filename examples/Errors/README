@@ -1,0 +1,13 @@
+
+== Errors.bc ==
+
+Demonstrate the use of the debugging statements provided in Bacon C:
+
+ * fail("Message", error_data)
+ * assert(boolean_condition, "Message", error_data)
+
+'fail' will abort the running OpenCL kernel and throw a C++ exception. The error_data,
+a signed cl_long value, will be available to the user.
+
+'assert' is similar, but it only aborts if the boolean_condition is false.
+

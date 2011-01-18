@@ -57,12 +57,7 @@ sub build_vtab {
 
 sub lookup_error_string {
     my ($self, $string) = @_;
-    
-    unless (defined $self->etab->{$string}) {
-        $self->etab->{$string} = $self->enum++;
-    }
-
-    return $self->etab->{$string}
+    die "Error strings in non-kernel functions unsupported.";
 }
 
 sub expanded_args {

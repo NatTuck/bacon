@@ -27,21 +27,6 @@ sub kids {
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
 
-    if ($self->name eq 'fail') {
-        my $string = $self->args->[0];
-        my $err_no = $fun->lookup_string($string);
-
-        my $code = indent($depth) . "__bacon_status[0] = $err_no;\n";
-
-        if (scalar @{$self->args} > 1) {
-            my $err_data = $self->args->[1]->to_opencl($fun, 0); 
-            $code .= indent($depth) . "__bacon_status[1] = $err_data;\n";
-        }
-
-        $code .= indent($depth) . "return;\n";
-        return $code;
-    }
-
     my @args = @{$self->args};
     my @ac   = map { $_->to_opencl($fun, 0) } @args;
     return indent($depth) 
