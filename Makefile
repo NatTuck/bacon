@@ -18,7 +18,7 @@ examples: all
 		        -exec sh -c '(cd {} && make)' \;
 
 test: examples
-	prove examples/*/*.t
+	prove examples/*/t/*.t
 
 clean:
 	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~
