@@ -11,7 +11,7 @@ use Bacon::Test;
 
 my $tmp = "t/out-$$.dat";
 
-system("./add -a t/aa.dat -b t/bb.dat -o $tmp");
-files_eq($tmp, "t/out.dat", "Array2D add");
+system("./mmul -a t/aa.dat -b t/bb.dat -o $tmp");
+files_eq($tmp, "t/aa.dat", "MatMul identity matrix");
 unlink($tmp);
 

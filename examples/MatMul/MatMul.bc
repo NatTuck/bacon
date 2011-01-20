@@ -11,7 +11,7 @@ mat_mul(array2d<float> aa, array2d<float> bb)
     assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
 
     for (int kk = 0; kk < aa.cols; ++kk) {
-        sum += aa[$y, kk] * bb[kk, $y];
+        sum += aa[$y, kk] * bb[kk, $x];
     }
 
     cc[$y, $x] = sum;
