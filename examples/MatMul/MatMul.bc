@@ -3,7 +3,7 @@
 kernel
 array2d<float>
 mat_mul(array2d<float> aa, array2d<float> bb) 
-@ [cc.rows, cc.cols]
+    @ [cc.rows, cc.cols]
 {
     array2d<float> cc[aa.rows, bb.cols];
     float sum = 0.0;
@@ -18,4 +18,3 @@ mat_mul(array2d<float> aa, array2d<float> bb)
 
     return cc;
 }
-

@@ -40,9 +40,30 @@ run_test(string c_file, string a_file, string b_file)
 }
 
 void
+random_test(int nn)
+{
+    MatMul mmul;
+
+    Bacon::Array2D<float> aa(nn, nn);
+    aa.fill_random();
+
+    Bacon::Array2D<float> bb(nn, nn);
+    bb.fill_identity_matrix();
+
+    Bacon::Array2D<float> cc = mmul.mat_mul(aa, bb);
+    
+    if (aa == cc) {
+        cout << "Random test succeeded." << endl;
+    }
+    else {
+        cout << "Random test failed, arrays don't match." << endl;
+    }
+}
+
+void
 show_usage()
 {
-    cout << "Usage: ./summa -o output -a matrix1 -b matrix2" << endl;
+    cout << "Usage: ./mmul [-o output -a matrix1 -b matrix2 | -n size]" << endl;
     exit(1);
 }
 
@@ -55,7 +76,9 @@ main(int argc, char* argv[])
     string b_file("");
     string c_file("");
 
-    while ((opt = getopt(argc, argv, "ha:b:o:")) != -1) {
+    int random_size = 0;
+
+    while ((opt = getopt(argc, argv, "ha:b:o:n:")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
@@ -66,6 +89,9 @@ main(int argc, char* argv[])
         case 'o':
             c_file = string(optarg);
             break;
+        case 'n':
+            random_size = atoi(optarg);
+            break;
         case 'h':
             show_usage();
             return 0;
@@ -75,13 +101,14 @@ main(int argc, char* argv[])
         }
     }
 
-    if (a_file == "" || b_file == "") {
-        show_usage();
-        return 1;
-    }
 
     try {
-        run_test(c_file, a_file, b_file);
+        if (random_size != 0) {
+            random_test(random_size);
+        }
+        else {
+            run_test(c_file, a_file, b_file);
+        }
     }
     catch(cl::Error ee) {
         cout << "Got error:\n";

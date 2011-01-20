@@ -10,11 +10,14 @@ using std::cerr;
 using std::endl;
 
 #include "BaconContext.hh"
+#include "BaconTypes.hh"
 using namespace cl;
 
 #include "cl_perror.hh"
 
 namespace Bacon {
+
+unsigned long BaseBuffer_random_seed = 65537;
 
 void
 context_error_callback(const char* msg, const void* extra_data, 

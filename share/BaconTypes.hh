@@ -16,13 +16,16 @@
 
 namespace Bacon {
 
+extern unsigned long BaseBuffer_random_seed;
+
 template <class NumT>
 class BaseBuffer {
   public:
     BaseBuffer()
         : data_size(0), on_gpu(false), ctx(0)
     {
-        // do nothing
+        srandom(getpid() * BaseBuffer_random_seed);
+        BaseBuffer_random_seed *= random();
     }
 
     BaseBuffer(cl_uint nn) 
@@ -58,6 +61,13 @@ class BaseBuffer {
         on_gpu = false;
     }
 
+    void fill_random()
+    {
+        for(int ii = 0; ii < size(); ++ii)
+            data_ptr[ii] = (NumT)(random() % 100);
+        on_gpu = false;        
+    }
+
     cl::Buffer data()
     {
         if (!on_gpu)
@@ -70,6 +80,13 @@ class BaseBuffer {
         if (on_gpu)
             recv_dev();
         return data_ptr[xx];
+    }
+
+    void set(cl_uint xx, NumT vv)
+    {
+        if (on_gpu)
+            recv_dev();
+        data_ptr[xx] = vv;
     }
 
     void send_dev()
@@ -115,7 +132,7 @@ class BaseBuffer {
     virtual void write(std::ostream*) = 0;
     virtual void read(std::istream*) = 0;
 
-    cl_uint size()
+    cl_uint size() const
     {
         return data_size;
     }
@@ -128,7 +145,24 @@ class BaseBuffer {
     Bacon::Context* ctx;
     cl::Buffer buffer;
     boost::shared_array<NumT> data_ptr;
+
 };
+
+template <class NumT>
+bool 
+operator==(BaseBuffer<NumT>& aa, BaseBuffer<NumT>& bb)
+{
+    if (aa.size() != bb.size())
+        return false;
+    
+    for (int ii = 0; ii < aa.size(); ++ii) {
+        if (aa.get(ii) != bb.get(ii))
+                return false;
+    }
+    
+    return true;
+}
+
 
 template <class NumT>
 class Array : public BaseBuffer<NumT> {
@@ -150,6 +184,11 @@ class Array : public BaseBuffer<NumT> {
         return BaseBuffer<NumT>::get(xx);
     }
 
+    void set(cl_uint xx, NumT vv)
+    {
+        BaseBuffer<NumT>::set(xx, vv);
+    }
+
     void read(std::istream* in_file)
     {
         cl_uint nn;
@@ -169,7 +208,7 @@ class Array : public BaseBuffer<NumT> {
         *out_file << "\n";
     }    
 
-    cl_uint cols()
+    cl_uint cols() const
     {
         return BaseBuffer<NumT>::data_size;
     }
@@ -195,6 +234,20 @@ class Array2D : public BaseBuffer<NumT> {
         return BaseBuffer<NumT>::get(yy * cols() + xx);
     }
 
+    void set(cl_uint yy, cl_uint xx, NumT vv)
+    {
+        return BaseBuffer<NumT>::set(yy * cols() + xx, vv);
+    }
+
+    void fill_identity_matrix()
+    {
+        for (int ii = 0; ii < rows(); ++ii) {
+            for (int jj = 0; jj < cols(); ++jj) {
+                set(ii, jj, (NumT)(ii == jj ? 1 : 0));
+            }
+        }
+    }
+
     void read(std::istream* in_file)
     {
         *in_file >> data_rows;
@@ -217,12 +270,12 @@ class Array2D : public BaseBuffer<NumT> {
         }
     }
 
-    cl_uint rows()
+    cl_uint rows() const
     {
         return data_rows;
     }
 
-    cl_uint cols()
+    cl_uint cols() const
     {
         return data_cols;
     }
@@ -231,6 +284,24 @@ class Array2D : public BaseBuffer<NumT> {
     cl_uint data_rows;
     cl_uint data_cols;
 };
+
+template <class NumT>
+bool 
+operator==(Array2D<NumT>& aa, Array2D<NumT>& bb)
+{
+    if (aa.size() != bb.size() || aa.rows() != bb.rows() || aa.cols() != bb.cols())
+        return false;
+
+    for (int ii = 0; ii < aa.rows(); ++ii) {
+        for (int jj = 0; jj < aa.cols(); ++jj) {
+            if (aa.get(ii, jj) != bb.get(ii, jj))
+                return false;
+        }
+    }
+    
+    return true;
+}
+
 
 template <class NumT>
 class Array3D : public BaseBuffer<NumT> {
