@@ -254,7 +254,15 @@ sub to_wrapper_cc {
         . '('
         . join(', ', $self->wrapper_args)
         . ")\n{\n"
-        . join("\n", map { indent(1) . $_ } $self->wrapper_body)
+        . indent(1) . "try {\n"
+        . join("\n", map { indent(2) . $_ } $self->wrapper_body)
+        . indent(1) . "}\n"
+        . indent(1) . "catch (cl::Error ee) {\n"
+        . indent(2) . "std::ostringstream tmp;\n"
+        . indent(2) . 'tmp << "OpenCL Error: ";' . "\n"
+        . indent(2) . "tmp << cl_strerror(ee.err());\n"
+        . indent(2) . "throw Bacon::Error(tmp.str());\n"
+        . indent(1) . "}\n"
         . "\n}\n\n";
 }
 

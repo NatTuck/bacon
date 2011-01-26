@@ -73,6 +73,8 @@ $clhh->print(<<"HEADER");
 // This file is generated automatically.
 // Any changes you make will be lost.
 
+#include <string>
+
 std::string cl_strerror(int code);
 void cl_perror(int code);
 

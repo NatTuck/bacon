@@ -3,6 +3,11 @@
 
 /* Don't make changes here, they're likely to mysteriously vanish. */
 
+#include <sstream>
+
+#include "cl_perror.hh"
+#include "BaconError.hh"
+
 #include "<% $name %>.hh"
 
 using namespace Bacon;

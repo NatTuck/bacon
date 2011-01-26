@@ -29,6 +29,18 @@ class Error : public std::exception {
         message = tmp.str();
     }
 
+    Error(const std::string& msg)
+    {
+        message = std::string(msg);
+    }
+
+    Error(const std::string& msg, cl_long data) 
+    {
+        std::ostringstream tmp;
+        tmp << msg << " (data = " << data << ")";
+        message = tmp.str();
+    }
+
     ~Error() throw()
     {
         // do nothing
