@@ -10,9 +10,7 @@ using std::string;
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "gen/Bacon.hh"
 #include "gen/Add.hh"
-#include "gen/cl_perror.hh"
 
 void
 run_test(string c_file, string a_file, string b_file, int nn)
@@ -92,13 +90,6 @@ main(int argc, char* argv[])
         }
     }
 
-    try {
-        run_test(c_file, a_file, b_file, gen_size);
-    }
-    catch(cl::Error ee) {
-        cout << "Got error:\n";
-        cout << " what: " << ee.what() << endl;
-        cl_perror(ee.err());
-    }
+    run_test(c_file, a_file, b_file, gen_size);
     return 0;
 }

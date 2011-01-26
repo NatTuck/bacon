@@ -10,9 +10,7 @@ using std::string;
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "gen/Bacon.hh"
 #include "gen/MatMul.hh"
-#include "gen/cl_perror.hh"
 
 void
 run_test(string c_file, string a_file, string b_file)
@@ -102,18 +100,12 @@ main(int argc, char* argv[])
     }
 
 
-    try {
-        if (random_size != 0) {
-            random_test(random_size);
-        }
-        else {
-            run_test(c_file, a_file, b_file);
-        }
+    if (random_size != 0) {
+        random_test(random_size);
     }
-    catch(cl::Error ee) {
-        cout << "Got error:\n";
-        cout << " what: " << ee.what() << endl;
-        cl_perror(ee.err());
+    else {
+        run_test(c_file, a_file, b_file);
     }
+
     return 0;
 }

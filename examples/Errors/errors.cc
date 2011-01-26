@@ -9,9 +9,7 @@ using std::string;
 
 #include <stdlib.h>
 
-#include "gen/Bacon.hh"
 #include "gen/Errors.hh"
-#include "gen/cl_perror.hh"
 
 int 
 main(int argc, char* argv[])
@@ -21,19 +19,12 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    try {
-        Bacon::Array2D<int> aa;
-        std::ifstream data(argv[1]);
-        aa.read(&data);
+    Bacon::Array2D<int> aa;
+    std::ifstream data(argv[1]);
+    aa.read(&data);
        
-        Errors errs;
-        errs.test_errors(aa);
-    }
-    catch(cl::Error ee) {
-        cout << "Got error:\n";
-        cout << " what: " << ee.what() << endl;
-        cl_perror(ee.err());
-    }
+    Errors errs;
+    errs.test_errors(aa);
 
     return 0;
 }
