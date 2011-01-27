@@ -1,0 +1,100 @@
+/* -*- c -*- */
+
+kernel
+array2d<ulong>
+sparse_census(array2d<uchar> image) 
+    @ [image.rows, image.cols]
+{
+    array2d<ulong> census[image.rows, image.cols];
+
+    ulong bits = 0;
+    
+    for (int by = 0; by < 8; ++by) {
+        int yoff = by + by - 7;
+        int ii   = clamp($y + yoff, 0, image.rows);
+
+        for (int bx = 0; bx < 8; ++bx) {
+            int xoff = bx + bx - 7;
+            int jj   = clamp($x + xoff, 0, image.cols);
+
+            uchar pval = image[ii, jj];
+            
+            if (pval < ctr) {
+                int bit = 8*by + bx;
+                bits |= (1 << bit);
+            }
+        }
+    }
+
+    census[$y, $x] = bits;
+
+    return census;
+}
+
+ushort
+popcount(ulong x) 
+{
+    const ulong m1 = 0x5555555555555555; //binary: 0101...
+    const ulong m2 = 0x3333333333333333; //binary: 00110011..
+    const ulong m4 = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
+    const ulong h1 = 0x0101010101010101; //the sum of 256 to the power of 0,1,2,3...
+    x -= (x >> 1) & m1;             //put count of each 2 bits into those 2 bits
+    x = (x & m2) + ((x >> 2) & m2); //put count of each 4 bits into those 4 bits 
+    x = (x + (x >> 4)) & m4;        //put count of each 8 bits into those 8 bits 
+    return (x * h1) >> 56;  //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ... 
+}
+
+kernel
+void
+pspace_h(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direction)
+    @ [aa.rows]
+{
+    // traverse left
+    // traverse right
+}
+
+kernel
+void
+pspace_v(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direction)
+    @ [aa.cols]
+{
+    // traverse down
+    // traverse up
+}
+
+kernel
+void
+pspace_d(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direction)
+    @ [aa.rows + aa.cols]
+{
+    if ($x < aa.rows) {
+        // row $x
+    }
+    else {
+        // col $x - aa.rows
+    }
+
+    // top left to bottom right
+    // handle diagonal starting at row or column N
+
+    // bottom right to top left
+    // row or column (N - $x)
+
+    // bottom left to top right
+    // row or column N
+    
+    // top right to bottom left
+    // row or column (N - $x)
+}
+
+kernel
+array2d<uchar>
+disparity(array3d<uchar> pspace)
+    @ [aa.rows, aa.cols]
+{
+    array2d<uchar> disp[aa.rows, aa.cols];
+    
+    disp[$y, $x] = pspace[0, $y, $x]; // or cheapest for z = 0..7
+
+    return disp;
+}

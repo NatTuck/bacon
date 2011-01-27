@@ -22,6 +22,7 @@ my @symbols = qw#
     long register return short signed sizeof static
     struct switch typedef union unsigned void volatile
     while inline
+    uchar ushort uint ulong
     kernel array2d array3d image2d image3d
     fail assert
     + - * / { } ( ) [ ] < > ; @ : = & ! ~ % ^ | ? .
@@ -30,7 +31,7 @@ push @symbols, ',';
 
 my @token = (
     SPACE   => '\s+',
-    CONSTANT => '(0[xX])?[0-9]+(\.[0-9]*)?[uU]?[lL]?',
+    CONSTANT => '(?:0[xX][0-9a-fA-F]+|[0-9]+(\.[0-9]*)?[uU]?[lL]?)',
     STRING => '\"[^"]*\"',
     ELLIPSIS => q("..."),
     RIGHT_ASSIGN => q(">>="),
