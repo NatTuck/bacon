@@ -41,7 +41,16 @@ sub ocl_ccflags {
 
 sub ocl_ldflags {
     my %cfg = find_opencl_config();
-    return "-L " . $cfg{lib} . " -lOpenCL";
+
+    my $ldflags = "";
+
+    if ($cfg{lib}) {
+        $ldflags .= "-L " . $cfg{lib} . $ldflags;
+    }
+
+    $ldflags .= " -lOpenCL";
+
+    return $ldflags;
 }
 
 sub ocl_write_perror {
