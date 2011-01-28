@@ -38,7 +38,7 @@ run_test(string c_file, string a_file, string b_file)
 }
 
 void
-random_test(int nn)
+random_test(int nn, bool check = true)
 {
     MatMul mmul;
 
@@ -49,7 +49,12 @@ random_test(int nn)
     bb.fill_identity_matrix();
 
     Bacon::Array2D<float> cc = mmul.mat_mul(aa, bb);
-    
+   
+    if(!check) {
+        cout << "Result not checked." << endl;
+        return;
+    }
+ 
     if (aa == cc) {
         cout << "Random test succeeded." << endl;
     }
@@ -75,8 +80,9 @@ main(int argc, char* argv[])
     string c_file("");
 
     int random_size = 0;
+    bool check_result = false;
 
-    while ((opt = getopt(argc, argv, "ha:b:o:n:")) != -1) {
+    while ((opt = getopt(argc, argv, "ha:b:o:n:c:")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
@@ -90,6 +96,9 @@ main(int argc, char* argv[])
         case 'n':
             random_size = atoi(optarg);
             break;
+        case 'c':
+            check_result = true;
+            break;
         case 'h':
             show_usage();
             return 0;
@@ -101,7 +110,7 @@ main(int argc, char* argv[])
 
 
     if (random_size != 0) {
-        random_test(random_size);
+        random_test(random_size, check_result);
     }
     else {
         run_test(c_file, a_file, b_file);
