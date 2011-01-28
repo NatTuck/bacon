@@ -31,11 +31,14 @@ sub to_opencl {
     my ($self, $fun, $depth) = @_;
     my $dims = scalar @{$self->dims};
 
-    return $self->gen_aref1($fun, $depth) if $dims == 1;
-    return $self->gen_aref2($fun, $depth) if $dims == 2;
-    return $self->gen_aref3($fun, $depth) if $dims == 3;
-    
-    confess "Array indexing must be 1, 2, or 3D";
+    my $type = $fun->vtab->{$name}->bacon_type;
+
+    return indent($depth)
+        . $self->name
+        . '['
+        . $type->index($fun, @{$self->dims})
+        . ']';
+
 }
 
 sub gen_aref1 {

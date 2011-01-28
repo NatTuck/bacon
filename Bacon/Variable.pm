@@ -34,4 +34,9 @@ sub cc_name {
     return name_to_cc($self->name);
 }
 
+sub bacon_type {
+    my ($self) = @_;
+    die "Blah";
+}
+
 1;
