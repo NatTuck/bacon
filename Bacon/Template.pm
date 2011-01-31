@@ -4,15 +4,27 @@ use strict;
 use 5.10.0;
 
 use Text::Template;
-use Data::Section;
+use Data::Section -setup => { default_name => 'default' };
 
 use Moose;
-use namespace::autoclean;
+# No namespace::autoclean with Data::Section
 
 extends 'Data::Section';
 
+use Bacon::Utils;
+
+sub indent_block {
+    my ($depth, $text) = @_;
+    my $code = '';
+    for my $line (split /\n/, $text) {
+        next unless $line =~ /\S/;
+        $code .= indent($depth) . $line . "\n";
+    }
+    return $code;
+}
+
 sub fill_file {
-    my ($self, $src, %hash) = @_;
+    my ($self, $src, $depth, %hash) = @_;
     my $base = $ENV{BACON_BASE};
 
     my $tpl = Text::Template->new(
@@ -21,20 +33,20 @@ sub fill_file {
         DELIMITERS => ['<%', '%>']
     ) or die "Template construction failed for $base/share/$src";
 
-    return $tpl->fill_in(HASH => \%hash);
+    return indent_block($depth, $tpl->fill_in(HASH => \%hash));
 }
 
 sub fill_section {
-    my ($self, $sec, %hash) = @_;
+    my ($self, $sec, $depth, %hash) = @_;
     my $class = ref $self ? ref $self : $self;
 
     my $tpl = Text::Template->new(
         TYPE => 'STRING',  
-        SOURCE => $self->section_data($sec),
+        SOURCE => ${$self->section_data($sec)},
         DELIMITERS => ['<%', '%>']
     ) or die "Template construction failed for section $sec in class $class"; 
 
-    return $tpl->fill_in(HASH => \%hash);    
+    return indent_block($depth, $tpl->fill_in(HASH => \%hash));
 }
 
 __PACKAGE__->meta->make_immutable;

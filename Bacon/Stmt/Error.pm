@@ -4,10 +4,12 @@ use strict;
 use 5.10.0;
 
 use Moose;
-use namespace::autoclean;
+# No namespace::autoclean with Bacon::Template
 
 use Bacon::Stmt;
-extends 'Bacon::Stmt';
+use Bacon::Template;
+
+extends 'Bacon::Stmt', 'Bacon::Template';
 
 use Bacon::Utils;
 
@@ -37,40 +39,56 @@ sub to_opencl {
 sub gen_fail {
     my ($self, $fun, $depth) = @_;
 
-    my $string = $self->args->[0]->value;
-    my $err_no = $fun->lookup_error_string($string);
-    
-    my $code = indent($depth) . "_bacon__status[0] = $err_no;\n";
-    
+    my $string   = $self->args->[0]->value;
+    my $err_no   = $fun->lookup_error_string($string);
+    my $err_data = "0";
+
     if (scalar @{$self->args} > 1) {
-        my $err_data = $self->args->[1]->to_ocl($fun); 
-        $code .= indent($depth) . "_bacon__status[1] = $err_data;\n";
+        $err_data = $self->args->[1]->to_ocl($fun); 
     }
-    
-    $code .= indent($depth) . "return;\n";
-    return $code;
+
+    return $self->fill_section(
+        "fail", $depth,
+        err_no   => $err_no,
+        err_data => $err_data,
+    );
 }
 
 sub gen_assert {
     my ($self, $fun, $depth) = @_;
 
-    my $expr   = $self->args->[0]->to_ocl($fun);
-    my $string = $self->args->[1]->value;
-    my $err_no = $fun->lookup_error_string($string);
-    
-    my $code = indent($depth) . "if ( !($expr) )";
-    $code .= indent($depth) . "{\n";
-    $code .= indent($depth + 1) . "_bacon__status[0] = $err_no;\n";
-    
+    my $expr     = $self->args->[0]->to_ocl($fun);
+    my $string   = $self->args->[1]->value;
+    my $err_no   = $fun->lookup_error_string($string);
+    my $err_data = "0";
+
     if (scalar @{$self->args} > 2) {
-        my $err_data = $self->args->[2]->to_ocl($fun); 
-        $code .= indent($depth + 1) . "_bacon__status[1] = $err_data;\n";
+        $err_data = $self->args->[2]->to_ocl($fun); 
     }
-    
-    $code .= indent($depth + 1) . "return;\n";
-    $code .= indent($depth) . "}\n";
-    return $code;
+
+    return $self->fill_section(
+        "assert", $depth,
+        expr     => $expr,
+        err_no   => $err_no,
+        err_data => $err_data,
+    );
 }
 
 __PACKAGE__->meta->make_immutable;
 1;
+
+__DATA__
+
+__[ fail ]__
+
+_bacon__status[0] = <% $err_no %>;
+_bacon__status[1] = <% $err_data %>;
+return;
+
+__[ assert ]__
+
+if ( !(<% $expr %>) ) {
+    _bacon__status[0] = <% $err_no %>;
+    _bacon__status[1] = <% $err_data %>;
+    return;
+}
