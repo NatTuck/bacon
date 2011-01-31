@@ -36,19 +36,23 @@ sub find_opencl_config {
 
 sub ocl_ccflags {
     my %cfg = find_opencl_config();
-    return "-I " . $cfg{inc};
+    my $base = $ENV{BACON_BASE};
+    return  qq{-I "} . $cfg{inc} . qq{" -I "$base/include"};
 }
 
 sub ocl_ldflags {
     my %cfg = find_opencl_config();
+    my $base = $ENV{BACON_BASE};
 
-    my $ldflags = "";
+    my $ldflags = qq{-L "$base/lib" -lbacon };
 
     if ($cfg{lib}) {
-        $ldflags .= "-L " . $cfg{lib} . $ldflags;
+        $ldflags .= '-L "' . $cfg{lib} . '"' . $ldflags;
     }
 
     $ldflags .= " -lOpenCL";
+
+
 
     return $ldflags;
 }

@@ -32,7 +32,7 @@ use FindBin qw($Bin);
 $ENV{BACON_BASE} = $Bin;
 use lib $Bin;
 
-use Bacon::CLEnv qw(ocl_ccflags ocl_ldflags);
+use Bacon::CLEnv qw(ocl_ccflags ocl_ldflags ocl_write_perror);
 use Bacon::Parser;
 use Bacon::Generate;
 
@@ -40,19 +40,24 @@ use Getopt::Long qw(GetOptions);
 use Pod::Usage;
 
 my %opt = ();
-GetOptions(\%opt, 'help', 'ccflags', 'ldflags');
+GetOptions(\%opt, 'help', 'ccflags', 'cflags', 'ldflags', 'perror');
 
 if (defined $opt{help}) {
     pod2usage(1);
 }
 
-if (defined $opt{ccflags}) {
+if (defined $opt{ccflags} || defined $opt{cflags}) {
     say ocl_ccflags();
     exit(0);
 }
 
 if (defined $opt{ldflags}) {
     say ocl_ldflags();
+    exit(0);
+}
+
+if (defined $opt{perror}) {
+    ocl_write_perror(".");
     exit(0);
 }
 

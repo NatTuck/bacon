@@ -1,17 +1,23 @@
 
+LIB=libbacon.so
 
-
-all: Bacon/Parser.pm doc
+all: Bacon/Parser.pm doc lib/$(LIB)
 
 Bacon/Parser.pm: Bacon/grammar.yp
 	yapp -v -m Bacon::Parser -o Bacon/Parser.pm Bacon/grammar.yp
 	mv Bacon/grammar.output Bacon/yapp.output
 
+lib/$(LIB): src/$(LIB)
+	cp src/$(LIB) lib/$(LIB)
+
+src/$(LIB):
+	(cd src && make)
+
 doc:
 	(cd doc && make)
 
 prereqs:
-	sudo apt-get install libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-latex-base libclone-perl libdata-section-perl
+	sudo apt-get install build-essential libboost1.40-dev libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-latex-base libclone-perl libdata-section-perl
 
 examples: all
 	find examples -maxdepth 1 -mindepth 1 -type d \
@@ -22,7 +28,8 @@ test: examples
 
 clean:
 	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~
-	rm -rf gen
+	rm -f lib/$(LIB)
+	(cd src && make clean)
 	(cd doc && make clean)
 	find examples -maxdepth 1 -mindepth 1 -type d \
 		-exec sh -c '(cd {} && make clean)' \;

@@ -11,6 +11,9 @@ BCOS=$(shell ls *.bc | perl -pe 's/\b(\w+)\.bc\b/\1.o/')
 CCOS=$(shell ls *.cc | perl -pe 's/\b(\w+)\.cc\b/\1.o/')
 OBJS=$(BCOS) $(CCOS)
 
+none:
+	@echo "Skipping Stereo example"
+
 $(BINARY): $(OBJS)
 	$(CXX) $(LDFLAGS) -o $@ *.o
 
