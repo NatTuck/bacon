@@ -9,15 +9,14 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#include "BaconContext.hh"
-#include "BaconTypes.hh"
+#include <Bacon.hh>
 using namespace cl;
 
 #include "cl_perror.hh"
 
 namespace Bacon {
 
-unsigned long BaseBuffer_random_seed = 65537;
+unsigned long Bacon_Array_random_seed = 65537;
 
 void
 context_error_callback(const char* msg, const void* extra_data, 
@@ -58,7 +57,7 @@ Context::best_opencl_device()
             pit->getDevices(CL_DEVICE_TYPE_GPU, &devs);
             //pit->getDevices(CL_DEVICE_TYPE_CPU, &devs);
         }
-        catch (Error ee) {
+        catch (cl::Error ee) {
             if (ee.err() != CL_DEVICE_NOT_FOUND)
                 throw(ee);
         }
@@ -74,7 +73,7 @@ Context::best_opencl_device()
         try {
             pit->getDevices(CL_DEVICE_TYPE_ALL, &devs);
         }
-        catch (Error ee) {
+        catch (cl::Error ee) {
             if (ee.err() != CL_DEVICE_NOT_FOUND)
                 throw(ee);
         }
@@ -148,7 +147,7 @@ Context::load_opencl_program(std::string src_fn)
     try {
         pgm.build(devs);    
     } 
-    catch (Error ee) {
+    catch (cl::Error ee) {
         if (cl_strerror(ee.err()) == "CL_BUILD_PROGRAM_FAILURE") {
             cerr << "Error building OpenCL kernels." << endl;
             cerr << endl;

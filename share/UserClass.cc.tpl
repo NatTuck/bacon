@@ -5,8 +5,9 @@
 
 #include <sstream>
 
+#include <Bacon.hh>
+
 #include "cl_perror.hh"
-#include "BaconError.hh"
 
 #include "<% $name %>.hh"
 
