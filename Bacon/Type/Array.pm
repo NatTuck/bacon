@@ -24,7 +24,7 @@ sub index {
 
 sub index_expr {
     my ($self, undef, $fun, $idx) = @_;
-    return $idx->to_opencl($fun, 0);
+    return $idx->to_ocl($fun);
 }
 
 sub expand {

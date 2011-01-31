@@ -24,13 +24,23 @@ sub kids {
     return @{$self->args};
 }
 
-sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+sub to_ocl {
+    my ($self, $fun) = @_;
 
     my @args = @{$self->args};
-    my @ac   = map { $_->to_opencl($fun, 0) } @args;
-    return indent($depth) 
-        . $self->name 
+    my @ac   = map { $_->to_ocl($fun) } @args;
+    return $self->name 
+        . '(' 
+        . join(', ', @ac) 
+        . ')';
+}
+
+sub to_cpp {
+    my ($self, $fun) = @_;
+
+    my @args = @{$self->args};
+    my @ac   = map { $_->to_cpp($fun) } @args;
+    return $self->name 
         . '(' 
         . join(', ', @ac) 
         . ')';

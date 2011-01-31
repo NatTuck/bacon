@@ -34,13 +34,13 @@ sub to_opencl {
     my ($self, $fun, $depth) = @_;
     my $code = indent($depth) 
         . "if (" 
-        . $self->cond->to_opencl($fun, 0) 
+        . $self->cond->to_ocl($fun) 
         . ")\n"
         . $self->case0->to_opencl($fun, $depth);
 
     if (defined $self->case1) {
         $code .= "\nelse\n";
-        $code .= $self->if_f->to_opencl($fun, $depth);
+        $code .= $self->case1->to_opencl($fun, $depth);
     }
 
     return $code;

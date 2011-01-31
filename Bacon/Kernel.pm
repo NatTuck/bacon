@@ -115,7 +115,7 @@ sub to_opencl {
     my $code = "/* Kernel: " . $self->name . 
                " " . $self->source . " */\n";
 
-    my @dims = map { $_->to_opencl($self, 0) } @{$self->dist};
+    my @dims = map { $_->to_ocl($self) } @{$self->dist};
     $code .= "kernel void\n";
     $code .= "/* returns: " . $self->retv . "\n";
     $code .= " * distrib: ";
@@ -167,7 +167,7 @@ sub to_wrapper_hh {
 
 sub wrapper_range {
     my ($self) = @_;
-    return join(', ', map { $_->to_dim } @{$self->dist});
+    return join(', ', map { $_->to_cpp($self) } @{$self->dist});
 }
 
 sub decl_return_var {

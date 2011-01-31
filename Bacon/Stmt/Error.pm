@@ -43,7 +43,7 @@ sub gen_fail {
     my $code = indent($depth) . "_bacon__status[0] = $err_no;\n";
     
     if (scalar @{$self->args} > 1) {
-        my $err_data = $self->args->[1]->to_opencl($fun, 0); 
+        my $err_data = $self->args->[1]->to_ocl($fun); 
         $code .= indent($depth) . "_bacon__status[1] = $err_data;\n";
     }
     
@@ -54,7 +54,7 @@ sub gen_fail {
 sub gen_assert {
     my ($self, $fun, $depth) = @_;
 
-    my $expr   = $self->args->[0]->to_opencl($fun, 0);
+    my $expr   = $self->args->[0]->to_ocl($fun);
     my $string = $self->args->[1]->value;
     my $err_no = $fun->lookup_error_string($string);
     
@@ -63,7 +63,7 @@ sub gen_assert {
     $code .= indent($depth + 1) . "_bacon__status[0] = $err_no;\n";
     
     if (scalar @{$self->args} > 2) {
-        my $err_data = $self->args->[2]->to_opencl($fun, 0); 
+        my $err_data = $self->args->[2]->to_ocl($fun); 
         $code .= indent($depth + 1) . "_bacon__status[1] = $err_data;\n";
     }
     

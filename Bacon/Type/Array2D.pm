@@ -21,7 +21,7 @@ sub index_expr {
 
     my $expr = mkop('+', $col, mkop('*', $row, $cols));
 
-    return $expr->to_opencl($fun, 0);
+    return $expr->to_ocl($fun);
 }
 
 __PACKAGE__->meta->make_immutable;

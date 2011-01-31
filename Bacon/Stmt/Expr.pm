@@ -31,7 +31,7 @@ sub to_opencl {
         return indent($depth) . "/* pass */;\n";
     }
     else {
-        return indent($depth) . $self->expr->to_opencl($fun, 0) . ";\n";
+        return indent($depth) . $self->expr->to_ocl($fun) . ";\n";
     }
 }
 

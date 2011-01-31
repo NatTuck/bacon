@@ -22,9 +22,14 @@ sub new1 {
     );
 }
 
-sub to_opencl {
-    my ($self, undef, $depth) = @_;
-    return indent($depth) . $self->value;
+sub to_ocl {
+    my ($self, undef) = @_;
+    return $self->value;
+}
+
+sub to_cpp {
+    my ($self, undef) = @_;
+    return $self->value;
 }
 
 __PACKAGE__->meta->make_immutable;

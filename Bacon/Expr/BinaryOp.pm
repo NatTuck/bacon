@@ -33,13 +33,21 @@ sub kids {
     return ($self->arg0, $self->arg1);
 }
 
-sub to_opencl {
-    my ($self, $fun, $depth) = @_;
-    return indent($depth)
-        . "("
-        . $self->arg0->to_opencl($fun, 0)
+sub to_ocl {
+    my ($self, $fun) = @_;
+    return "("
+        . $self->arg0->to_ocl($fun)
         . $self->name 
-        . $self->arg1->to_opencl($fun, 0) 
+        . $self->arg1->to_ocl($fun) 
+        . ")";
+}
+
+sub to_cpp {
+    my ($self, $fun) = @_;
+    return "("
+        . $self->arg0->to_cpp($fun)
+        . $self->name 
+        . $self->arg1->to_cpp($fun) 
         . ")";
 }
 

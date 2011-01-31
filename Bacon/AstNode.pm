@@ -11,6 +11,7 @@ has line => (is => 'ro', isa => 'Int', required => 1);
 
 use Bacon::Utils;
 
+use Carp;
 use Data::Dumper;
 use Scalar::Util qw(blessed);
 use Try::Tiny;
@@ -125,8 +126,21 @@ sub declared_variables {
 }
 
 sub to_opencl {
-    my (undef, $fun, $depth) = @_;
-    return indent($depth || 0) . "** ???? **";
+    my ($self, undef, undef) = @_;
+    my $type = ref $self ? ref $self : $self;
+    confess "No method $type ::to_opencl. Did you want ::to_ocl?";
+}
+
+sub to_ocl {
+    my ($self, undef) = @_;
+    my $type = ref $self ? ref $self : $self;
+    confess "No method $type ::to_ocl. Not an Expr?";
+}
+
+sub to_cpp {
+    my ($self, undef) = @_;
+    my $type = ref $self ? ref $self : $self;
+    confess "No method $type ::to_cpp. Not an Expr?";
 }
 
 sub kids {
@@ -141,11 +155,6 @@ sub subnodes {
         push @subnodes, $_->subnodes;
     }
     return ($self, @subnodes);
-}
-
-sub to_dim {
-    my ($self) = @_;
-    confess "Object of type " . ref($self) . " not a dim";
 }
 
 __PACKAGE__->meta->make_immutable;

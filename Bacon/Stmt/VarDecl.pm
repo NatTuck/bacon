@@ -68,7 +68,7 @@ sub to_opencl {
     my ($self, $fun, $depth) = @_;
     if (defined $self->init) {
         my $code = indent($depth);
-        $code .= $self->name . " = " . $self->init->to_opencl($fun, 0);    
+        $code .= $self->name . " = " . $self->init->to_ocl($fun);    
         return $code . ";\n";
     }
     else {
@@ -84,12 +84,12 @@ sub decl_to_opencl {
     if (defined $self->dims) {
         assert_type($fun, 'Bacon::Kernel');
 
-        my @dims = map { $_->to_opencl($fun, 0) } @{$self->dims};
+        my @dims = map { $_->to_ocl($fun) } @{$self->dims};
         $code .= '[' . join(', ', @dims) . ']';
     }
 
     if (defined $self->init) {
-        $code .= ' = ' . $self->init->to_opencl($fun, 0); 
+        $code .= ' = ' . $self->init->to_ocl($fun); 
     }
 
     $code .= ";\n";
@@ -98,7 +98,7 @@ sub decl_to_opencl {
 
 sub cpp_dims {
     my ($self, $fun) = @_;
-    my @dims = map { name_to_cc($_->to_opencl($fun, 0)) } @{$self->dims};
+    my @dims = map { $_->to_cpp($fun) } @{$self->dims};
     return join(', ', @dims);
 }
 

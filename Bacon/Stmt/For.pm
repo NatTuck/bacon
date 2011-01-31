@@ -35,12 +35,12 @@ sub to_opencl {
     }
 
     if (defined $self->cond) {
-        $code .= $self->cond->to_opencl($fun, 0);
+        $code .= $self->cond->to_ocl($fun);
     }
     $code .= "; ";
 
     if (defined $self->incr) {
-        $code .= $self->incr->to_opencl($fun, 0);
+        $code .= $self->incr->to_ocl($fun);
     }
     $code .= ")\n";
 

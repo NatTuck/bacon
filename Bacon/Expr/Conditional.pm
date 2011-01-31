@@ -28,15 +28,25 @@ sub kids {
     return ($self->cond, $self->case0, $self->case1);
 }
 
-sub to_opencl {
-    my ($self, $fun, $depth) = @_;
-    return indent($depth) 
-        . "("
-        . $self->cond->to_opencl($fun, 0)
+sub to_ocl {
+    my ($self, $fun) = @_;
+    return "("
+        . $self->cond->to_ocl($fun)
         . " ? "
-        . $self->case0->to_opencl($fun, 0)
+        . $self->case0->to_ocl($fun)
         . " : "
-        . $self->case1->to_opencl($fun, 0)
+        . $self->case1->to_ocl($fun)
+        . ")";
+}
+
+sub to_cpp {
+    my ($self, $fun) = @_;
+    return "("
+        . $self->cond->to_cpp($fun)
+        . " ? "
+        . $self->case0->to_cpp($fun)
+        . " : "
+        . $self->case1->to_cpp($fun)
         . ")";
 }
 

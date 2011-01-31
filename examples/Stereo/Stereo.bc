@@ -90,9 +90,9 @@ pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
 kernel
 Array2D<uchar>
 disparity(Array3D<uchar> pspace)
-    @ [aa.rows, aa.cols]
+    @ [pspace.rows, pspace.cols]
 {
-    array2d<uchar> disp[aa.rows, aa.cols];
+    Array2D<uchar> disp[pspace.rows, pspace.cols];
     
     disp[$y, $x] = pspace[0, $y, $x]; // or cheapest for z = 0..7
 

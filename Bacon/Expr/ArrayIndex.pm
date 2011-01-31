@@ -27,39 +27,23 @@ sub kids {
     return @{$self->dims};
 }
 
-sub to_opencl {
-    my ($self, $fun, $depth) = @_;
-    my $dims = scalar @{$self->dims};
-
+sub to_ocl {
+    my ($self, $fun) = @_;
     my $type = $fun->vtab->{$self->name}->type_object;
 
-    return indent($depth)
-        . $self->name . "__data"
+    return $self->name . "__data"
         . '['
         . $type->index($self, $fun, @{$self->dims})
         . ']';
 
 }
 
-sub gen_aref3 {
-    my ($self, $fun, $depth) = @_;
-    my ($dep, $row, $col) = @{$self->dims};
-    
-    my $rows = Bacon::Expr::FieldAccess->new2(
-        $self->name, 'rows');
-    my $cols = Bacon::Expr::FieldAccess->new2(
-        $self->name, 'cols');
-
-    my $dep_off = mkop('*', $dep, mkop('*', $rows, $cols));
-    my $row_off = mkop('*', $row, $cols);
-    my $expr0 = mkop('+', $dep_off, $row_off);
-    my $expr  = mkop('+', $col, $expr0);
-
-    return indent($depth) 
-        . $self->name . "__data"
-        . '[' 
-        . $expr->to_opencl($fun, 0) 
-        . ']';
+sub to_cpp {
+    my ($self, $fun) = @_;
+    return $self->name . ".get"
+        . '('
+        . join(', ', map { $_->to_cpp($fun) } @{$self->dims})
+        . ')'
 }
 
 __PACKAGE__->meta->make_immutable;

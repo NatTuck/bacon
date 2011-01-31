@@ -36,7 +36,7 @@ sub to_opencl {
         }
         else {
             $code .= indent($depth) . "return "
-                . $self->expr->to_opencl($fun, 0) . ";\n";
+                . $self->expr->to_ocl($fun) . ";\n";
         }
     }
     

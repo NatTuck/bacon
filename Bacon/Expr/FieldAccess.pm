@@ -19,11 +19,12 @@ sub new2 {
     return $class->new_attrs(name => $name, field => $field);
 }
 
-sub to_opencl {
-    my ($self, $fun, undef) = @_;
-    my $var = $fun->vtab->{$self->name};
+sub to_ocl {
+    my ($self, $fun) = @_;
+    my $var = $fun->vtab->{$self->name}
+        or confess "Unknown variable: " . $self->name;
 
-    if ($var->type =~ /^array.*\<.*\>$/i) {
+    if ($var->type =~ /^Array.*\<.*\>$/i) {
         return $self->name . "__" . $self->field;
     }
     else {
@@ -31,9 +32,12 @@ sub to_opencl {
     }
 }
 
-sub to_dim {
-    my ($self) = @_;
-    return name_to_cc($self->name . "__" . $self->field);
+sub to_cpp {
+    my ($self, $fun) = @_;
+    my $var = $fun->vtab->{$self->name}
+        or confess "Unknown variable: " . $self->name;
+
+    return $self->name . '.' . $self->field . '()';
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -31,20 +31,34 @@ sub kids {
     return ($self->arg0,);
 }
 
-sub to_opencl {
+sub to_ocl {
     my ($self, $fun, $depth) = @_;
     if ($self->post) {
-        return indent($depth) 
-            . "(" 
-            . $self->arg0->to_opencl($fun, 0) 
+        return "(" 
+            . $self->arg0->to_ocl($fun) 
             . $self->name 
             . ")";
     }
     else {
-        return indent($depth) 
-            . "(" 
+        return "(" 
             . $self->name 
-            . $self->arg0->to_opencl($fun, 0) 
+            . $self->arg0->to_ocl($fun, 0) 
+            . ")";
+    }
+}
+
+sub to_cpp {
+    my ($self, $fun, $depth) = @_;
+    if ($self->post) {
+        return "(" 
+            . $self->arg0->to_cpp($fun) 
+            . $self->name 
+            . ")";
+    }
+    else {
+        return "(" 
+            . $self->name 
+            . $self->arg0->to_cpp($fun, 0) 
             . ")";
     }
 }
