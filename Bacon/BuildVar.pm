@@ -111,10 +111,7 @@ sub fun_arg {
     confess "No type: " . Dumper($self) unless $self->type;
     confess "Fun Args can't have dims" if $self->dims;
 
-    return Bacon::FunArg->new(
-        file => $self->file, line => $self->line,
-        type => $self->type, name => $self->name, 
-    );
+    return Bacon::Variable->new2($self->name, $self->type);
 }
 
 __PACKAGE__->meta->make_immutable;

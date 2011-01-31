@@ -11,7 +11,7 @@ doc:
 	(cd doc && make)
 
 prereqs:
-	sudo apt-get install libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-latex-base libclone-perl
+	sudo apt-get install libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-latex-base libclone-perl libdata-section-perl
 
 examples: all
 	find examples -maxdepth 1 -mindepth 1 -type d \

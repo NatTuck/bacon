@@ -6,15 +6,13 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-extends 'Bacon::Stmt';
-with 'Bacon::Variable';
+extends 'Bacon::Stmt', 'Bacon::Variable';
 
 has dims => (is => 'ro', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 
-use Bacon::Utils qw(name_to_cc indent);
+use Bacon::Utils;
 use Bacon::Expr::BinaryOp qw(mkop);
-use Bacon::FunArg;
 
 sub kids {
     my ($self) = @_;

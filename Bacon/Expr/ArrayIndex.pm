@@ -31,40 +31,14 @@ sub to_opencl {
     my ($self, $fun, $depth) = @_;
     my $dims = scalar @{$self->dims};
 
-    my $type = $fun->vtab->{$name}->bacon_type;
+    my $type = $fun->vtab->{$self->name}->type_object;
 
     return indent($depth)
-        . $self->name
+        . $self->name . "__data"
         . '['
         . $type->index($fun, @{$self->dims})
         . ']';
 
-}
-
-sub gen_aref1 {
-    my ($self, $fun, $depth) = @_;
-    my ($expr) = @{$self->dims};
-    return indent($depth)
-        . $self->name
-        . '['
-        . $expr->to_opencl($fun, 0)
-        . ']';
-}
-
-sub gen_aref2 {
-    my ($self, $fun, $depth) = @_;
-    my ($row, $col) = @{$self->dims};
-
-    my $cols = Bacon::Expr::FieldAccess->new2(
-        $self->name, 'cols');
-
-    my $expr = mkop('+', $col, mkop('*', $row, $cols));
-
-    return indent($depth) 
-        . $self->name . "__data"
-        . '[' 
-        . $expr->to_opencl($fun, 0) 
-        . ']';
 }
 
 sub gen_aref3 {

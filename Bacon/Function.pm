@@ -9,10 +9,10 @@ use namespace::autoclean;
 use Data::Dumper;
 
 use Bacon::AstNode;
-extends 'Bacon::AstNode';
+extends 'Bacon::AstNode', 'Bacon::Template';
 
 has name => (is => 'rw', isa => 'Str');
-has args => (is => 'rw', isa => 'ArrayRef[Bacon::FunArg]');
+has args => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
 has retv => (is => 'rw', isa => 'Str', default => 'void');
 has body => (is => 'rw', isa => 'Maybe[Bacon::Stmt::Block]');
 
@@ -60,31 +60,6 @@ sub lookup_error_string {
     die "Error strings in non-kernel functions unsupported.";
 }
 
-sub expanded_args {
-    my ($self) = @_;
-    my @unexp = grep { $_->isa('Bacon::FunArg') || $_->retv } 
-        values %{$self->vtab};
-    my @args = ();
-    for my $arg (@unexp) {
-        unless ($arg->isa('Bacon::FunArg')) {
-            $arg = $arg->to_funarg;
-        }
-        push @args, $arg->expand;
-    }
-    return @args;
-}
-
-sub expanded_vars {
-    my ($self) = @_;
-    my @unexp = grep { !$_->isa('Bacon::FunArg') && !$_->retv } 
-        values %{$self->vtab};
-    my @vars = ();
-    for my $var (@unexp) {
-        push @vars, $var->expand;
-    }
-    return @vars;
-}
-
 sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");
@@ -94,14 +69,17 @@ sub to_opencl {
 
     $code .= $self->retv . "\n";
 
-    my @args = $self->expanded_args;
+    my @args = grep { !$_->isa('Bacon::Stmt::VarDecl') } values %{$self->vtab};
+
     $code .= $self->name . "(";
-    $code .= join(', ', map { $_->to_opencl($self, 0) } @args);
+    $code .= join(', ', map { $_->decl_fun_arg($self) } @args);
     $code .= ")\n";
 
     $code .= "{\n";
     
-    my @vars = $self->expanded_vars;
+    my @vars = grep { $_->isa('Bacon::Stmt::VarDecl') } 
+        values %{$self->vtab};
+
     for my $var (@vars) {
         $code .= $var->to_opencl($self, 0) . ";\n";
     }

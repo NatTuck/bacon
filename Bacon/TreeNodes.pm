@@ -7,7 +7,7 @@ use Bacon::AstNode;
 use Bacon::Program;
 use Bacon::Function;
 use Bacon::Kernel;
-use Bacon::FunArg;
+use Bacon::Variable;
 
 use Bacon::Stmt;
 use Bacon::Stmt::Block;

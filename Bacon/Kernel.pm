@@ -95,6 +95,19 @@ sub init_magic_variables {
     return $code;
 }
 
+sub expanded_args {
+    my ($self) = @_;
+    my @args = grep { !$_->isa('Bacon::Stmt::VarDecl') || $_->retv } 
+        values %{$self->vtab};
+    return map { $_->expand } @args;
+}
+
+sub local_vars {
+    my ($self) = @_;
+    return grep { $_->isa('Bacon::Stmt::VarDecl') && !$_->retv } 
+        values %{$self->vtab};
+}
+
 sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");
@@ -113,19 +126,18 @@ sub to_opencl {
         my $vname = $self->find_return_var;
         $self->vtab->{$vname}->retv(1);
     }
-    
-    my @args = map {$_->to_opencl($self, 0)} $self->expanded_args;
-    push @args, 'global long* _bacon__status';
+ 
+    my @args = $self->expanded_args;
 
     $code .= $self->name . "(";
-    $code .= join(', ', @args);
-    $code .= ")\n";
+    $code .= join(', ', map { $_->decl_fun_arg($self) } @args);
+    $code .= ", global long* _bacon__status)\n";
 
     $code .= "{\n";
 
     $code .= $self->init_magic_variables;
     
-    my @vars = $self->expanded_vars;
+    my @vars = $self->local_vars;
     for my $var (@vars) {
         $code .= $var->decl_to_opencl($self, 1);
     }
@@ -199,7 +211,9 @@ sub wrapper_body {
     push @lines, '';
    
     my $argn = 0;
-    for my $arg ($self->expanded_args) {
+    my @args = $self->expanded_args;
+
+    for my $arg (@args) {
         my $arg_name = $arg->cc_name;
         push @lines, "kern.setArg($argn, $arg_name);";
         $argn++;
