@@ -6,16 +6,18 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-use Bacon::Type::Base;
-extends 'Bacon::Type::Base';
+use Bacon::Type::Array;
+extends 'Bacon::Type::Array';
 
 has '+dims' => (default => sub { ['rows', 'cols'] });
 
+use Bacon::Expr::BinaryOp qw(mkop);
+
 sub index_expr {
-    my ($self, $fun, $row, $col) = @_;
+    my ($self, $var, $fun, $row, $col) = @_;
 
     my $cols = Bacon::Expr::FieldAccess->new2(
-        $self->name, 'cols');
+        $var->name, 'cols');
 
     my $expr = mkop('+', $col, mkop('*', $row, $cols));
 

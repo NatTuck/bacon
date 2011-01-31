@@ -2,7 +2,7 @@
 
 kernel
 void
-test_errors(array2d<int> aa) 
+test_errors(Array2D<int> aa) 
     @ [aa.rows, aa.cols]
 {
     int val = aa[$y, $x];

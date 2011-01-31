@@ -1,11 +1,11 @@
 /* -*- c -*- */
 
 kernel
-array2d<ulong>
-sparse_census(array2d<uchar> image) 
+Array2D<ulong>
+sparse_census(Array2D<uchar> image) 
     @ [image.rows, image.cols]
 {
-    array2d<ulong> census[image.rows, image.cols];
+    Array2D<ulong> census[image.rows, image.cols];
 
     ulong bits = 0;
     
@@ -46,7 +46,7 @@ popcount(ulong x)
 
 kernel
 void
-pspace_h(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direction)
+pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
     @ [aa.rows]
 {
     // traverse left
@@ -55,7 +55,7 @@ pspace_h(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direct
 
 kernel
 void
-pspace_v(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direction)
+pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
     @ [aa.cols]
 {
     // traverse down
@@ -64,7 +64,7 @@ pspace_v(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direct
 
 kernel
 void
-pspace_d(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direction)
+pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
     @ [aa.rows + aa.cols]
 {
     if ($x < aa.rows) {
@@ -88,8 +88,8 @@ pspace_d(array3d<uchar> pspace, array2d<ulong> aa, array2d<ulong> bb, int direct
 }
 
 kernel
-array2d<uchar>
-disparity(array3d<uchar> pspace)
+Array2D<uchar>
+disparity(Array3D<uchar> pspace)
     @ [aa.rows, aa.cols]
 {
     array2d<uchar> disp[aa.rows, aa.cols];

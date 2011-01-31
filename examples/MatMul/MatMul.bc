@@ -1,11 +1,11 @@
 /* -*- c -*- */
 
 kernel
-array2d<float>
-mat_mul(array2d<float> aa, array2d<float> bb) 
+Array2D<float>
+mat_mul(Array2D<float> aa, Array2D<float> bb) 
     @ [cc.rows, cc.cols]
 {
-    array2d<float> cc[aa.rows, bb.cols];
+    Array2D<float> cc[aa.rows, bb.cols];
     float sum = 0.0;
 
     assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");

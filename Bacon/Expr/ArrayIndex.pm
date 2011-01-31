@@ -36,7 +36,7 @@ sub to_opencl {
     return indent($depth)
         . $self->name . "__data"
         . '['
-        . $type->index($fun, @{$self->dims})
+        . $type->index($self, $fun, @{$self->dims})
         . ']';
 
 }
