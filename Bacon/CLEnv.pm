@@ -47,7 +47,7 @@ sub ocl_ldflags {
     my $ldflags = qq{-L "$base/lib" -lbacon };
 
     if ($cfg{lib}) {
-        $ldflags .= '-L "' . $cfg{lib} . '"' . $ldflags;
+        $ldflags .= '-L "' . $cfg{lib} . '" ' . $ldflags;
     }
 
     $ldflags .= " -lOpenCL";

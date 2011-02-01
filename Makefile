@@ -8,6 +8,7 @@ Bacon/Parser.pm: Bacon/grammar.yp
 	mv Bacon/grammar.output Bacon/yapp.output
 
 lib/$(LIB): src/$(LIB)
+	mkdir -p lib
 	cp src/$(LIB) lib/$(LIB)
 
 src/$(LIB):

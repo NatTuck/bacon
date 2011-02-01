@@ -22,6 +22,6 @@ $(OBJS): %.o: %.cc cl_perror.hh $(HDRS) Makefile
 
 
 clean:
-	rm -f $(LIB) *.o cl_perror.hh cl_perror.o *~
+	rm -f $(LIB) *.o cl_perror.hh cl_perror.cc cl_perror.o *~
 
 .PHONY: all clean
