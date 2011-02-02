@@ -3,16 +3,16 @@ BINARY=stereo
 
 BACON=../../bacon
 
-CXXFLAGS=-g $(shell $(BACON) --ccflags)
-LDFLAGS =$(shell $(BACON) --ldflags)
+CXXFLAGS=-g $(shell $(BACON) --ccflags) `pkg-config --cflags opencv`
+LDFLAGS =$(shell $(BACON) --ldflags) `pkg-config --libs opencv`
 
 BCS=$(shell ls *.bc)
 BCOS=$(shell ls *.bc | perl -pe 's/\b(\w+)\.bc\b/\1.o/')
 CCOS=$(shell ls *.cc | perl -pe 's/\b(\w+)\.cc\b/\1.o/')
 OBJS=$(BCOS) $(CCOS)
 
-all:
-	@echo "skipping Stereo example"
+#all:
+#	@echo "skipping Stereo example"
 
 $(BINARY): $(OBJS)
 	$(CXX) $(LDFLAGS) -o $@ *.o
@@ -25,8 +25,8 @@ $(BCOS): %.o: %.bc Makefile
 
 $(CCOS): %.o: %.cc Makefile $(BCOS)
 
-test:
-	prove test.t
+test: $(BINARY)
+	./$(BINARY) t/view1.png t/view5.png
 
 clean:
 	rm -rf $(BINARY) *.o *~ gen

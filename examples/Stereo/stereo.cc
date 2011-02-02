@@ -10,24 +10,47 @@ using std::string;
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <Bacon/OpenCV.hh>
 #include "gen/Stereo.hh"
+
+#include "show_image.hh"
+
+using namespace Bacon;
 
 cv::Mat
 stereo_disparity(cv::Mat matL, cv::Mat matR)
 {
-    Bacon::Array2D<cl_uchar> arL = mat2array(matL);
-    Bacon::Array2D<cl_uchar> arR = mat2array(matR);
+    Stereo ss;
 
-    
-    Bacon::Array2D<cl_uchar> arD = calc
+    Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL);
+    Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR);
 
-    cv::Mat matD = 
+    Array2D<cl_ulong> cL = ss.sparse_census(aL);
+    Array2D<cl_ulong> cR = ss.sparse_census(aR);
+
+    cout << "one" << endl;
+
+    cout << "two" << endl;
+
+    cv::Mat xx = array2d_to_mat(cL);
+
+    cout << "three" << endl;
+
+    cout << "four" << endl;
+
+    show_census("Census Left", cL.ptr(), cL.rows(), cL.cols());
+
+    cout << "five" << endl;
+
+    exit(0);
+
+    //return array2d_to_mat(arD, CV_8UC1);
 }
 
 void
 show_usage()
 {
-    cout << "Usage: ./stereo -o disp.png" << endl;
+    cout << "Usage: ./stereo [-c ground.png] [-o disp.png] left.png right.png" << endl;
     exit(1);
 }
 
@@ -59,14 +82,14 @@ main(int argc, char* argv[])
         return 0;
     }
 
-    cv::Mat left  = imread(argv[1]);
-    cv::Mat right = imread(argv[2]);
+    cv::Mat left  = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
+    cv::Mat right = cv::imread(argv[2], CV_LOAD_IMAGE_GRAYSCALE);
 
     cv::Mat disp  = stereo_disparity(left, right);
     
     if (ground_truth != "") {
-        cv::Mat ground = imread(ground_truth);
-        show_difference(ground, disp);
+        cv::Mat ground = cv::imread(ground_truth, CV_LOAD_IMAGE_GRAYSCALE);
+        //show_difference(ground, disp);
     }
 
     cv::namedWindow("Disparity Map", CV_WINDOW_AUTOSIZE);

@@ -30,6 +30,11 @@ sub new4 {
     );
 }
 
+sub kids {
+    my ($self) = @_;
+    return ($self->cond, $self->case0, $self->case1);
+}
+
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
     my $code = indent($depth) 
@@ -39,12 +44,14 @@ sub to_opencl {
         . $self->case0->to_opencl($fun, $depth);
 
     if (defined $self->case1) {
-        $code .= "\nelse\n";
+        $code .= indent($depth) . "else\n";
         $code .= $self->case1->to_opencl($fun, $depth);
     }
 
     return $code;
 }
+
+
 
 __PACKAGE__->meta->make_immutable;
 1;

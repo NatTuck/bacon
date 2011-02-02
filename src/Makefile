@@ -13,13 +13,13 @@ HDRS=$(shell ls ../include/*.hh)
 all: $(LIB)
 
 $(LIB): $(OBJS)
-	$(CXX) -shared -o $(LIB) $(OBJS)
+	$(CXX) $(LDFLAGS) -shared -o $(LIB) $(OBJS)
 
 cl_perror.hh cl_perror.cc:
 	$(BACON) --perror
+	$(CXX) -c $(CXXFLAGS) -o cl_perror.o cl_perror.cc
 
 $(OBJS): %.o: %.cc cl_perror.hh $(HDRS) Makefile
-
 
 clean:
 	rm -f $(LIB) *.o cl_perror.hh cl_perror.cc cl_perror.o *~

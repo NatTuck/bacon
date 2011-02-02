@@ -75,6 +75,13 @@ class Array {
         return buffer;
     }
 
+    NumT* ptr()
+    {
+        if (on_gpu)
+            recv_dev();
+        return data_ptr.get();
+    }
+
     NumT get(cl_uint xx)
     {
         if (on_gpu)

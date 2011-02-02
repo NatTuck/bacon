@@ -28,7 +28,8 @@ sub to_opencl {
     if (defined $self->init) {
         $code .= $self->init->to_opencl($fun, 0);
         chomp($code);
-        $code .= " ";
+        $code =~ s/;$//;
+        $code .= "; ";
     }
     else {
         $code .= "; ";

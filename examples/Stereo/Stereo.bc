@@ -8,6 +8,7 @@ sparse_census(Array2D<uchar> image)
     Array2D<ulong> census[image.rows, image.cols];
 
     ulong bits = 0;
+    uchar ctr = image[$y, $x];
     
     for (int by = 0; by < 8; ++by) {
         int yoff = by + by - 7;

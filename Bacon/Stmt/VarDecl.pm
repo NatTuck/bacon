@@ -66,9 +66,9 @@ sub to_funarg {
 
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
-    if (defined $self->init) {
+    if (defined $self->init && !$self->init->isa('Bacon::Expr::Literal')) {
         my $code = indent($depth);
-        $code .= $self->name . " = " . $self->init->to_ocl($fun);    
+        $code .= $self->name . " = " . $self->init->to_ocl($fun);
         return $code . ";\n";
     }
     else {
@@ -88,7 +88,7 @@ sub decl_to_opencl {
         $code .= '[' . join(', ', @dims) . ']';
     }
 
-    if (defined $self->init) {
+    if (defined $self->init && $self->init->isa('Bacon::Expr::Literal')) {
         $code .= ' = ' . $self->init->to_ocl($fun); 
     }
 

@@ -81,7 +81,7 @@ sub to_opencl {
         values %{$self->vtab};
 
     for my $var (@vars) {
-        $code .= $var->to_opencl($self, 0) . ";\n";
+        $code .= $var->decl_to_opencl($self, 1);
     }
 
     $code .= $self->body->contents_to_opencl($self, 0);

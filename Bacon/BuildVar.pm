@@ -6,6 +6,7 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Data::Dumper;
 use Carp;
 
 extends 'Bacon::AstNode';
@@ -48,7 +49,7 @@ sub add_type {
     assert_type($new_type, 'Bacon::Token');
 
     my %types = ();
-    $types{$new_type} = 1;
+    $types{$new_type->text} = 1;
    
     for my $type (split /\s+/, $self->type) {
         $types{$type} = 1;
