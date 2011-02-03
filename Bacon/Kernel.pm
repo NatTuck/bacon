@@ -167,7 +167,7 @@ sub to_wrapper_hh {
 
 sub wrapper_range {
     my ($self) = @_;
-    return join(', ', map { $_->to_cpp($self) } @{$self->dist});
+    return join(', ', map { $_->to_cpp($self) } (reverse @{$self->dist}));
 }
 
 sub decl_return_var {
@@ -269,7 +269,7 @@ sub to_wrapper_cc {
         . join(', ', $self->wrapper_args)
         . ")\n{\n"
         . indent(1) . "try {\n"
-        . join("\n", map { indent(2) . $_ } $self->wrapper_body)
+        . join("\n", map { indent(2) . $_ } $self->wrapper_body) . "\n"
         . indent(1) . "}\n"
         . indent(1) . "catch (cl::Error ee) {\n"
         . indent(2) . "std::ostringstream tmp;\n"

@@ -1,0 +1,14 @@
+/* -*- c -*- */
+
+kernel
+Array2D<int>
+vflood(Array<int> aa, uint height)
+    @ [height, aa.size]
+{
+    Array2D<int> cc[height, aa.size];
+
+    cc[$y, $x] = aa[$x];
+
+    return cc;
+}
+

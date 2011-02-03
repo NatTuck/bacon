@@ -299,10 +299,13 @@ simple_type
     ;
 
 parameterized_type
-    : IMAGE2D
-    | IMAGE3D
+    : ARRAY
     | ARRAY2D
     | ARRAY3D
+    | ARRAY2Z
+    | ARRAY3Z
+    | IMAGE2D
+    | IMAGE3D
     ;
 
 type_specifier
