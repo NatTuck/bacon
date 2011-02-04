@@ -4,6 +4,7 @@ use 5.10.0;
 use feature 'switch';
 
 use Moose;
+use Carp;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has type => (is => 'ro', isa => 'Str', required => 1);
@@ -50,12 +51,23 @@ sub subtype {
     }
 }
 
+sub struct_type {
+    my ($self) = @_;
+    croak "Simple type has no struct type" unless ($self->ptype);
+    return "_Bacon__" . $self->ptype . "__" . $self->subtype;
+}
+
 sub decl_fun_arg {
     my ($self, undef) = @_;
     my $code = "";
-    $code .= "global " if ($self->type =~ /\*$/);
-    $code .= $self->type . " ";
-    $code .= $self->name;
+    if ($self->ptype) {
+        $code .= $self->struct_type . ' ' . $self->name;
+    }
+    else {
+        $code .= "global " if ($self->type =~ /\*$/);
+        $code .= $self->type . " ";
+        $code .= $self->name;
+    }
     return $code;
 }
 
@@ -63,7 +75,7 @@ sub init_struct {
     my ($self) = @_;
     my $code = "";
     
-    my $struct_type = "_Bacon__" . $self->ptype . "__" . $self->subtype;
+    my $struct_type = $self->struct_type;
     my $type = $self->type_object;
     my $name = $self->name;
 

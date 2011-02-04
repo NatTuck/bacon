@@ -32,5 +32,6 @@ use Bacon::Expr::Identifier;
 use Bacon::Expr::Literal;
 use Bacon::Expr::String;
 use Bacon::Expr::UnaryOp;
+use Bacon::Expr::Cast;
 
 1;

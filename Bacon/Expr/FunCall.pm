@@ -26,10 +26,11 @@ sub kids {
 
 sub to_ocl {
     my ($self, $fun) = @_;
+    my $name = $self->name;
 
     my @args = @{$self->args};
     my @ac   = map { $_->to_ocl($fun) } @args;
-    return $self->name 
+    return $name
         . '(' 
         . join(', ', @ac) 
         . ')';

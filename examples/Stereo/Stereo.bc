@@ -12,11 +12,11 @@ sparse_census(Array2D<uchar> image)
     
     for (int by = 0; by < 8; ++by) {
         int yoff = by + by - 7;
-        int ii   = clamp($y + yoff, 0, image.rows);
+        int ii   = clamp($y + yoff, 0, (int) image.rows);
 
         for (int bx = 0; bx < 8; ++bx) {
             int xoff = bx + bx - 7;
-            int jj   = clamp($x + xoff, 0, image.cols);
+            int jj   = clamp($x + xoff, 0, (int) image.cols);
 
             uchar pval = image[ii, jj];
             
@@ -55,9 +55,9 @@ census_window(Array2D<ulong> aa, Array2D<ulong> bb, int yy0, int xx0, int kk)
 
     for (int dy = -rad; dy <= rad; ++dy) {
         for (int dx = -rad; dx <= rad; ++dx) {
-            int yy = clamp(yy0 + dy, 0, aa.rows);
-            int ax = clamp(xx0 + dx, 0, aa.cols);
-            int bx = clamp(ax + kk, 0, aa.cols);
+            int yy = clamp(yy0 + dy, 0, (int) aa.rows);
+            int ax = clamp(xx0 + dx, 0, (int) aa.cols);
+            int bx = clamp(ax + kk, 0,  (int) aa.cols);
             
             ulong aa_val = aa[yy, ax];
             ulong bb_val = bb[yy, bx];

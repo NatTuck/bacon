@@ -126,7 +126,7 @@ unary_operator
 cast_expression
     : unary_expression
     | '(' type_name ')' cast_expression
-        { op($_[2], $_[4]) }
+        { Bacon::Expr::Cast->new2($_[2]->type, $_[4]) }
     ;
 
 multiplicative_expression

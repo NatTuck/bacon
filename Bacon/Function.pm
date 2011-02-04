@@ -69,7 +69,7 @@ sub to_opencl {
 
     $code .= $self->retv . "\n";
 
-    my @args = grep { !$_->isa('Bacon::Stmt::VarDecl') } values %{$self->vtab};
+    my @args = @{$self->args};
 
     $code .= $self->name . "(";
     $code .= join(', ', map { $_->decl_fun_arg($self) } @args);

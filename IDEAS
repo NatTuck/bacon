@@ -1,0 +1,5 @@
+
+ * Implement a type system. In addition to allowing polymorphic functions, this would also
+   let Bacon C ignore the Nvidia compiler's lame implmeentation of overloaded functions.
+   This is basically just an issue of propagating type information through expressions.
+   Can detect (and evaluate, if that matters) constant expressions.

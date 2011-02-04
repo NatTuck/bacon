@@ -66,6 +66,23 @@ sub to_funarg {
 
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
+
+    if ($self->retv) {
+        return "";
+    }
+
+    my $code = indent($depth) . $self->type . " " . $self->name;
+
+    if (defined $self->init) {
+        $code .= " = " . $self->init->to_ocl($fun);
+    }
+
+    $code .= ";\n";
+    return $code;
+}
+
+sub to_opencl0 {
+    my ($self, $fun, $depth) = @_;
     if (defined $self->init && !$self->init->isa('Bacon::Expr::Literal')) {
         my $code = indent($depth);
         $code .= $self->name . " = " . $self->init->to_ocl($fun);
@@ -78,6 +95,8 @@ sub to_opencl {
 
 sub decl_to_opencl {
     my ($self, $fun, $depth) = @_;
+    return "";
+
     my $code = indent($depth);
     $code .= $self->type . ' ' . $self->name;
 

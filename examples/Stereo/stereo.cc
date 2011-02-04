@@ -22,22 +22,34 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
 {
     Stereo ss;
 
+    cout << "one" << endl;
+
     Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL);
     Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR);
+
+    cout << "two" << endl;
 
     Array2D<cl_ulong> cL = ss.sparse_census(aL);
     Array2D<cl_ulong> cR = ss.sparse_census(aR);
 
-    //cv::Mat xx = array2d_to_mat(cL);
+    cout << "three" << endl;
 
-    //show_census("Census Left", cL.ptr(), cL.rows(), cL.cols());
-    //show_census("Census Right", cR.ptr(), cR.rows(), cR.cols());
+    show_census("Census Left", cL.ptr(), cL.rows(), cL.cols());
+    show_census("Census Right", cR.ptr(), cR.rows(), cR.cols());
+
+    cout << "four" << endl;
 
     Array3D<cl_uchar> pspace(16, cL.rows(), cL.cols());
 
+    cout << "five" << endl;
+
     ss.pspace_h(pspace, cL, cR, +1);
 
+    cout << "six" << endl;
+
     Array2D<cl_uchar> arD = ss.disparity(pspace);
+
+    cout << "seven" << endl;
 
     return array2d_to_mat(arD);
 }

@@ -9,6 +9,7 @@ use namespace::autoclean;
 use Bacon::Expr;
 extends 'Bacon::Expr';
 
+use Data::Dumper;
 use Bacon::Utils;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
@@ -17,7 +18,9 @@ has post => (is => 'rw', isa => 'Bool', default => 0);
 
 sub new2 {
     my ($class, $op, $arg) = @_;
-    return $class->new_from_token(name => $op, arg0 => $arg);
+    return $class->new(
+        file => $arg->file, line => $arg->line,
+        name => $op->text, arg0 => $arg);
 }
 
 sub set_post {
