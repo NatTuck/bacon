@@ -97,9 +97,10 @@ sub init_magic_variables {
 
 sub expanded_args {
     my ($self) = @_;
-    my @args = grep { !$_->isa('Bacon::Stmt::VarDecl') || $_->retv } 
-        values %{$self->vtab};
-    return map { $_->expand } @args;
+    my @args = @{$self->args};
+    my @retv = grep { $_->retv} values %{$self->vtab};
+    die "Can't have multiple return values" if (scalar @retv > 1);
+    return map { $_->expand } (@retv, @args);
 }
 
 sub local_vars {

@@ -83,7 +83,7 @@ pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
     // traverse left
     prev_disp = -100;
 
-    for (jj = 0; jj < aa.cols; ++kk) {
+    for (jj = 0; jj < aa.cols; ++jj) {
         best_disp = 0;
         low_score = 99999;
 
