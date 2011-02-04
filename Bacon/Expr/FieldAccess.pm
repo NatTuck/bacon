@@ -23,13 +23,7 @@ sub to_ocl {
     my ($self, $fun) = @_;
     my $var = $fun->vtab->{$self->name}
         or confess "Unknown variable: " . $self->name;
-
-    if ($var->type =~ /^Array.*\<.*\>$/i) {
-        return $self->name . "__" . $self->field;
-    }
-    else {
-        return $self->name . "." . $self->field;
-    }
+    return $self->name . "." . $self->field;
 }
 
 sub to_cpp {

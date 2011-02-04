@@ -144,8 +144,15 @@ Context::load_opencl_program(std::string src_fn)
     std::vector<Device> devs;
     devs.push_back(dev);
 
+    // Now for the fun part, where we figure out the compiler
+    // options.
+    //
+    // TODO: Allow user to disable aggressive math-altering
+    // optimizations.
+    std::string opts("-I gen/ocl -cl-strict-aliasing -cl-mad-enable -cl-fast-relaxed-math");
+
     try {
-        pgm.build(devs);    
+        pgm.build(devs, opts.c_str());
     } 
     catch (cl::Error ee) {
         if (cl_strerror(ee.err()) == "CL_BUILD_PROGRAM_FAILURE") {

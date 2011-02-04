@@ -59,6 +59,23 @@ sub decl_fun_arg {
     return $code;
 }
 
+sub init_struct {
+    my ($self) = @_;
+    my $code = "";
+    
+    my $struct_type = "_Bacon__" . $self->ptype . "__" . $self->subtype;
+    my $type = $self->type_object;
+    my $name = $self->name;
+
+    $code .= indent(1) . "$struct_type $name;\n";
+    $code .= indent(1) . "$name.data = $name" . "__data;\n";
+    for my $dim (@{$type->dims}) {
+        $code .= indent(1) . "$name.$dim = $name" . "__$dim;\n";
+    }
+    
+    return $code;
+}
+
 sub cc_name {
     my ($self) = @_;
     return name_to_cc($self->name);

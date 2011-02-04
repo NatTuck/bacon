@@ -45,12 +45,59 @@ popcount(ulong x)
     return (x * h1) >> 56;  //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ... 
 }
 
+int
+census_window(Array2D<ulong> aa, Array2D<ulong> bb, int yy0, int xx0, int kk)
+{
+    const int WINDOW_SIZE = 3;
+    const int rad = WINDOW_SIZE / 2;
+
+    int cost = 0;
+
+    for (int dy = -rad; dy <= rad; ++dy) {
+        for (int dx = -rad; dx <= rad; ++dx) {
+            int yy = clamp(yy0 + dy, 0, aa.rows);
+            int ax = clamp(xx0 + dx, 0, aa.cols);
+            int bx = clamp(ax + kk, 0, aa.cols);
+            
+            ulong aa_val = aa[yy, ax];
+            ulong bb_val = bb[yy, bx];
+            cost += popcount(aa_val ^ bb_val);
+        }
+    }
+
+    return cost;
+}
+
 kernel
 void
 pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
     @ [aa.rows]
 {
+    int max_disp = aa.cols / 5;
+
+    int low_score;
+    int best_disp;
+    int prev_disp;
+    int jj, kk;
+
     // traverse left
+    prev_disp = -100;
+
+    for (jj = 0; jj < aa.cols; ++kk) {
+        best_disp = 0;
+        low_score = 99999;
+
+        for (kk = 0; kk < max_disp; ++kk) {
+            int score = census_window(aa, bb, $x, jj, kk);
+            
+            best_disp = (score < low_score) ? kk : best_disp;
+            low_score = (score < low_score) ? score : low_score;
+        }
+
+        pspace[$x, jj, kk] = best_disp;
+        prev_disp = best_disp;
+    }
+
     // traverse right
 }
 
@@ -93,9 +140,16 @@ Array2D<uchar>
 disparity(Array3D<uchar> pspace)
     @ [pspace.rows, pspace.cols]
 {
+    const int PATHS = 1;
     Array2D<uchar> disp[pspace.rows, pspace.cols];
+
+    int sum = 0;
     
-    disp[$y, $x] = pspace[0, $y, $x]; // or cheapest for z = 0..7
+    for (int kk = 0; kk < PATHS; kk++) {
+        sum += pspace[kk, $y, $x];
+    }
+
+    disp[$y, $x] = sum / PATHS;
 
     return disp;
 }

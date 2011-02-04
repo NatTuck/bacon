@@ -108,6 +108,21 @@ sub local_vars {
         values %{$self->vtab};
 }
 
+sub init_array_structs {
+    my ($self) = @_;
+    my @args = grep { !$_->isa('Bacon::Stmt::VarDecl') || $_->retv } 
+        values %{$self->vtab};
+
+    my $code = "";
+
+    for my $arg (@args) {
+        next unless $arg->ptype;
+        $code .= $arg->init_struct;
+    }
+
+    return $code;
+}
+
 sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");
@@ -136,6 +151,8 @@ sub to_opencl {
     $code .= "{\n";
 
     $code .= $self->init_magic_variables;
+
+    $code .= $self->init_array_structs;
     
     my @vars = $self->local_vars;
     for my $var (@vars) {

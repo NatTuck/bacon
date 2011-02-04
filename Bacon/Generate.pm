@@ -82,6 +82,8 @@ sub bacon_generate {
     chomp @files;
     map { system("cp $base/share/$_ gen") } @files;
 
+    system(qq{ln -s "$base/include/ocl" gen/ocl});
+
     # Generate opencl_perror code.
     ocl_write_perror("gen");    
 }

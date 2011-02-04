@@ -1,7 +1,8 @@
 
 LIB=libbacon.so
+HDRS=include/ocl/Bacon/Array.cl
 
-all: Bacon/Parser.pm doc lib/$(LIB)
+all: Bacon/Parser.pm doc lib/$(LIB) $(HDRS)
 
 Bacon/Parser.pm: Bacon/grammar.yp
 	yapp -v -m Bacon::Parser -o Bacon/Parser.pm Bacon/grammar.yp
@@ -17,6 +18,9 @@ src/$(LIB):
 doc:
 	(cd doc && make)
 
+$(HDRS): Bacon/Parser.pm
+	./bacon --genstdlib include
+
 prereqs:
 	sudo apt-get install build-essential libboost1.40-dev libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-latex-base libclone-perl libdata-section-perl
 
@@ -29,11 +33,11 @@ test: examples
 
 clean:
 	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~
-	rm -f lib/$(LIB)
+	rm -f lib/$(LIB) $(HDRS)
 	(cd src && make clean)
 	(cd doc && make clean)
 	find examples -maxdepth 1 -mindepth 1 -type d \
 		-exec sh -c '(cd {} && make clean)' \;
 	find . -name "*~" -exec rm {} \; 
 
-.PHONY: all clean prereqs test doc
+.PHONY: all clean prereqs test doc stdlib

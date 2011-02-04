@@ -208,7 +208,7 @@ logical_or_expression
 conditional_expression
     : logical_or_expression
     | logical_or_expression '?' expression ':' conditional_expression
-        { op($_[2], $_[1], $_[3], $_[5]) }
+        { Bacon::Expr::Conditional->new3($_[1], $_[3], $_[5]) } 
     ;
 
 assignment_expression
@@ -243,7 +243,7 @@ constant_expression
 
 declaration
     : declaration_specifiers init_declarator_list ';'
-        { [ map { $_->update_with($_[1])->decl_stmt } @{$_[2]}  ] }
+        { [ map { $_->update_with($_[1])->decl_stmt } @{$_[2]} ] }
     ;
 
 declaration_specifiers
@@ -265,7 +265,7 @@ init_declarator_list
     : init_declarator
         { [$_[1]] }
     | init_declarator_list ',' init_declarator
-        { [@$_[1], $_[3]] }
+        { [@{$_[1]}, $_[3]] }
     ;
 
 init_declarator

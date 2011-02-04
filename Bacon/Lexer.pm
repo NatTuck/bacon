@@ -12,6 +12,7 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(make_lexer);
 
 use File::Slurp;
+use File::Temp;
 
 use Bacon::MatchToken;
 use Bacon::Token;
@@ -69,11 +70,33 @@ while (scalar @token > 0) {
     push @pats, Bacon::MatchToken->new($sym, $pat);
 }
 
-sub make_lexer {
-    my ($file) = @_;
-    my $input = read_file($file);
+sub preprocess {
+    my (@lines) = @_;
 
-    my $line  = 1;
+    # Find and replace OpenCL include
+    # directives.
+    for (@lines) {
+        chomp;
+        s/^\s*#include\s+"(.*)\.cl"\s*$/\@include "$1.cl"/m;
+    }
+
+    # Run the rest through the C preprocessor.
+    my $tmp1 = File::Temp->new(SUFFIX => '.tmp');
+    $tmp1->print(join("\n", @lines), "\n");
+
+    my $tmp2 = File::Temp->new(SUFFIX => '.tmp');
+    my $base = $ENV{BACON_BASE};
+    system(qq{cpp -I "$base/include/bcn" -o "$tmp2" "$tmp1"});
+
+    return read_file($tmp2);
+}
+
+sub make_lexer {
+    my ($src_file) = @_;
+    my $input = preprocess(read_file($src_file));
+
+    my $file = $src_file;
+    my $line = 1;
 
     return sub {
       again:  
@@ -85,6 +108,16 @@ sub make_lexer {
         if ($input =~ m{^//}) {
             $input =~ s{\A//.*?$}{}m;
             goto again;
+        }
+
+        if ($input =~ /^#(.*?)\n/m) {
+            my $dv = $1;
+            $input =~ s/^#.*?\n/\n/m;
+            if ($dv =~ /^\s+(\d+)\s+"(.*)?"/) {
+                $line = $1;
+                $file = $2;
+                $file = $src_file if ($file =~ /\.tmp$/);
+            }
         }
 
         if ($input =~ m{\A/\*.*?\*/}ms) {

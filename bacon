@@ -33,6 +33,7 @@ $ENV{BACON_BASE} = $Bin;
 use lib $Bin;
 
 use Bacon::CLEnv qw(ocl_ccflags ocl_ldflags ocl_write_perror);
+use Bacon::Stdlib;
 use Bacon::Parser;
 use Bacon::Generate;
 
@@ -40,7 +41,7 @@ use Getopt::Long qw(GetOptions);
 use Pod::Usage;
 
 my %opt = ();
-GetOptions(\%opt, 'help', 'ccflags', 'cflags', 'ldflags', 'perror');
+GetOptions(\%opt, 'help', 'ccflags', 'cflags', 'ldflags', 'perror', 'genstdlib=s');
 
 if (defined $opt{help}) {
     pod2usage(1);
@@ -61,7 +62,12 @@ if (defined $opt{perror}) {
     exit(0);
 }
 
+if (defined $opt{genstdlib}) {
+    my $include = $opt{genstdlib};
+    Bacon::Stdlib->write_structs("$include/ocl/Bacon/Array.cl");
+    exit(0);
+}
+
 my $source = shift || pod2usage(1);
 my $ast = bacon_parse($source);
 bacon_generate($ast);
-

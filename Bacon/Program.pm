@@ -41,6 +41,7 @@ sub to_opencl {
     my ($self) = @_;
 
     my $code = "/* Bacon::Program: " . $self->source . " */\n";
+    $code .= qq{#include <Bacon/Array.cl>\n};
 
     for my $var (@{$self->constants}) {
         die "Global constants not yet supported";

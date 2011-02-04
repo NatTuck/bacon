@@ -1,0 +1,5 @@
+
+== include/ocl ==
+
+This directory is for the OpenCL include files in the Bacon standard library,
+including the standard array type structures.
