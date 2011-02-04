@@ -4,12 +4,13 @@ use strict;
 use 5.10.0;
 
 use Moose;
-use namespace::autoclean;
+# templates, so no namespace::autoclean
 
 use Data::Dumper;
 
 use Bacon::Function;
-extends 'Bacon::Function';
+use Bacon::Template;
+extends 'Bacon::Function', 'Bacon::Template';
 
 has dist => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 
@@ -200,7 +201,21 @@ sub decl_return_var {
     );
 }
 
-sub wrapper_body {
+sub join_lines {
+    my ($depth, @lines) = @_;
+    return "" unless (scalar @lines > 0);
+
+    my $code = shift @lines;
+    $code .= "\n";
+    
+    for my $line (@lines) {
+        $code .= indent($depth) . $line . "\n";
+    }
+    
+    return $code;
+}
+
+sub var_decls {
     my ($self) = @_;
     my $name  = $self->name;
     my @lines = ();
@@ -216,19 +231,14 @@ sub wrapper_body {
         }
     }
 
-    push @lines, ''; 
+    return join_lines(2, @lines);
+}
 
-    push @lines, 'Bacon::Array<cl_long> status(2);';
-    push @lines, 'status.fill(0);';
-    push @lines, 'status.set_context(&ctx);';
+sub set_args {
+    my ($self) = @_;
 
-    push @lines, ''; 
-
-    push @lines, qq{Kernel kern(ctx.pgm, "$name");};
-    
-    push @lines, '';
-   
     my $argn = 0;
+    my @lines = ();
     my @args = $self->expanded_args;
 
     for my $arg (@args) {
@@ -237,29 +247,7 @@ sub wrapper_body {
         $argn++;
     }
 
-    push @lines, "kern.setArg($argn, status.data());";
-    push @lines, '';
-
-    my $range = $self->wrapper_range;
-    push @lines, qq{NDRange range($range);};
-
-    push @lines, 'Event done;';
-    push @lines, 'ctx.queue.enqueueNDRangeKernel('
-        . 'kern, NullRange, range, NullRange, 0, &done);';
-    push @lines, 'done.wait();';
-
-    push @lines, '';
-
-    push @lines, 'if (status.get(0)) {';
-    push @lines, $self->error_code_switch;
-    push @lines, '}';
-
-    unless ($self->retv eq 'void') {
-        my $rv_name = $self->find_return_var;
-        push @lines, "return $rv_name;";
-    }
-
-    return @lines;
+    return ($argn, join_lines(2, @lines));
 }
 
 sub error_code_switch {
@@ -274,29 +262,83 @@ sub error_code_switch {
     push @lines, '  default: throw Bacon::Error("Unknown Error", status.get(1));';
     push @lines, '}';
 
-    return map { "    " . $_ } @lines;
+    return join_lines(3, @lines);
 }
 
 sub to_wrapper_cc {
     my ($self) = @_;
-    my $class = $self->basefn;
-    my $name  = $self->name;
-    return cpp_type($self->retv) . "\n"
-        . $class . "::" . $name
-        . '('
-        . join(', ', $self->wrapper_args)
-        . ")\n{\n"
-        . indent(1) . "try {\n"
-        . join("\n", map { indent(2) . $_ } $self->wrapper_body) . "\n"
-        . indent(1) . "}\n"
-        . indent(1) . "catch (cl::Error ee) {\n"
-        . indent(2) . "std::ostringstream tmp;\n"
-        . indent(2) . 'tmp << "OpenCL Error: ";' . "\n"
-        . indent(2) . "tmp << cl_strerror(ee.err());\n"
-        . indent(2) . "throw Bacon::Error(tmp.str());\n"
-        . indent(1) . "}\n"
-        . "\n}\n\n";
+    my ($last_argn, $set_args) = $self->set_args;
+
+    my $ret_stmt = "";
+    unless ($self->retv eq 'void') {
+        my $retv = $self->find_return_var;
+        $ret_stmt = "return $retv;";
+    }
+
+    my $code = $self->fill_section(
+        wrapper_cc  => 0,
+        return_type => cpp_type($self->retv),
+        class       => $self->basefn,
+        kernel_name => $self->name,
+        args        => join(', ', $self->wrapper_args),
+        var_decls   => $self->var_decls,
+        set_args    => $set_args,
+        last_argn   => $last_argn,
+        nd_range    => $self->wrapper_range,
+        error_cases => $self->error_code_switch,
+        ret_stmt    => $ret_stmt,
+    );
+    return $code;
 }
 
 __PACKAGE__->meta->make_immutable;
 1;
+
+__DATA__
+<<"END_OF_DATA";
+
+__[ wrapper_cc ]__
+
+<% $return_type %>
+<% $class %>::<% $kernel_name %>(<% $args %>)
+{
+    const char* kernel_name = "<% $kernel_name %>";
+
+    try {
+        <% $var_decls %>
+
+        Bacon::Array<cl_long> status(2);
+        status.fill(0);
+        status.set_context(&ctx);
+
+        Kernel kern(ctx.pgm, kernel_name);
+
+        <% $set_args %>
+
+        kern.setArg(<% $last_argn %>, status.data());
+
+        NDRange range(<% $nd_range %>);
+
+        Event done;
+        ctx.queue.enqueueNDRangeKernel(
+            kern, NullRange, range, NullRange, 0, &done);
+        done.wait();
+
+        if (status.get(0)) {
+            <% $error_cases %>
+        }
+
+        <% $ret_stmt %>
+    }
+    catch (cl::Error ee) {
+        std::ostringstream tmp;
+        tmp << "OpenCL Error (kernel " << kernel_name << "): ";
+        tmp << cl_strerror(ee.err());
+        throw Bacon::Error(tmp.str());
+    }
+}
+
+
+
+__[ foo ]__
+END_OF_DATA
