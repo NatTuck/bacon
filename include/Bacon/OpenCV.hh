@@ -36,19 +36,13 @@ template <class NumT>
 cv::Mat
 array2d_to_mat(Array2D<NumT>& aa)
 {
-    cout << "shoop" << endl;
-
     cv::Mat bb(aa.rows(), aa.cols(), CV_8UC1);
-
-    cout << "da" << endl;
 
     for (int ii = 0; ii < aa.rows(); ++ii) {
         for (int jj = 0; jj < aa.cols(); ++jj) {
             bb.at<uint8_t>(ii, jj) = aa.get(ii, jj);
         }
     }
-
-    cout << "woop" << endl;
 
     return bb;
 }

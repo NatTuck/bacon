@@ -14,7 +14,6 @@ class <% $name %> {
 
 <% $prototypes %>
 
-  private:
     Bacon::Context ctx;
 };
 

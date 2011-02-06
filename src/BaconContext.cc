@@ -28,6 +28,8 @@ context_error_callback(const char* msg, const void* extra_data,
 
 Context::Context()
 {
+    show_timing = false;
+
     dev = best_opencl_device();
 
     std::vector<cl::Device> devs;

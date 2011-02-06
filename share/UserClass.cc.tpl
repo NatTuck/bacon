@@ -4,6 +4,9 @@
 /* Don't make changes here, they're likely to mysteriously vanish. */
 
 #include <sstream>
+#include <iostream>
+using std::cout;
+using std::endl;
 
 #include <Bacon.hh>
 

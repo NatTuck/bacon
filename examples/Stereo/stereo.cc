@@ -1,6 +1,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 using std::cout;
 using std::endl;
 
@@ -49,6 +50,7 @@ cv::Mat
 stereo_disparity(cv::Mat matL, cv::Mat matR)
 {
     Stereo ss;
+    ss.ctx.show_timing = true;
 
     Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL);
     Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR);
@@ -61,37 +63,19 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     show_census("Census Right", cR.ptr(), cR.rows(), cR.cols());
 #endif
 
-    cout << "one" << endl;
-
     Array3D<cl_uchar> pspace(4, cL.rows(), cL.cols());
 
     ss.pspace_h(pspace, cL, cR, +1);
-
-    cout << "two" << endl;
-
-    //show_pspace_slice("Pspace Slice #0", pspace, 0);
-    //pspace.recv_dev();
-
     ss.pspace_v(pspace, cL, cR, +1);
 
-    cout << "three" << endl;
+    Array2D<cl_uchar> arL = ss.half_disparity(cL, cR, pspace, +1);
 
-    //pspace.recv_dev();
-#if 0
-    show_pspace_slice("Pspace Slice #0", pspace, 0);
-    show_pspace_slice("Pspace Slice #1", pspace, 1);
-    show_pspace_slice("Pspace Slice #2", pspace, 2);
-    show_pspace_slice("Pspace Slice #3", pspace, 3);
-#endif
+    ss.pspace_h(pspace, cR, cL, -1);
+    ss.pspace_v(pspace, cR, cL, -1);
 
-    cout << "four" << endl;
-
-    Array2D<cl_uchar> arD = ss.half_disparity(cL, cR, pspace, +1);
-
-    show_array2d("Disparity", arD);
-    exit(0);
-
-    cout << "seven" << endl;
+    Array2D<cl_uchar> arR = ss.half_disparity(cR, cL, pspace, -1);
+    
+    Array2D<cl_uchar> arD = ss.consistent_pixels(arL, arR);
 
     return array2d_to_mat(arD);
 }
@@ -134,7 +118,13 @@ main(int argc, char* argv[])
     cv::Mat left  = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
     cv::Mat right = cv::imread(argv[2], CV_LOAD_IMAGE_GRAYSCALE);
 
+    cout.precision(2);
+    cout << std::fixed;
+
+    Bacon::Timer timer;
     cv::Mat disp  = stereo_disparity(left, right);
+    double total_time = timer.time();
+    cout << "One frame disparity took: " << total_time << endl;
     
     if (ground_truth != "") {
         cv::Mat ground = cv::imread(ground_truth, CV_LOAD_IMAGE_GRAYSCALE);

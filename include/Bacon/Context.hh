@@ -19,6 +19,8 @@ class Context {
     cl::Context ctx;
     cl::Program pgm;
     cl::CommandQueue queue;
+
+    bool show_timing;
 };
 
 } // namespace Bacon

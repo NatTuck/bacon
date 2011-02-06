@@ -227,3 +227,26 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
 
     return disp;
 }
+
+kernel
+Array2D<uchar>
+consistent_pixels(Array2D<uchar> dispL, Array2D<uchar> dispR)
+    @ [dispL.rows, dispL.cols]
+{
+    Array2D<uchar> disp[dispL.rows, dispL.cols];
+    const int DV = 3;
+
+    int dR = dispR[$y, $x];
+    int jL = clamp((int) round((float) $x + dR), 0, dispL.cols);
+    int dL = dispL[$y, jL];
+
+    if (abs(dR - dL) <= DV) {
+        disp[$y, $x] = (dR + dL) / 2;
+    }
+    else {
+        disp[$y, $x] = 0;
+    }
+
+    return disp;
+}
+

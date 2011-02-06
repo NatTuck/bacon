@@ -322,13 +322,21 @@ __[ wrapper_cc ]__
 
         NDRange range(<% $nd_range %>);
 
+        Bacon::Timer timer;
+
         Event done;
         ctx.queue.enqueueNDRangeKernel(
             kern, NullRange, range, NullRange, 0, &done);
         done.wait();
 
+        double kernel_took = timer.time();
+
         if (status.get(0)) {
             <% $error_cases %>
+        }
+
+        if (ctx.show_timing) {
+            cout << "Kernel " << kernel_name << " time: " << kernel_took << endl; 
         }
 
         <% $ret_stmt %>
