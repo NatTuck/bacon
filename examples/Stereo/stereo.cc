@@ -31,6 +31,19 @@ show_pspace_slice(const char* title, Array3D<cl_uchar>& pspace, int slice)
     show_image(title, image);
 }
 
+void
+show_array2d(const char* title, Array2D<cl_uchar>& aa)
+{
+    cv::Mat image(aa.rows(), aa.cols(), CV_8UC1);
+
+    for (int ii = 0; ii < aa.rows(); ++ii) {
+        for (int jj = 0; jj < aa.cols(); ++jj) {
+            image.at<uint8_t>(ii, jj) = aa.get(ii, jj);
+        }
+    }
+
+    show_image(title, image);    
+}
 
 cv::Mat
 stereo_disparity(cv::Mat matL, cv::Mat matR)
@@ -56,13 +69,15 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
 
     cout << "two" << endl;
 
-    show_pspace_slice("Pspace Slice #0", pspace, 0);
+    //show_pspace_slice("Pspace Slice #0", pspace, 0);
+    //pspace.recv_dev();
 
     ss.pspace_v(pspace, cL, cR, +1);
 
     cout << "three" << endl;
 
-#if 1
+    //pspace.recv_dev();
+#if 0
     show_pspace_slice("Pspace Slice #0", pspace, 0);
     show_pspace_slice("Pspace Slice #1", pspace, 1);
     show_pspace_slice("Pspace Slice #2", pspace, 2);
@@ -72,6 +87,9 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     cout << "four" << endl;
 
     Array2D<cl_uchar> arD = ss.half_disparity(cL, cR, pspace, +1);
+
+    show_array2d("Disparity", arD);
+    exit(0);
 
     cout << "seven" << endl;
 

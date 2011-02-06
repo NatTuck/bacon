@@ -210,7 +210,7 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
         path[ii] = pspace[ii, $y, $x];
     }
 
-    for (int kk = min_disp; kk < max_disp; kk++) {
+    for (int kk = min_disp; kk < max_disp; ++kk) {
         int cost = score_offset(cA, cB, $y, $x, kk * direction);
 
         for (int pp = 0; pp < PATH_COUNT; ++pp) {
@@ -219,6 +219,7 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
 
         if (cost < best_cost) {
             best_disp = kk;
+            best_cost = cost;
         }
     }
 

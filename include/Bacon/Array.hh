@@ -50,10 +50,12 @@ class Array {
 
     void set_context(Bacon::Context* context)
     {
-        ctx = context;
+        if (ctx != context) {
+            ctx = context;
 
-        cl_mem_flags flags = 0;
-        buffer = cl::Buffer::Buffer(ctx->ctx, flags, byte_size());
+            cl_mem_flags flags = 0;
+            buffer = cl::Buffer::Buffer(ctx->ctx, flags, byte_size());
+        }
     }
 
     void fill(NumT vv)
