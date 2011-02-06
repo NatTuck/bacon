@@ -46,7 +46,7 @@ popcount(ulong x)
 }
 
 int
-census_window(Array2D<ulong> aa, Array2D<ulong> bb, int yy0, int xx0, int kk)
+score_offset(Array2D<ulong> aa, Array2D<ulong> bb, int ii, int jj, int kk)
 {
     const int WINDOW_SIZE = 3;
     const int rad = WINDOW_SIZE / 2;
@@ -55,10 +55,10 @@ census_window(Array2D<ulong> aa, Array2D<ulong> bb, int yy0, int xx0, int kk)
 
     for (int dy = -rad; dy <= rad; ++dy) {
         for (int dx = -rad; dx <= rad; ++dx) {
-            int yy = clamp(yy0 + dy, 0, (int) aa.rows);
-            int ax = clamp(xx0 + dx, 0, (int) aa.cols);
-            int bx = clamp(ax + kk, 0,  (int) aa.cols);
-            
+            int yy = clamp(ii + dy, 0, (int) aa.rows);
+            int bx = clamp(jj + dx, 0, (int) aa.cols);
+            int ax = clamp(bx + kk, 0, (int) aa.cols);
+
             ulong aa_val = aa[yy, ax];
             ulong bb_val = bb[yy, bx];
             cost += popcount(aa_val ^ bb_val);
@@ -68,33 +68,77 @@ census_window(Array2D<ulong> aa, Array2D<ulong> bb, int yy0, int xx0, int kk)
     return cost;
 }
 
+int
+subpixel(int c_disp, int p_sc, int c_sc, int n_sc)
+{
+    float n = n_sc - p_sc;
+    float d = 2 * (2*c_sc - p_sc - n_sc);
+
+    float d1 = c_disp;
+    
+    if (d > 0.0001) {
+        float tweak = n / d;
+        d1 += tweak;
+    }
+
+    return clamp((int) round(d1), 0, 255);
+}
+
+int
+sgm_penalty(int aa, int bb)
+{
+    const int P1 = 5;
+    const int P2 = 80;
+    const int C1 = 1;
+    const int C2 = 2;
+
+    int dd  = abs(aa - bb);
+    int pen = 0;
+
+    if (dd > C1) pen += P1;
+    if (dd > C2) pen += P2;
+
+    return pen;
+}
+
 kernel
 void
 pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
     @ [aa.rows]
 {
     int max_disp = aa.cols / 5;
+    int min_disp = 0;
 
-    int low_score;
-    int best_disp;
-    int prev_disp;
-    int jj, kk;
+    int prev_score, curr_score, next_score;
+    int best_score, best_disp;
+
+    int prev_disp = -100;
+
+    const int ii = $x;
 
     // traverse left
-    prev_disp = -100;
+    for (int jj = 0; jj < aa.cols; ++jj) {
+        prev_score = score_offset(aa, bb, ii, jj, min_disp * direction);
+        curr_score = prev_score;
+        next_score = prev_score;
 
-    for (jj = 0; jj < aa.cols; ++jj) {
-        best_disp = 0;
-        low_score = 99999;
+        best_score = 999999;
+        best_disp  = 255;
 
-        for (kk = 0; kk < max_disp; ++kk) {
-            int score = census_window(aa, bb, $x, jj, kk);
-            
-            best_disp = (score < low_score) ? kk : best_disp;
-            low_score = (score < low_score) ? score : low_score;
+        for (int kk = min_disp; kk < max_disp; ++kk) {
+            prev_score = curr_score;
+            curr_score = next_score;
+
+            next_score = score_offset(aa, bb, ii, jj, (kk + 1) * direction)
+                + sgm_penalty(kk, prev_disp);
+
+            if (curr_score < best_score) {
+                best_disp  = subpixel(kk, prev_score, curr_score, next_score);
+                best_score = curr_score;
+            }
         }
 
-        pspace[$x, jj, kk] = best_disp;
+        pspace[0, ii, jj] = best_disp;
         prev_disp = best_disp;
     }
 

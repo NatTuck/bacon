@@ -14,7 +14,7 @@ has '+dims' => (default => sub { ['rows', 'cols', 'deep'] });
 use Bacon::Expr::BinaryOp qw(mkop);
 
 sub index_expr {
-    my ($self, $var, $fun, $row, $col, $dep) = @_;
+    my ($self, $var, $fun, $dep, $row, $col) = @_;
 
     my $rows = Bacon::Expr::FieldAccess->new2(
         $var->name, 'rows');

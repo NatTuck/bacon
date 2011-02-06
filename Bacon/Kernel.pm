@@ -176,8 +176,11 @@ sub wrapper_args {
 
 sub to_wrapper_hh {
     my ($self) = @_;
+    my $return_type = cpp_header_type($self->retv);
+    $return_type =~ s/&$//;
+
     return indent(1)
-        . cpp_header_type($self->retv) . " "
+        . $return_type . " "
         . $self->name
         . '('
         . join(', ', $self->wrapper_args)

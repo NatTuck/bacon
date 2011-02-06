@@ -17,35 +17,54 @@ using std::string;
 
 using namespace Bacon;
 
+void
+show_pspace_slice(Array3D<cl_uchar>& pspace, int slice)
+{
+    cv::Mat image(pspace.rows(), pspace.cols(), CV_8UC1);
+
+    for (int ii = 0; ii < pspace.rows(); ++ii) {
+        for (int jj = 0; jj < pspace.cols(); ++jj) {
+            image.at<uint8_t>(ii, jj) = pspace.get(slice, ii, jj);
+        }
+    }
+
+    show_image("GPU Pspace", image);
+}
+
+
 cv::Mat
 stereo_disparity(cv::Mat matL, cv::Mat matR)
 {
     Stereo ss;
 
-    cout << "one" << endl;
-
     Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL);
     Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR);
-
-    cout << "two" << endl;
 
     Array2D<cl_ulong> cL = ss.sparse_census(aL);
     Array2D<cl_ulong> cR = ss.sparse_census(aR);
 
-    cout << "three" << endl;
-
+#if 0
     show_census("Census Left", cL.ptr(), cL.rows(), cL.cols());
     show_census("Census Right", cR.ptr(), cR.rows(), cR.cols());
+#endif
 
-    cout << "four" << endl;
+    cout << "one" << endl;
 
-    Array3D<cl_uchar> pspace(16, cL.rows(), cL.cols());
+    Array3D<cl_uchar> pspace(1, cL.rows(), cL.cols());
 
-    cout << "five" << endl;
+    cout << "a3d size: " << pspace.deep() << " " << pspace.rows() 
+         << " " << pspace.cols() << endl;
 
     ss.pspace_h(pspace, cL, cR, +1);
 
-    cout << "six" << endl;
+    cout << "three" << endl;
+
+#if 1
+    show_pspace_slice(pspace, 0);
+    exit(0);
+#endif
+
+    cout << "four" << endl;
 
     Array2D<cl_uchar> arD = ss.disparity(pspace);
 

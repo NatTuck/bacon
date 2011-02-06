@@ -1,7 +1,11 @@
 
 #include "show_image.hh"
 
-#define min(a, b) ((a)<(b)?(a):(b))
+inline int
+min(int aa, int bb)
+{
+    return (aa < bb) ? aa : bb;
+}
 
 void
 show_image(const char* title, cv::Mat image)

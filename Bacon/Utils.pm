@@ -63,7 +63,7 @@ sub cpp_header_type {
     my ($type) = @_;
     $type = cpp_type($type);
     return ($type =~ /\<.*\>/)
-        ? "Bacon::$type"
+        ? "Bacon::$type&"
         : $type;
 }
 

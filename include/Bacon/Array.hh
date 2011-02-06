@@ -2,9 +2,11 @@
 #define BACON_ARRAY_HH
 
 #include <cassert>
-#include <iostream>
 #include <fstream>
 #include <sstream>
+#include <iostream>
+using std::cout;
+using std::endl;
 
 #define __CL_ENABLE_EXCEPTIONS 1
 #include <CL/cl.hpp>
