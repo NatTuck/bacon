@@ -41,11 +41,11 @@ sub to_opencl {
         . "if (" 
         . $self->cond->to_ocl($fun) 
         . ")\n"
-        . $self->case0->to_opencl($fun, $depth);
+        . $self->case0->to_opencl($fun, $depth + 1);
 
     if (defined $self->case1) {
         $code .= indent($depth) . "else\n";
-        $code .= $self->case1->to_opencl($fun, $depth);
+        $code .= $self->case1->to_opencl($fun, $depth + 1);
     }
 
     return $code;

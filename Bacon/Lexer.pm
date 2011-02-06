@@ -30,7 +30,7 @@ push @symbols, ',';
 
 my @token = (
     SPACE   => '\s+',
-    CONSTANT => '(?:0[xX][0-9a-fA-F]+|[0-9]+(\.[0-9]*)?[uU]?[lL]?)',
+    CONSTANT => '(?:0[xX][0-9a-fA-F]+|[0-9]+(\.[0-9]*)?[uU]?[lL]?f?)',
     STRING => '\"[^"]*\"',
     ELLIPSIS => q("..."),
     RIGHT_ASSIGN => q(">>="),
@@ -88,6 +88,8 @@ sub preprocess {
     my $base = $ENV{BACON_BASE};
     system(qq{cpp -I "$base/include/bcn" -o "$tmp2" "$tmp1"});
 
+    system(qq{cp "$tmp2" /tmp/debug-cpp.bc});
+
     return read_file($tmp2);
 }
 
@@ -98,11 +100,15 @@ sub make_lexer {
     my $file = $src_file;
     my $line = 1;
 
-    return sub {
+    my @tokens = ();
+
+  token: 
+    while ($input =~ /\S/) {
       again:  
-        while ($input =~ /^\n/) {
+        if ($input =~ /^\n/) {
             $input =~ s/^\n//;
             ++$line;
+            goto again;
         }
 
         if ($input =~ m{^//}) {
@@ -110,7 +116,7 @@ sub make_lexer {
             goto again;
         }
 
-        if ($input =~ /^#(.*?)\n/m) {
+        if ($input =~ /^#(.*?)\n/) {
             my $dv = $1;
             $input =~ s/^#.*?\n/\n/m;
             if ($dv =~ /^\s+(\d+)\s+"(.*)?"/) {
@@ -118,6 +124,7 @@ sub make_lexer {
                 $file = $2;
                 $file = $src_file if ($file =~ /\.tmp$/);
             }
+            goto again;
         }
 
         if ($input =~ m{\A/\*.*?\*/}ms) {
@@ -141,12 +148,18 @@ sub make_lexer {
                     type => $sym,  text => $text, 
                     file => $file, line => $line
                 );
-                return ($sym, $tok);
+                push @tokens, [$sym, $tok];
+                next token;
             }
         }
 
         die "Could not tokenize input near line $line:\n" . 
             substr($input, 0, 16);
+    }
+
+    return sub {
+        return undef unless (scalar @tokens);
+        return @{shift @tokens};
     };
 }
 

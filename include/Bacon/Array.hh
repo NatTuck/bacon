@@ -327,9 +327,12 @@ class Array3D : public Array<NumT> {
         *out_file << rows() << " ";
         *out_file << cols() << "\n";
 
-        for (int ii = 0; ii < rows(); ++ii) {
-            for (int jj = 0; jj < cols(); ++jj) {
-                *out_file << get(ii, jj) << " ";
+        for (int kk = 0; kk < deep(); ++kk) {
+            for (int ii = 0; ii < rows(); ++ii) {
+                for (int jj = 0; jj < cols(); ++jj) {
+                    *out_file << get(kk, ii, jj) << " ";
+                }
+                *out_file << "\n";
             }
             *out_file << "\n";
         }

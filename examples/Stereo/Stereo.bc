@@ -76,7 +76,7 @@ subpixel(int c_disp, int p_sc, int c_sc, int n_sc)
 
     float d1 = c_disp;
     
-    if (d > 0.0001) {
+    if (d > 0.0001f) {
         float tweak = n / d;
         d1 += tweak;
     }
@@ -101,10 +101,9 @@ sgm_penalty(int aa, int bb)
     return pen;
 }
 
-kernel
 void
-pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @ [aa.rows]
+pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulong> bb, 
+    int disp_dir, int ii0, int ii1, int di, int jj0, int jj1, int dj)
 {
     int max_disp = aa.cols / 5;
     int min_disp = 0;
@@ -114,35 +113,43 @@ pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
 
     int prev_disp = -100;
 
-    const int ii = $x;
+    for (int ii = ii0; ii != ii1; ii += di) {
+        for (int jj = jj0; jj != jj1; jj += dj) {
+            prev_score = score_offset(aa, bb, ii, jj, min_disp * disp_dir);
+            curr_score = prev_score;
+            next_score = prev_score;
 
-    // traverse left
-    for (int jj = 0; jj < aa.cols; ++jj) {
-        prev_score = score_offset(aa, bb, ii, jj, min_disp * direction);
-        curr_score = prev_score;
-        next_score = prev_score;
+            best_score = 999999;
+            best_disp  = 255;
 
-        best_score = 999999;
-        best_disp  = 255;
+            for (int kk = min_disp; kk < max_disp; ++kk) {
+                prev_score = curr_score;
+                curr_score = next_score;
 
-        for (int kk = min_disp; kk < max_disp; ++kk) {
-            prev_score = curr_score;
-            curr_score = next_score;
+                next_score = score_offset(aa, bb, ii, jj, (kk + 1) * disp_dir)
+                    + sgm_penalty(kk, prev_disp);
 
-            next_score = score_offset(aa, bb, ii, jj, (kk + 1) * direction)
-                + sgm_penalty(kk, prev_disp);
-
-            if (curr_score < best_score) {
-                best_disp  = subpixel(kk, prev_score, curr_score, next_score);
-                best_score = curr_score;
+                if (curr_score < best_score) {
+                    best_disp  = subpixel(kk, prev_score, curr_score, next_score);
+                    best_score = curr_score;
+                }
             }
+
+            pspace[slice, ii, jj] = best_disp;
+            prev_disp = best_disp;
         }
-
-        pspace[0, ii, jj] = best_disp;
-        prev_disp = best_disp;
     }
+}
 
+kernel
+void
+pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
+    @ [aa.rows]
+{
     // traverse right
+    pspace_traverse(pspace, 0, aa, bb, direction, $x, $x+1, +1, 0, aa.cols, +1);
+    // traverse left
+    pspace_traverse(pspace, 1, aa, bb, direction, $x, $x+1, +1, aa.cols-1, -1, -1);
 }
 
 kernel
@@ -151,9 +158,12 @@ pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
     @ [aa.cols]
 {
     // traverse down
+    pspace_traverse(pspace, 2, aa, bb, direction, 0, aa.rows, +1, $x, $x+1, +1);
     // traverse up
+    pspace_traverse(pspace, 3, aa, bb, direction, aa.rows-1, -1, -1, $x, $x+1, +1);
 }
 
+#if 0
 kernel
 void
 pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
@@ -178,22 +188,41 @@ pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
     // top right to bottom left
     // row or column (N - $x)
 }
+#endif
 
 kernel
 Array2D<uchar>
-disparity(Array3D<uchar> pspace)
+half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int direction)
     @ [pspace.rows, pspace.cols]
 {
-    const int PATHS = 1;
     Array2D<uchar> disp[pspace.rows, pspace.cols];
 
-    int sum = 0;
-    
-    for (int kk = 0; kk < PATHS; kk++) {
-        sum += pspace[kk, $y, $x];
+    int max_disp = pspace.rows / 5;
+    int min_disp = 0;
+
+#define PATH_COUNT 4
+    int path[PATH_COUNT];
+
+    int best_cost = 999999;
+    int best_disp = 0;
+
+    for (int ii = 0; ii < PATH_COUNT; ++ii) {
+        path[ii] = pspace[ii, $y, $x];
     }
 
-    disp[$y, $x] = sum / PATHS;
+    for (int kk = min_disp; kk < max_disp; kk++) {
+        int cost = score_offset(cA, cB, $y, $x, kk * direction);
+
+        for (int pp = 0; pp < PATH_COUNT; ++pp) {
+            cost += sgm_penalty(kk, path[pp]);
+        }
+
+        if (cost < best_cost) {
+            best_disp = kk;
+        }
+    }
+
+    disp[$y, $x] = best_disp;
 
     return disp;
 }

@@ -25,9 +25,9 @@ sub kids {
 
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
-    my $code = indent($depth) . "{\n";
+    my $code = indent($depth - 1) . "{\n";
     $code .= $self->contents_to_opencl($fun, $depth);
-    $code .= indent($depth) . "}\n";
+    $code .= indent($depth - 1) . "}\n";
     return $code;
 }
 
@@ -36,7 +36,7 @@ sub contents_to_opencl {
     my $code = '';
 
     for my $smt (@{$self->body}) {
-        $code .= $smt->to_opencl($fun, $depth + 1);
+        $code .= $smt->to_opencl($fun, $depth);
     }
 
     return $code;

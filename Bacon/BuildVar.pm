@@ -55,7 +55,7 @@ sub add_type {
         $types{$type} = 1;
     }
 
-    $self->type(join(' ', keys %types));
+    $self->type(join(' ', sort keys %types));
     return $self;
 }
 

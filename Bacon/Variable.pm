@@ -47,13 +47,15 @@ sub subtype {
         return $subtype;
     }
     else {
-        return undef;
+        return $self->type;
     }
 }
 
 sub struct_type {
     my ($self) = @_;
-    croak "Simple type has no struct type" unless ($self->ptype);
+    unless ($self->ptype) {
+        croak "Simple type has no struct type: " . $self->name;
+    }
     return "_Bacon__" . $self->ptype . "__" . $self->subtype;
 }
 
@@ -100,8 +102,10 @@ sub to_wrapper_hh {
 
 sub type_object {
     my ($self) = @_;
-    my $ptype = $self->ptype
-        or croak("Simple type has no type object");
+    my $ptype = $self->ptype;
+    unless ($ptype) {
+        croak "Simple type has no type object: " . $self->name;
+    }
     return "Bacon::Type::$ptype"->new1($self->subtype);
 }
 

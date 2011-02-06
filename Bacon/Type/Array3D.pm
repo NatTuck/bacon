@@ -21,12 +21,11 @@ sub index_expr {
     my $cols = Bacon::Expr::FieldAccess->new2(
         $var->name, 'cols');
 
-    my $dep_off = mkop('*', $dep, mkop('*', $rows, $cols));
-    my $row_off = mkop('*', $row, $cols);
-    my $expr0 = mkop('+', $dep_off, $row_off);
-    my $expr  = mkop('+', $col, $expr0);
+    my $dep_off = mkop('*', $rows, $cols);
 
-    return $expr->to_ocl($fun);
+    return '(' . $dep_off->to_ocl($fun) . " * " . $dep->to_ocl($fun) . ') + ' 
+         . '(' . $cols->to_ocl($fun) . " * " . $row->to_ocl($fun) . ') + '
+         . $col->to_ocl($fun);
 }
 
 __PACKAGE__->meta->make_immutable;

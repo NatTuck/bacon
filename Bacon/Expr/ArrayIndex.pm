@@ -30,12 +30,7 @@ sub kids {
 sub to_ocl {
     my ($self, $fun) = @_;
     my $type = $fun->vtab->{$self->name}->type_object;
-
-    return $self->name . ".data"
-        . '['
-        . $type->index($self, $fun, @{$self->dims})
-        . ']';
-
+    return $type->index_to_ocl($self, $fun, @{$self->dims});
 }
 
 sub to_cpp {

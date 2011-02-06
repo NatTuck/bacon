@@ -84,7 +84,7 @@ sub to_opencl {
         $code .= $var->decl_to_opencl($self, 1);
     }
 
-    $code .= $self->body->contents_to_opencl($self, 0);
+    $code .= $self->body->contents_to_opencl($self, 1);
 
     $code .= "}\n\n";
 

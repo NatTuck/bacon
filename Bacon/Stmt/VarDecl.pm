@@ -6,13 +6,25 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Bacon::Stmt;
+use Bacon::Variable;
 extends 'Bacon::Stmt', 'Bacon::Variable';
 
 has dims => (is => 'ro', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 
+use Data::Dumper;
+
 use Bacon::Utils;
 use Bacon::Expr::BinaryOp qw(mkop);
+
+sub ptype {
+    my ($self) = @_;
+    my $ptype = Bacon::Variable::ptype($self);
+    return $ptype if $ptype;
+    return 'PrivArray' if $self->dims;
+    return undef;
+}
 
 sub kids {
     my ($self) = @_;
@@ -76,22 +88,26 @@ sub to_opencl {
     if (defined $self->init) {
         $code .= " = " . $self->init->to_ocl($fun);
     }
+    elsif (defined $self->dims) {
+        $code .= '[' . join(', ', map { $_->to_ocl($fun) } @{$self->dims}) . ']';
+    }
 
     $code .= ";\n";
     return $code;
 }
 
-sub to_opencl0 {
-    my ($self, $fun, $depth) = @_;
-    if (defined $self->init && !$self->init->isa('Bacon::Expr::Literal')) {
-        my $code = indent($depth);
-        $code .= $self->name . " = " . $self->init->to_ocl($fun);
-        return $code . ";\n";
-    }
-    else {
-        return "";
-    }
-}
+# FIXME: Remove?
+#sub to_opencl0 {
+#    my ($self, $fun, $depth) = @_;
+#    if (defined $self->init && !$self->init->isa('Bacon::Expr::Literal')) {
+#        my $code = indent($depth);
+#        $code .= $self->name . " = " . $self->init->to_ocl($fun);
+#        return $code . ";\n";
+#    }
+#    else {
+#        return "";
+#    }
+#}
 
 sub decl_to_opencl {
     my ($self, $fun, $depth) = @_;

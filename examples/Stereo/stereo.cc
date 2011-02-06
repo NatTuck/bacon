@@ -18,7 +18,7 @@ using std::string;
 using namespace Bacon;
 
 void
-show_pspace_slice(Array3D<cl_uchar>& pspace, int slice)
+show_pspace_slice(const char* title, Array3D<cl_uchar>& pspace, int slice)
 {
     cv::Mat image(pspace.rows(), pspace.cols(), CV_8UC1);
 
@@ -28,7 +28,7 @@ show_pspace_slice(Array3D<cl_uchar>& pspace, int slice)
         }
     }
 
-    show_image("GPU Pspace", image);
+    show_image(title, image);
 }
 
 
@@ -50,23 +50,28 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
 
     cout << "one" << endl;
 
-    Array3D<cl_uchar> pspace(1, cL.rows(), cL.cols());
-
-    cout << "a3d size: " << pspace.deep() << " " << pspace.rows() 
-         << " " << pspace.cols() << endl;
+    Array3D<cl_uchar> pspace(4, cL.rows(), cL.cols());
 
     ss.pspace_h(pspace, cL, cR, +1);
+
+    cout << "two" << endl;
+
+    show_pspace_slice("Pspace Slice #0", pspace, 0);
+
+    ss.pspace_v(pspace, cL, cR, +1);
 
     cout << "three" << endl;
 
 #if 1
-    show_pspace_slice(pspace, 0);
-    exit(0);
+    show_pspace_slice("Pspace Slice #0", pspace, 0);
+    show_pspace_slice("Pspace Slice #1", pspace, 1);
+    show_pspace_slice("Pspace Slice #2", pspace, 2);
+    show_pspace_slice("Pspace Slice #3", pspace, 3);
 #endif
 
     cout << "four" << endl;
 
-    Array2D<cl_uchar> arD = ss.disparity(pspace);
+    Array2D<cl_uchar> arD = ss.half_disparity(cL, cR, pspace, +1);
 
     cout << "seven" << endl;
 

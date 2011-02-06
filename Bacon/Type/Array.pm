@@ -18,13 +18,24 @@ sub new1 {
 
 sub index {
     my ($self, $var, $fun, @vals) = @_;
-    croak "Wrong number of indices" unless (scalar @vals == scalar @{$self->dims});
+    my $type_n = scalar @{$self->dims};
+    my $user_n = scalar @vals;
+    confess "Wrong number of indices (got $user_n of $type_n on ${\$var->name})" 
+        unless ($type_n == $user_n);
     return $self->index_expr($var, $fun, @vals);
 }
 
 sub index_expr {
     my ($self, undef, $fun, $idx) = @_;
     return $idx->to_ocl($fun);
+}
+
+sub index_to_ocl {
+    my ($self, $var, $fun, @dims) = @_;
+    return $var->name . ".data"
+        . '['
+        . $self->index($var, $fun, @dims)
+        . ']';
 }
 
 sub expand {

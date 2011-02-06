@@ -45,7 +45,7 @@ sub to_opencl {
     }
     $code .= ")\n";
 
-    $code .= $self->body->to_opencl($fun, $depth);
+    $code .= $self->body->to_opencl($fun, $depth + 1);
 
     return $code;
 }

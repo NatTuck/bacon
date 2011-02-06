@@ -12,3 +12,20 @@ vflood(Array<int> aa, uint height)
     return cc;
 }
 
+kernel
+Array3D<int>
+show_indexes(int deep, int rows, int cols)
+    @ [deep, rows, cols]
+{
+    Array3D<int> arry[deep, rows, cols];
+
+    int val = 1000000000;
+
+    val += $z * 1000000;
+    val += $y * 1000;
+    val += $x * 1;
+
+    arry[$z, $y, $x] = val;
+
+    return arry;
+}
