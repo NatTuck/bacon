@@ -237,7 +237,7 @@ consistent_pixels(Array2D<uchar> dispL, Array2D<uchar> dispR)
     const int DV = 3;
 
     int dR = dispR[$y, $x];
-    int jL = clamp((int) round((float) $x + dR), 0, dispL.cols);
+    int jL = clamp((int) round((float) $x + dR), (int) 0, (int) dispL.cols);
     int dL = dispL[$y, jL];
 
     if (abs(dR - dL) <= DV) {
