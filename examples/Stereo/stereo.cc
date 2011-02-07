@@ -74,6 +74,9 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     ss.pspace_v(pspace, cR, cL, -1);
 
     Array2D<cl_uchar> arR = ss.half_disparity(cR, cL, pspace, -1);
+
+    show_array2d("Left", arL);
+    show_array2d("Right", arR);
     
     Array2D<cl_uchar> arD = ss.consistent_pixels(arL, arR);
 
