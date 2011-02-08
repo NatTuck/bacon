@@ -6,6 +6,8 @@ use feature 'switch';
 use Moose;
 use Carp;
 
+die "TODO: Implement proper pointer types.";
+
 has name => (is => 'ro', isa => 'Str', required => 1);
 has type => (is => 'ro', isa => 'Str', required => 1);
 has retv => (is => 'rw', isa => 'Bool', default => 0);
