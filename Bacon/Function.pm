@@ -47,7 +47,10 @@ sub build_vtab {
 
     for my $var (@{$self->args}, @decls) {
         my $name = $var->name;
-        confess "Duplicate variable '$name'" if (defined $vtab->{$name});
+        if (defined $vtab->{$name}) {
+            warn "Vtab = " . Dumper($vtab);
+            confess "Duplicate variable '$name'" 
+        }
         $vtab->{$name} = $var;
     }
 

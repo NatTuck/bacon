@@ -31,6 +31,7 @@ sub expand {
 
 sub ptype {
     my ($self) = @_;
+    return 'PrivArray' if $self->type =~ /\*/;
     if ($self->type =~ /^(.*)\<(.*)\>$/) {
         my ($ptype, undef) = ($1, $2);
         return $ptype;
@@ -46,23 +47,31 @@ sub subtype {
         my (undef, $subtype) = ($1, $2);
         return $subtype;
     }
-    else {
-        return $self->type;
+
+    if ($self->ptype eq 'PrivArray') {
+        confess "Derp?";
+        my $type = $self->type;
+        $type =~ s/\*//;
+        return $type;
     }
+
+    die "No subtype for primitive type" . $self->type;
 }
 
 sub struct_type {
     my ($self) = @_;
     unless ($self->ptype) {
-        croak "Simple type has no struct type: " . $self->name;
+        my $type = $self->type;
+        croak "Simple type ($type) has no struct type: " . $self->name;
     }
+    return undef if ($self->ptype eq 'PrivArray');
     return "_Bacon__" . $self->ptype . "__" . $self->subtype;
 }
 
 sub decl_fun_arg {
     my ($self, undef) = @_;
     my $code = "";
-    if ($self->ptype) {
+    if ($self->struct_type) {
         $code .= $self->struct_type . ' ' . $self->name;
     }
     else {
@@ -104,7 +113,8 @@ sub type_object {
     my ($self) = @_;
     my $ptype = $self->ptype;
     unless ($ptype) {
-        croak "Simple type has no type object: " . $self->name;
+        my $type = $self->type;
+        croak "Simple type ($type) has no type object: " . $self->name;
     }
     return "Bacon::Type::$ptype"->new1($self->subtype);
 }

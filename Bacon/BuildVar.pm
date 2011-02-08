@@ -22,12 +22,11 @@ sub new_by_type {
     my ($class, $type) = @_;
 
     if ($type->isa('Bacon::Token')) {
-        return $class->new_from_token(
-            undef => $type, type => $type->text);
+        return $class->new_from_token(undef => $type, type => $type->text);
     }
 
     if ($type->isa('Bacon::BuildVar')) {
-        return $class->new_from_node($type);
+        return $type;
     }
 
     confess "What makes you think a " . ref($type) . " is a type?";
@@ -38,7 +37,7 @@ sub new_by_name {
     return $class->new_from_token(name => $name);
 }
 
-sub new_ptype {
+sub new_by_ptype {
     my ($class, $ptype, $param) = @_;
     my $tname = $ptype->text . "<" . $param->text . ">";
     return $class->new_from_token(undef => $ptype, type => $tname);
@@ -46,49 +45,17 @@ sub new_ptype {
 
 sub add_type {
     my ($self, $new_type) = @_;
-    assert_type($new_type, 'Bacon::Token');
+    my $type = $self->type || '';
 
-    my %types = ();
-    $types{$new_type->text} = 1;
-   
-    for my $type (split /\s+/, $self->type) {
-        $types{$type} = 1;
+    if ($new_type->isa('Bacon::Token')) {
+        $self->type($type . ' ' . $new_type->text);
     }
 
-    $self->type(join(' ', sort keys %types));
+    if ($new_type->isa('Bacon::BuildVar')) {
+        $self->type($type . ' ' . $new_type->type);
+    }
+
     return $self;
-}
-
-sub to_opencl {
-    my ($self, $depth) = @_;
-    confess "no name" unless $self->name;
-    my $code = indent($depth);
-
-    if ($self->type) {
-        $code .= $self->type . " ";
-    }
-
-    $code .= $self->name;
-
-    if (defined $self->dims) {
-        my @dc = map { $_->to_opencl(0) } @{$self->dims};
-        $code .= "[" . join(", ", @dc) . "]";
-    }
-
-    return $code;
-}
-
-sub expand {
-    my ($self) = @_;
-    warn Dumper($self) . "\n";
-    confess "Type: " . $self->type;
-    if ($self->type =~ /^(.*)\<(.*)\>$/) {
-        my ($ptype, $type) = ($1, $2);    
-        die "Found ptype: $ptype/$type";
-    }
-    else {
-        return ($self,);
-    }
 }
 
 sub decl_stmt {

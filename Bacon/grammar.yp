@@ -284,9 +284,7 @@ storage_class_specifier
     ;
 
 simple_type
-    : UNSIGNED simple_type
-        { make_unsigned($_[2]) }
-    | CHAR
+    : CHAR
     | UCHAR
     | SHORT
     | USHORT
@@ -310,7 +308,7 @@ parameterized_type
 
 type_specifier
     : parameterized_type '<' simple_type '>'
-        { Bacon::BuildVar->new_ptype($_[1], $_[3]) }
+        { Bacon::BuildVar->new_by_ptype($_[1], $_[3]) }
     | simple_type
     | VOID
     | struct_or_union_specifier
@@ -402,6 +400,7 @@ type_qualifier
 
 declarator
     : pointer direct_declarator
+        { $_[2]->add_type($_[1]) }
     | direct_declarator
     ;
 
@@ -423,13 +422,13 @@ direct_declarator
 
 pointer
     : '*'
-        { make_type($_[1]) }
+        { Bacon::BuildVar->new_by_type($_[1]) }
     | '*' type_qualifier_list
-        { make_type($_[1], $_[2]) }
+        { $_[2]->add_type($_[1]) }
     | '*' pointer
-        { make_type($_[1], $_[2]) }
+        { $_[2]->add_type($_[1]) }
     | '*' type_qualifier_list pointer
-        { make_type($_[1], $_[2], $_[3]) }
+        { $_[2]->add_type($_[1])->add_type($_[3]) }
     ;
 
 type_qualifier_list

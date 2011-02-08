@@ -88,7 +88,7 @@ sub update_with {
             }
         
             if (defined $self->$attr && defined $other->$attr) {
-                $self->attr($self->$attr . " " . $other->$attr);
+                $self->$attr($self->$attr . " " . $other->$attr);
             }
         }
     }

@@ -228,6 +228,49 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
     return disp;
 }
 
+// Fast median of 9 code from N. Devillard,
+// http://ndevilla.free.fr/median/median/index.html
+
+#define PIX_SORT(a,b) { if ((a)>(b)) PIX_SWAP((a),(b)); }
+#define PIX_SWAP(a,b) { temp = (a); (a) = (b); (b) = temp; }
+
+int
+opt_med9(int* p)
+{
+    int temp;
+    PIX_SORT(p[1], p[2]) ; PIX_SORT(p[4], p[5]) ; PIX_SORT(p[7], p[8]) ;
+    PIX_SORT(p[0], p[1]) ; PIX_SORT(p[3], p[4]) ; PIX_SORT(p[6], p[7]) ;
+    PIX_SORT(p[1], p[2]) ; PIX_SORT(p[4], p[5]) ; PIX_SORT(p[7], p[8]) ;
+    PIX_SORT(p[0], p[3]) ; PIX_SORT(p[5], p[8]) ; PIX_SORT(p[4], p[7]) ;
+    PIX_SORT(p[3], p[6]) ; PIX_SORT(p[1], p[4]) ; PIX_SORT(p[2], p[5]) ;
+    PIX_SORT(p[4], p[7]) ; PIX_SORT(p[4], p[2]) ; PIX_SORT(p[6], p[4]) ;
+    PIX_SORT(p[4], p[2]) ; return(p[4]) ;
+}
+
+kernel
+Array2D<uchar>
+median_filter(Array2D<uchar> im)
+    @ [im.rows, im.cols]
+{
+    Array2D<uchar> im2[im.rows, im.cols];
+    int px[9];
+    
+    for (int ii = 0; ii < 3; ++ii) {
+        int iii = clamp($x + ii - 1, 0, im.rows);
+
+        for (int jj = 0; jj < 3; ++jj) {
+            int jjj = clamp($y + jj - 1, 0, im.cols);
+            int nn = 3 * ii + jj;
+            
+            px[nn] = im[iii, jjj];
+        }
+    }
+    
+    im2[$y, $x] = opt_med9(px);
+
+    return im2;
+}
+
 kernel
 Array2D<uchar>
 consistent_pixels(Array2D<uchar> dispL, Array2D<uchar> dispR)
