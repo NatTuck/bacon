@@ -1,0 +1,21 @@
+/* -*- c -*- */
+
+kernel
+Array2D<float>
+mat_mul(Array2D<float> aa, Array2D<float> bb) 
+    @range [cc.rows, cc.cols]
+    @group [16, 16]
+    global Array2D<float> cc[aa.rows, bb.cols];
+{
+    float sum = 0.0;
+
+    assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
+
+    for (int kk = 0; kk < aa.cols; ++kk) {
+        sum += aa[$y, kk] * bb[kk, $x];
+    }
+
+    cc[$y, $x] = sum;
+
+    return cc;
+}

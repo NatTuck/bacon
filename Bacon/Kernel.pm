@@ -182,6 +182,17 @@ sub wrapper_range {
     return join(', ', map { $_->to_cpp($self) } (reverse @{$self->range_dist}));
 }
 
+sub local_range {
+    my ($self) = @_;
+    my $range = join(', ', map { $_->to_cpp($self) } (reverse @{$self->group_dist}));
+    if ($range) {
+        return "NDRange($range)";
+    }
+    else {
+        return "NullRange";
+    }
+}
+
 sub join_lines {
     my ($depth, @lines) = @_;
     return "" unless (scalar @lines > 0);
@@ -279,6 +290,7 @@ sub to_wrapper_cc {
         set_args    => $set_args,
         last_argn   => $last_argn,
         nd_range    => $self->wrapper_range,
+        local_range => $self->local_range,
         error_cases => $self->error_code_switch,
         ret_stmt    => $self->return_stmt_switch,
     );
@@ -318,7 +330,7 @@ __[ wrapper_cc ]__
 
         Event done;
         ctx.queue.enqueueNDRangeKernel(
-            kern, NullRange, range, NullRange, 0, &done);
+            kern, NullRange, range, <% $local_range %>, 0, &done);
         done.wait();
 
         double kernel_took = timer.time();

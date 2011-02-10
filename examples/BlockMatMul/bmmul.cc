@@ -10,12 +10,12 @@ using std::string;
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "gen/MatMul.hh"
+#include "gen/BlockMatMul.hh"
 
 void
 run_test(string c_file, string a_file, string b_file)
 {
-    MatMul mmul;
+    BlockMatMul mmul;
 
     Bacon::Array2D<float> aa;
     Bacon::Array2D<float> bb;
@@ -40,7 +40,7 @@ run_test(string c_file, string a_file, string b_file)
 void
 random_test(int nn, bool check = true)
 {
-    MatMul mmul;
+    BlockMatMul mmul;
 
     Bacon::Array2D<float> aa(nn, nn);
     aa.fill_random();
