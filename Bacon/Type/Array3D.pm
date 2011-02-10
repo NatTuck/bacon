@@ -9,7 +9,7 @@ use namespace::autoclean;
 use Bacon::Type::Array;
 extends 'Bacon::Type::Array';
 
-has '+dims' => (default => sub { ['rows', 'cols', 'deep'] });
+has '+dims' => (default => sub { ['deep', 'rows', 'cols'] });
 
 use Bacon::Expr::BinaryOp qw(mkop);
 

@@ -21,14 +21,15 @@ sub new2 {
 
 sub to_ocl {
     my ($self, $fun) = @_;
-    my $var = $fun->vtab->{$self->name}
+    my $var = $fun->lookup_variable($self->name)
         or confess "Unknown variable: " . $self->name;
     return $self->name . "." . $self->field;
 }
 
 sub to_cpp {
     my ($self, $fun) = @_;
-    my $var = $fun->vtab->{$self->name}
+    confess "Undefined function" unless defined $fun;
+    my $var = $fun->lookup_variable($self->name)
         or confess "Unknown variable: " . $self->name;
 
     return $self->name . '.' . $self->field . '()';

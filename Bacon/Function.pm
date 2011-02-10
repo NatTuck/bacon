@@ -10,26 +10,22 @@ use Data::Dumper;
 
 use Bacon::AstNode;
 extends 'Bacon::AstNode', 'Bacon::Template';
+use Bacon::SymbolTable;
 
 has name => (is => 'rw', isa => 'Str');
 has args => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
-has retv => (is => 'rw', isa => 'Str', default => 'void');
 has body => (is => 'rw', isa => 'Maybe[Bacon::Stmt::Block]');
+has rets => (is => 'rw', isa => 'Maybe[Bacon::Type]');
 
-# Symbol table.
-has vtab => (is => 'rw', isa => 'Maybe[Item]',
-        lazy => 1, builder => 'build_vtab');
+has symtab => (is => 'rw', isa => 'Bacon::SymbolTable', lazy_build => 1);
 
-# Error table.
-has etab => (is => 'rw', isa => 'Item', default => sub { {} });
-has enum => (is => 'rw', isa => 'Int',  default => 1);
 
 use Bacon::Utils;
 
 sub new3 {
-    my ($class, $specs, $self, $body) = @_;
+    my ($class, $return_type, $self, $body) = @_;
     assert_type($body, 'Bacon::Stmt::Block');
-    $self->retv($specs->type);
+    $self->rets($return_type);
     $self->body($body);
     return $self;
 }
@@ -39,23 +35,37 @@ sub kids {
     return (@{$self->args}, $self->body);
 }
 
-sub build_vtab {
+sub _build_symtab {
     my ($self) = @_;
-    my $vtab = {};
+    my $symtab = Bacon::SymbolTable->new(function => $self);
 
-    my @decls = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->subnodes;
+    $symtab->add_args(@{$self->args});
 
-    for my $var (@{$self->args}, @decls) {
-        my $name = $var->name;
-        if (defined $vtab->{$name}) {
-            warn "Vtab = " . Dumper($vtab);
-            confess "Duplicate variable '$name'" 
-        }
-        $vtab->{$name} = $var;
-    }
+    my @locals= grep { $_->isa('Bacon::Stmt::VarDecl') } $self->subnodes;
+    $symtab->add_locals(@locals);
 
-    die "Function has no variables?" if (scalar keys %$vtab == 0);
-    return $vtab;
+    return $symtab;
+}
+
+sub lookup_variable {
+    my ($self, $name) = @_;
+    return $self->symtab->lookup($name);
+}
+
+sub symtab_find_args {
+    my ($self) = @_;
+    return @{$self->symtab->args};
+}
+
+sub symtab_find_local_vars {
+    my ($self) = @_;
+    return @{$self->symtab->locals};
+}
+
+sub returns_void {
+    my ($self) = @_;
+    die "Undefined return type" unless (defined $self->rets);
+    return $self->rets->is_void;
 }
 
 sub lookup_error_string {
@@ -70,18 +80,17 @@ sub to_opencl {
     my $code = "/* Function: " . $self->name . 
                " " . $self->source . " */\n";
 
-    $code .= $self->retv . "\n";
+    $code .= $self->rets->to_ocl . "\n";
 
     my @args = @{$self->args};
 
     $code .= $self->name . "(";
-    $code .= join(', ', map { $_->decl_fun_arg($self) } @args);
+    $code .= join(', ', map { $_->to_fun_arg($self) } @args);
     $code .= ")\n";
 
     $code .= "{\n";
     
-    my @vars = grep { $_->isa('Bacon::Stmt::VarDecl') } 
-        values %{$self->vtab};
+    my @vars = @{$self->symtab->locals};
 
     for my $var (@vars) {
         $code .= $var->decl_to_opencl($self, 1);

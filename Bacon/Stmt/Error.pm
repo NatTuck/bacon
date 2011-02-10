@@ -81,14 +81,14 @@ __DATA__
 
 __[ fail ]__
 
-_bacon__status[0] = <% $err_no %>;
-_bacon__status[1] = <% $err_data %>;
+_bacon__status[1] = <% $err_no %>;
+_bacon__status[2] = <% $err_data %>;
 return;
 
 __[ assert ]__
 
 if ( !(<% $expr %>) ) {
-    _bacon__status[0] = <% $err_no %>;
-    _bacon__status[1] = <% $err_data %>;
+    _bacon__status[1] = <% $err_no %>;
+    _bacon__status[2] = <% $err_data %>;
     return;
 }

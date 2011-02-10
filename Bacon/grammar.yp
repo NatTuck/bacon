@@ -17,7 +17,7 @@ our @EXPORT = qw(bacon_parse);
 use Bacon::Lexer qw(make_lexer);
 
 use Bacon::Token;
-use Bacon::BuildVar;
+use Bacon::Type::All;
 use Bacon::TreeNodes;
 use Bacon::Utils;
 
@@ -59,6 +59,8 @@ sub op {
 %expect 1
 
 %%
+
+/*                                                                       expressions */
 
 primary_expression
     : CONSTANT
@@ -110,7 +112,7 @@ unary_expression
         { op($_[1], $_[2]) }
     | SIZEOF unary_expression
         { op($_[1], $_[2]) }
-    | SIZEOF '(' type_name ')'
+    | SIZEOF '(' type_specifier ')'
         { die("todo: sizeof type") }
     ;
 
@@ -125,7 +127,7 @@ unary_operator
 
 cast_expression
     : unary_expression
-    | '(' type_name ')' cast_expression
+    | '(' type_specifier ')' cast_expression
         { Bacon::Expr::Cast->new2($_[2]->type, $_[4]) }
     ;
 
@@ -241,46 +243,38 @@ constant_expression
     : conditional_expression
     ;
 
+/*                                                                  declarations */
+
 declaration
-    : declaration_specifiers init_declarator_list ';'
-        { [ map { $_->update_with($_[1])->decl_stmt } @{$_[2]} ] }
+    : type_specifier declarator_list ';'
+        { [ map { $_->type($_[1]); $_ } @{$_[2]} ] }
+    | type_qualifier type_specifier declarator_list ';'
+        { my $type = $_[2]->add_qualifier($_[1]->text); 
+          [ map { $_->type($type); $_ } @{$_[3]} ];
+        }
     ;
 
-declaration_specifiers
-    : storage_class_specifier
-        { Bacon::BuildVar->new_by_type($_[1]) }
-    | storage_class_specifier declaration_specifiers
-        { $_[2]->add_type($_[1]) }
-    | type_specifier
-        { Bacon::BuildVar->new_by_type($_[1]) }
-    | type_specifier declaration_specifiers
-        { $_[2]->add_type($_[1]) }
-    | type_qualifier
-        { Bacon::BuildVar->new_by_type($_[1]) }
-    | type_qualifier declaration_specifiers
-        { $_[2]->add_type($_[1]) }
-    ;
-
-init_declarator_list
-    : init_declarator
+declarator_list
+    : declarator
         { [$_[1]] }
-    | init_declarator_list ',' init_declarator
+    | declarator_list ',' declarator
         { [@{$_[1]}, $_[3]] }
     ;
 
-init_declarator
-    : declarator
-        { $_[1] }
-    | declarator '=' initializer
-        { $_[1]->init($_[3]); $_[1] }
+declarator
+    : IDENTIFIER
+        { Bacon::Stmt::VarDecl->new_from_token0(name => $_[1]) } 
+    | IDENTIFIER '[' argument_expression_list ']'
+        { Bacon::Stmt::VarDecl->new_from_token0(name => $_[1], dims => $_[3]) }
+    | IDENTIFIER '=' initializer
+        { Bacon::Stmt::VarDecl->new_from_token0(name => $_[1], init => $_[3]) }
     ;
 
-storage_class_specifier
-    : TYPEDEF
-    | EXTERN
-    | STATIC
-    | AUTO
-    | REGISTER
+/*                                                                              types */
+
+type_qualifier
+    : CONST
+    | VOLATILE
     ;
 
 simple_type
@@ -308,137 +302,36 @@ parameterized_type
 
 type_specifier
     : parameterized_type '<' simple_type '>'
-        { Bacon::BuildVar->new_by_ptype($_[1], $_[3]) }
+        { Bacon::Type->new_ptype($_[1]->text, $_[3]->text) }
     | simple_type
+        { Bacon::Type::Simple->new1($_[1]->text) }
     | VOID
-    | struct_or_union_specifier
-        { die("No structs, unions, or typedefs.") }
-    | enum_specifier
-        { die("No structs, unions, or typedefs.") }
+        { Bacon::Type::Simple->new1($_[1]->text) }
+    | pointer_type
     ;
 
-struct_or_union_specifier
-    : struct_or_union IDENTIFIER '{' struct_declaration_list '}'
-        { die("No structs, unions, or typedefs.") }
-    | struct_or_union '{' struct_declaration_list '}'
-        { die("No structs, unions, or typedefs.") }
-    | struct_or_union IDENTIFIER
-        { die("No structs, unions, or typedefs.") }
+pointer_type
+    : simple_type '*'
+        { Bacon::Type::Pointer->new1($_[1]->text) }
+    | VOID '*'
+        { Bacon::Type::Pointer->new1($_[1]->text) }
+    | scope_specifier simple_type '*'
+        { Bacon::Type::Pointer->new1($_[2]->text, $_[1]->text) }
+    | scope_specifier VOID '*'
+        { Bacon::Type::Pointer->new1($_[2]->text, $_[1]->text) }
     ;
 
-struct_or_union
-    : STRUCT
-    | UNION
+scope_specifier
+    : PRIVATE
+    | LOCAL
+    | GLOBAL
     ;
 
-struct_declaration_list
-    : struct_declaration
-        { make_type($_[1]) }
-    | struct_declaration_list struct_declaration
-        { make_type($_[1], $_[2]) }
-    ;
-
-struct_declaration
-    : specifier_qualifier_list struct_declarator_list ';'
-        { die("No structs, unions, or typedefs.") }
-    ;
-
-specifier_qualifier_list
-    : type_specifier specifier_qualifier_list
-        { Bacon::BuildVar->new_by_type($_[1])->add_type($_[2]) }
-    | type_specifier
-        { Bacon::BuildVar->new_by_type($_[1]) }
-    | type_qualifier specifier_qualifier_list
-        { Bacon::BuildVar->new_by_type($_[1])->add_type($_[2]) }
-    | type_qualifier
-        { Bacon::BuildVar->new_by_type($_[1]) }
-    ;
-
-struct_declarator_list
-    : struct_declarator
-        { die("No structs, unions, or typedefs.") }
-    | struct_declarator_list ',' struct_declarator
-        { die("No structs, unions, or typedefs.") }
-    ;
-
-struct_declarator
-    : declarator
-        { die("No structs, unions, or typedefs.") }
-    | ':' constant_expression
-        { die("No structs, unions, or typedefs.") }
-    | declarator ':' constant_expression
-        { die("No structs, unions, or typedefs.") }
-    ;
-
-enum_specifier
-    : ENUM '{' enumerator_list '}'
-        { die("No structs, unions, or typedefs.") }
-    | ENUM IDENTIFIER '{' enumerator_list '}'
-        { die("No structs, unions, or typedefs.") }
-    | ENUM IDENTIFIER
-        { die("No structs, unions, or typedefs.") }
-    ;
-
-enumerator_list
-    : enumerator
-        { die("No structs, unions, or typedefs.") }
-    | enumerator_list ',' enumerator
-        { die("No structs, unions, or typedefs.") }
-    ;
-
-enumerator
-    : IDENTIFIER
-        { die("No structs, unions, or typedefs.") }
-    | IDENTIFIER '=' constant_expression
-        { die("No structs, unions, or typedefs.") }
-    ;
-
-type_qualifier
-    : CONST
-    | VOLATILE
-    ;
-
-declarator
-    : pointer direct_declarator
-        { $_[2]->add_type($_[1]) }
-    | direct_declarator
-    ;
-
-direct_declarator
-    : IDENTIFIER
-        { Bacon::BuildVar->new_by_name($_[1]) }
-    /* | '(' declarator ')' */
-    | direct_declarator '[' argument_expression_list ']'
-        { $_[1]->update(dims => $_[3]) }
-    | direct_declarator '[' ']'
-        { $_[1]->update(dims => []) }
-    | direct_declarator '(' parameter_type_list ')'
-        { Bacon::Function->new_from_node($_[1])->update(args => $_[3]) }
-    | direct_declarator '(' identifier_list ')'
-        { Bacon::Function->new_from_node($_[1])->update(args => $_[3]) }
-    | direct_declarator '(' ')'
-        { Bacon::Function->new_from_node($_[1])->update(args => []) }
-    ;
-
-pointer
-    : '*'
-        { Bacon::BuildVar->new_by_type($_[1]) }
-    | '*' type_qualifier_list
-        { $_[2]->add_type($_[1]) }
-    | '*' pointer
-        { $_[2]->add_type($_[1]) }
-    | '*' type_qualifier_list pointer
-        { $_[2]->add_type($_[1])->add_type($_[3]) }
-    ;
-
-type_qualifier_list
-    : type_qualifier
-    | type_qualifier_list type_qualifier
-    ;
-
-parameter_type_list
-    : parameter_list
-    /* | parameter_list ',' ELLIPSIS */
+function_declarator
+    : IDENTIFIER '(' parameter_list ')'
+        { Bacon::Function->new_from_token0(name => $_[1], args => $_[3]) }
+    | IDENTIFIER '(' ')'
+        { Bacon::Function->new_from_token0(name => $_[1], args => []) }
     ;
 
 parameter_list
@@ -449,45 +342,16 @@ parameter_list
     ;
 
 parameter_declaration
-    : declaration_specifiers declarator
-        { $_[2]->update_with($_[1])->fun_arg; } 
-    | declaration_specifiers abstract_declarator
-        { $_[2]->update_with($_[1])->fun_arg; } 
-    | declaration_specifiers
-    ;
-
-identifier_list
-    : IDENTIFIER
-    | identifier_list ',' IDENTIFIER
-    ;
-
-type_name
-    : specifier_qualifier_list
-    | specifier_qualifier_list abstract_declarator
-    ;
-
-abstract_declarator
-    : pointer
-    | direct_abstract_declarator
-    | pointer direct_abstract_declarator
-    ;
-
-direct_abstract_declarator
-    : '(' abstract_declarator ')'
-    | '[' ']'
-    | '[' constant_expression ']'
-    | direct_abstract_declarator '[' ']'
-    | direct_abstract_declarator '[' constant_expression ']'
-    | '(' ')'
-    | '(' parameter_type_list ')'
-    | direct_abstract_declarator '(' ')'
-    | direct_abstract_declarator '(' parameter_type_list ')'
+    : type_specifier IDENTIFIER
+        { Bacon::Variable->new(name => $_[2]->text, type => $_[1]) }
     ;
 
 initializer
     : assignment_expression
     | '{' initializer_list '}'
+        { die "No array initializers."; } 
     | '{' initializer_list ',' '}'
+        { die "No array initializers."; } 
     ;
 
 initializer_list
@@ -496,6 +360,8 @@ initializer_list
     | initializer_list ',' initializer
         { [ @$_[1], $_[3] ] }
     ;
+
+/*                                                                         statements */
 
 statement
     : labeled_statement
@@ -518,32 +384,20 @@ labeled_statement
 
 compound_statement
     : '{' '}'
-        { Bacon::Stmt::Block->new_from_token(
-            undef => $_[1]) }
-    | '{' declaration_list '}'
-        { Bacon::Stmt::Block->new_from_token(
-            undef => $_[1], body => [@{$_[2]}]) }
+        { Bacon::Stmt::Block->new_from_token( undef => $_[1]) }
     | '{' statement_list '}'
-        { Bacon::Stmt::Block->new_from_token(
-            undef => $_[1], body => [@{$_[2]}]) }
-    | '{' declaration_list statement_list '}'
-        { Bacon::Stmt::Block->new_from_token(
-            undef => $_[1], body => [@{$_[2]}, @{$_[3]}]) }
-    ;
-
-declaration_list
-    : declaration
-        { # One declaration declares a list of variables
-          $_[1] } 
-    | declaration_list declaration
-        { [ @{$_[1]}, @{$_[2]} ] }
+        { Bacon::Stmt::Block->new_from_token( undef => $_[1], body => $_[2]) }
     ;
 
 statement_list
     : statement
-        { [ $_[1] ] } 
+        { [ $_[1] ] }
+    | declaration
+        { [ @{$_[1]} ] } 
     | statement_list statement
         { [ @{$_[1]}, $_[2] ] }
+    | statement_list declaration
+        { [ @{$_[1]}, @{$_[2]} ] } 
     ;
 
 expression_statement
@@ -564,8 +418,9 @@ selection_statement
 
 for_var_init
     : expression_statement
-    | type_name IDENTIFIER '=' expression_statement
-        { $_[1]->update(name => $_[2]->text, init => $_[4]->expr)->decl_stmt }
+    | type_specifier IDENTIFIER '=' expression_statement
+        { Bacon::Stmt::VarDecl->new_from_token0(
+              name => $_[2], type => $_[1], init => $_[4]->expr) }
     ;
 
 iteration_statement
@@ -602,6 +457,8 @@ error_statement
         { Bacon::Stmt::Error->new2($_[1], $_[3]); }
     ;
 
+/*                                                                      top level declarations */
+
 translation_unit
     : external_declaration
     | translation_unit external_declaration
@@ -616,20 +473,50 @@ external_declaration
         { $_[0]->YYData->{pgm}->add_constant($_[1]); }
     ;
 
-dim_spec
-    : '@' '[' argument_expression_list ']' 
-        { $_[3] }
+kernel_range_spec
+    : RANGE '[' argument_expression_list ']'
+        { [range => $_[3]] }
+    ;
+
+kernel_group_spec
+    : GROUP '[' argument_expression_list ']'
+        { [group => $_[3]] }
+    ;
+
+kernel_ranges
+    : kernel_range_spec
+        { $_[1] }
+    | kernel_group_spec
+        { $_[1] }
+    | kernel_range_spec kernel_group_spec
+        { [@{$_[1]}, @{$_[2]}] } 
+    ;
+
+kernel_decl
+    : scope_specifier parameterized_type '<' simple_type '>' IDENTIFIER '[' argument_expression_list ']' ';'
+        { my $type = Bacon::Type->new_ptype($_[2]->text, $_[4]->text, $_[1]->text);
+          return Bacon::Stmt::VarDecl->new_from_token0(
+              name => $_[6], dims => $_[8], type => $type); }
+    ;
+
+kernel_decl_list
+    : kernel_decl
+        { [ $_[1] ] }
+    | kernel_decl_list kernel_decl
+        { [ @{$_[1]}, $_[2] ] }
     ;
 
 kernel_definition
-    : KERNEL declaration_specifiers declarator dim_spec compound_statement
-        { Bacon::Kernel->new4($_[3], $_[2]->type, $_[4], $_[5]) }
+    : KERNEL type_specifier function_declarator kernel_ranges kernel_decl_list compound_statement
+        { Bacon::Kernel->new4($_[3], $_[2], $_[4], $_[5], $_[6]) }
+    | KERNEL type_specifier function_declarator kernel_ranges compound_statement
+        { Bacon::Kernel->new4($_[3], $_[2], $_[4], [], $_[5]) }
     ;
 
 function_definition
-    : declaration_specifiers declarator compound_statement
+    : type_specifier function_declarator compound_statement
         { Bacon::Function->new3($_[1], $_[2], $_[3]) }
-    | declarator compound_statement
+    | type_specifier function_declarator compound_statement
         { Bacon::Function->new3(undef, $_[1], $_[2]) }
     ;
 

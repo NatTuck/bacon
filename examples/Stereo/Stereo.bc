@@ -3,10 +3,9 @@
 kernel
 Array2D<ulong>
 sparse_census(Array2D<uchar> image) 
-    @ [image.rows, image.cols]
+    @range [image.rows, image.cols]
+    global Array2D<ulong> census[image.rows, image.cols];
 {
-    Array2D<ulong> census[image.rows, image.cols];
-
     ulong bits = 0;
     uchar ctr = image[$y, $x];
     
@@ -144,7 +143,7 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulo
 kernel
 void
 pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @ [aa.rows]
+    @range [aa.rows]
 {
     // traverse right
     pspace_traverse(pspace, 0, aa, bb, direction, $x, $x+1, +1, 0, aa.cols, +1);
@@ -155,7 +154,7 @@ pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
 kernel
 void
 pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @ [aa.cols]
+    @range [aa.cols]
 {
     // traverse down
     pspace_traverse(pspace, 2, aa, bb, direction, 0, aa.rows, +1, $x, $x+1, +1);
@@ -167,7 +166,7 @@ pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
 kernel
 void
 pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @ [aa.rows + aa.cols]
+    @range [aa.rows + aa.cols]
 {
     if ($x < aa.rows) {
         // row $x
@@ -193,10 +192,9 @@ pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
 kernel
 Array2D<uchar>
 half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int direction)
-    @ [pspace.rows, pspace.cols]
+    @range [pspace.rows, pspace.cols]
+    global Array2D<uchar> disp[pspace.rows, pspace.cols];
 {
-    Array2D<uchar> disp[pspace.rows, pspace.cols];
-
     int max_disp = pspace.rows / 5;
     int min_disp = 0;
 
@@ -228,31 +226,33 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
     return disp;
 }
 
+#if 0
+
 // Fast median of 9 code from N. Devillard,
 // http://ndevilla.free.fr/median/median/index.html
 
-#define PIX_SORT(a,b) { if ((a)>(b)) PIX_SWAP((a),(b)); }
-#define PIX_SWAP(a,b) { temp = (a); (a) = (b); (b) = temp; }
+#define PIX_SWAP(a,b) temp = (a); (a) = (b); (b) = temp;
+#define PIX_SORT(a,b) if ((a)>(b)) { PIX_SWAP((a),(b)) } \
 
 int
 opt_med9(int* p)
 {
     int temp;
-    PIX_SORT(p[1], p[2]) ; PIX_SORT(p[4], p[5]) ; PIX_SORT(p[7], p[8]) ;
-    PIX_SORT(p[0], p[1]) ; PIX_SORT(p[3], p[4]) ; PIX_SORT(p[6], p[7]) ;
-    PIX_SORT(p[1], p[2]) ; PIX_SORT(p[4], p[5]) ; PIX_SORT(p[7], p[8]) ;
-    PIX_SORT(p[0], p[3]) ; PIX_SORT(p[5], p[8]) ; PIX_SORT(p[4], p[7]) ;
-    PIX_SORT(p[3], p[6]) ; PIX_SORT(p[1], p[4]) ; PIX_SORT(p[2], p[5]) ;
-    PIX_SORT(p[4], p[7]) ; PIX_SORT(p[4], p[2]) ; PIX_SORT(p[6], p[4]) ;
-    PIX_SORT(p[4], p[2]) ; return(p[4]) ;
+    PIX_SORT(p[1], p[2])  PIX_SORT(p[4], p[5])  PIX_SORT(p[7], p[8]) 
+    PIX_SORT(p[0], p[1])  PIX_SORT(p[3], p[4])  PIX_SORT(p[6], p[7]) 
+    PIX_SORT(p[1], p[2])  PIX_SORT(p[4], p[5])  PIX_SORT(p[7], p[8]) 
+    PIX_SORT(p[0], p[3])  PIX_SORT(p[5], p[8])  PIX_SORT(p[4], p[7]) 
+    PIX_SORT(p[3], p[6])  PIX_SORT(p[1], p[4])  PIX_SORT(p[2], p[5]) 
+    PIX_SORT(p[4], p[7])  PIX_SORT(p[4], p[2])  PIX_SORT(p[6], p[4]) 
+    PIX_SORT(p[4], p[2])  return(p[4]);
 }
 
 kernel
 Array2D<uchar>
 median_filter(Array2D<uchar> im)
-    @ [im.rows, im.cols]
+    @range [im.rows, im.cols]
+    global Array2D<uchar> im2[im.rows, im.cols];
 {
-    Array2D<uchar> im2[im.rows, im.cols];
     int px[9];
     
     for (int ii = 0; ii < 3; ++ii) {
@@ -271,12 +271,14 @@ median_filter(Array2D<uchar> im)
     return im2;
 }
 
+#endif
+
 kernel
 Array2D<uchar>
 consistent_pixels(Array2D<uchar> dispL, Array2D<uchar> dispR)
-    @ [dispL.rows, dispL.cols]
+    @range [dispL.rows, dispL.cols]
+    global Array2D<uchar> disp[dispL.rows, dispL.cols];
 {
-    Array2D<uchar> disp[dispL.rows, dispL.cols];
     const int DV = 3;
 
     int dL = dispL[$y, $x];

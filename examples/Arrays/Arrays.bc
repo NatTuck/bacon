@@ -3,10 +3,9 @@
 kernel
 Array2D<int>
 vflood(Array<int> aa, uint height)
-    @ [height, aa.size]
+    @range [height, aa.size]
+    global Array2D<int> cc[height, aa.size];
 {
-    Array2D<int> cc[height, aa.size];
-
     cc[$y, $x] = aa[$x];
 
     return cc;
@@ -15,10 +14,9 @@ vflood(Array<int> aa, uint height)
 kernel
 Array3D<int>
 show_indexes(int deep, int rows, int cols)
-    @ [deep, rows, cols]
+    @range [deep, rows, cols]
+    global Array3D<int> arry[deep, rows, cols];
 {
-    Array3D<int> arry[deep, rows, cols];
-
     int val = 1000000000;
 
     val += $z * 1000000;

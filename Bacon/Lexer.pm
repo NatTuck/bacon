@@ -18,13 +18,15 @@ use Bacon::MatchToken;
 use Bacon::Token;
 
 my @symbols = qw#
-    auto break case char const continue default do double else enum
-    extern float for goto if int long register return short signed
+    enum extern register
+    global local private
+    auto break case char const continue default do double else
+    float for goto if int long return short signed
     sizeof static struct switch typedef union void volatile while
     inline uchar ushort uint ulong
     kernel Array2D Array3D Array2Z Array3Z Image2D Image3D Array
     fail assert
-    + - * / { } ( ) [ ] < > ; @ : = & ! ~ % ^ | ? .
+    + - * / { } ( ) [ ] < > ; : = & ! ~ % ^ | ? .
 #;
 push @symbols, ',';
 
@@ -54,6 +56,8 @@ my @token = (
     GE_OP => q(">="),
     EQ_OP => q("=="),
     NE_OP => q("!="),
+    RANGE => q("@range"),
+    GROUP => q("@group"),
 );
 
 for my $sym (@symbols) {

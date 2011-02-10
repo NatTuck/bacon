@@ -46,27 +46,6 @@ sub in_list {
     return 0;
 }
 
-sub cpp_type {
-    my ($type) = @_;
-
-    return 'void' if ($type eq 'void');
-
-    if ($type =~ /^(\w.*)<(.*)\>$/) {
-        return $1 . '<' . cpp_type($2) . '>';
-    }
-    else {
-        return 'cl_' . $type;
-    }
-}
-
-sub cpp_header_type {
-    my ($type) = @_;
-    $type = cpp_type($type);
-    return ($type =~ /\<.*\>/)
-        ? "Bacon::$type&"
-        : $type;
-}
-
 sub name_to_cc {
     my ($name) = @_;
     if ($name =~ /__/) {

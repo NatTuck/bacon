@@ -6,14 +6,20 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Bacon::Type;
+extends 'Bacon::Type';
+
 has dims    => (is => 'ro', isa => 'ArrayRef[Str]', default => sub { ['size'] });
-has subtype => (is => 'ro', isa => 'Str', default => "int");
+has scope   => (is => 'ro', isa => 'Str', required => 1);
+has subtype => (is => 'ro', isa => 'Bacon::Type::Simple', required => 1);
 
 use Carp;
+use Data::Dumper;
 
 sub new1 {
-    my ($class, $subtype) = @_;
-    return $class->new(subtype => $subtype);
+    my ($class, $subtype, $scope) = @_;
+    $scope ||= 'global';
+    return $class->new(subtype => $subtype, scope => $scope);
 }
 
 sub index {
@@ -43,12 +49,31 @@ sub expand {
     my $name = $var->name;
     my @items = ();
 
-    push @items, Bacon::Variable->new2($name . "__data", $self->subtype . "*");
+    push @items, Bacon::Variable->new(
+        name => $name . "__data", 
+        type => Bacon::Type::Pointer->new1($self->subtype, $self->scope));
 
     for my $dim (@{$self->dims}) {
-        push @items, Bacon::Variable->new2($name . "__" . $dim, "uint");
+        push @items, Bacon::Variable->new(
+            name => $name . "__" . $dim, 
+            type => Bacon::Type::Simple->new1("uint"));
     }
     return @items;
+}
+
+sub to_ocl {
+    my ($self) = @_;
+    return '_Bacon__' . $self->type . '__' . $self->subtype->type;
+}
+
+sub to_cpp {
+    my ($self) = @_;
+    return "Bacon::" . $self->type . '<' . $self->subtype->to_cpp . '>';
+}
+
+sub is_returnable {
+    my ($self) = @_;
+    return $self->scope eq 'global';
 }
 
 __PACKAGE__->meta->make_immutable;

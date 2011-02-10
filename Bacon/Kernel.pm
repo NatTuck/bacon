@@ -12,19 +12,43 @@ use Bacon::Function;
 use Bacon::Template;
 extends 'Bacon::Function', 'Bacon::Template';
 
-has dist => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
+has range_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
+has group_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
+has outer_vars => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt::VarDecl]', required => 1);
+
+# Error table.
+has etab => (is => 'rw', isa => 'Item', default => sub { {} });
+has enum => (is => 'rw', isa => 'Int',  default => 1);
 
 use Bacon::Utils;
 
 sub new4 {
-    my ($class, $fun, $rtype, $dist, $body) = @_;
+    my ($class, $fun, $rtype, $dist, $outer_decls, $body) = @_;
     assert_type($body, 'Bacon::Stmt::Block');
+
+    my %dist = @{$dist};
+    $dist{range} ||= [];
+    $dist{group} ||= [];
+
     my $self = $class->new(
         file => $fun->file, line => $fun->line,
         name => $fun->name, args => $fun->args,
-        retv => $rtype, body => $body, dist => $dist
+        body => $body, rets => $rtype,
+        range_dist => $dist{range},
+        group_dist => $dist{group},
+        outer_vars => $outer_decls,
     );
+
     return $self;
+}
+
+sub _build_symtab {
+    my ($self) = @_;
+    my $symtab = Bacon::Function::_build_symtab($self);
+    
+    $symtab->add_outers(@{$self->outer_vars});
+
+    return $symtab;
 }
 
 sub lookup_error_string {
@@ -36,31 +60,6 @@ sub lookup_error_string {
     }
 
     return $self->etab->{$string}
-}
-
-sub find_return_var {
-    my ($self) = @_;
-
-    my $name = $self->name;
-    my @rets = grep { $_->isa('Bacon::Stmt::Return') } $self->subnodes;
-    
-    if (scalar @rets == 0 || !defined $rets[0]->expr) {
-        die "Kernel '$name' has return type but doesn't return a value.\n";
-    }
-
-    my $var = $rets[0]->expr;
-
-    for my $stmt (@rets) {
-        my $expr = $stmt->expr;
-        
-        die "Mismatched return type in kernel '$name' at " . $stmt->source
-            unless (defined $expr);
-
-        die "Kernel '$name' must return exactly one variable"
-            unless ($expr->name eq $var->name);
-    }
-
-    return $var->name;
 }
 
 sub init_magic_variables {
@@ -98,28 +97,20 @@ sub init_magic_variables {
 
 sub expanded_args {
     my ($self) = @_;
-    my @args = @{$self->args};
-    my @retv = grep { $_->retv} values %{$self->vtab};
-    die "Can't have multiple return values" if (scalar @retv > 1);
-    return map { $_->expand } (@retv, @args);
-}
-
-sub local_vars {
-    my ($self) = @_;
-    return grep { $_->isa('Bacon::Stmt::VarDecl') && !$_->retv } 
-        values %{$self->vtab};
+    my @vars = (@{$self->args}, @{$self->outer_vars});
+    return map { $_->expand } @vars;
 }
 
 sub init_array_structs {
     my ($self) = @_;
-    my @args = grep { !$_->isa('Bacon::Stmt::VarDecl') || $_->retv } 
-        values %{$self->vtab};
+    my @vars = (@{$self->symtab->args}, @{$self->symtab->outers});
 
     my $code = "";
 
-    for my $arg (@args) {
-        next unless $arg->ptype;
-        $code .= $arg->init_struct;
+    for my $var (@vars) {
+        if ($var->has_struct) {
+            $code .= $var->init_struct;
+        }
     }
 
     return $code;
@@ -128,26 +119,25 @@ sub init_array_structs {
 sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");
+    assert_type($self->rets, "Bacon::Type");
 
     my $code = "/* Kernel: " . $self->name . 
                " " . $self->source . " */\n";
 
-    my @dims = map { $_->to_ocl($self) } @{$self->dist};
+    my @range_dims = map { $_->to_ocl($self) } @{$self->range_dist};
+    my @group_dims = map { $_->to_ocl($self) } @{$self->group_dist};
     $code .= "kernel void\n";
-    $code .= "/* returns: " . $self->retv . "\n";
-    $code .= " * distrib: ";
-    $code .= " [" . join(', ', @dims) . "]\n";
+    $code .= "/* returns: " . $self->rets->to_cpp . "\n";
+    $code .= " * global distrib range: ";
+    $code .= " [" . join(', ', @range_dims) . "]\n";
+    $code .= " * work group size: ";
+    $code .= " [" . join(', ', @group_dims) . "]\n";
     $code .= " */\n";
 
-    if ($self->retv ne 'void') {
-        my $vname = $self->find_return_var;
-        $self->vtab->{$vname}->retv(1);
-    }
- 
     my @args = $self->expanded_args;
 
     $code .= $self->name . "(";
-    $code .= join(', ', map { $_->decl_fun_arg($self) } @args);
+    $code .= join(', ', map { $_->to_kern_arg($self) } @args);
     $code .= ", global long* _bacon__status)\n";
 
     $code .= "{\n";
@@ -156,7 +146,7 @@ sub to_opencl {
 
     $code .= $self->init_array_structs;
     
-    my @vars = $self->local_vars;
+    my @vars = $self->symtab_find_local_vars;
     for my $var (@vars) {
         $code .= $var->decl_to_opencl($self, 1);
     }
@@ -176,7 +166,7 @@ sub wrapper_args {
 
 sub to_wrapper_hh {
     my ($self) = @_;
-    my $return_type = cpp_header_type($self->retv);
+    my $return_type = $self->rets->to_cpp;
     $return_type =~ s/&$//;
 
     return indent(1)
@@ -189,19 +179,7 @@ sub to_wrapper_hh {
 
 sub wrapper_range {
     my ($self) = @_;
-    return join(', ', map { $_->to_cpp($self) } (reverse @{$self->dist}));
-}
-
-sub decl_return_var {
-    my ($self) = @_;
-    my $type = cpp_type($self->retv);
-    my $name = $self->find_return_var;
-    my $retv = $self->vtab->{$name};
-    my $dims = $retv->cpp_dims($self);
-    return (
-        "$type $name($dims);",
-        "$name.set_context(&ctx);"
-    );
+    return join(', ', map { $_->to_cpp($self) } (reverse @{$self->range_dist}));
 }
 
 sub join_lines {
@@ -223,13 +201,13 @@ sub var_decls {
     my $name  = $self->name;
     my @lines = ();
 
-    unless ($self->retv eq 'void') {
-        push @lines, $self->decl_return_var;
-        push @lines, ''; 
+    for my $var (@{$self->symtab->outers}) {
+        push @lines, $var->to_cpp_decl($self);
+        push @lines, $var->name . ".set_context(&ctx);";
     }
     
     for my $arg (@{$self->args}) {
-        if ($arg->type =~ /\<.*\>/) {
+        if ($arg->type->isa('Bacon::Type::Array')) {
             push @lines, $arg->name . ".set_context(&ctx);";
         }
     }
@@ -255,32 +233,45 @@ sub set_args {
 
 sub error_code_switch {
     my ($self) = @_;
-    my @lines = 'switch (status.get(0)) {';
+    my @lines = 'switch (status.get(1)) {';
 
     for my $string (keys %{$self->etab}) {
         my $err_no = $self->etab->{$string};
-        push @lines, qq{  case $err_no: throw Bacon::Error("$string", status.get(1));};
+        push @lines, qq{    case $err_no: throw Bacon::Error("$string", status.get(2));};
     }
 
-    push @lines, '  default: throw Bacon::Error("Unknown Error", status.get(1));';
+    push @lines, '    default: throw Bacon::Error("Unknown Error", status.get(2));';
     push @lines, '}';
 
     return join_lines(3, @lines);
+}
+
+sub return_stmt_switch {
+    my ($self) = @_;
+    return "return;" if $self->returns_void;
+
+    my @vars  = $self->symtab->possible_return_vars;
+
+    my @lines = 'switch (status.get(0)) {';
+  
+    for(my $ii = 0; $ii < (scalar @vars); ++$ii) {
+        my $name = $vars[$ii]->name;
+        push @lines, qq{    case $ii: return $name;};
+    }
+
+    push @lines, '    default: throw Bacon::Error("Unknown return var", status.get(0));';
+    push @lines, '}';
+
+    return join_lines(2, @lines);
 }
 
 sub to_wrapper_cc {
     my ($self) = @_;
     my ($last_argn, $set_args) = $self->set_args;
 
-    my $ret_stmt = "";
-    unless ($self->retv eq 'void') {
-        my $retv = $self->find_return_var;
-        $ret_stmt = "return $retv;";
-    }
-
     my $code = $self->fill_section(
         wrapper_cc  => 0,
-        return_type => cpp_type($self->retv),
+        return_type => $self->rets->to_cpp,
         class       => $self->basefn,
         kernel_name => $self->name,
         args        => join(', ', $self->wrapper_args),
@@ -289,9 +280,10 @@ sub to_wrapper_cc {
         last_argn   => $last_argn,
         nd_range    => $self->wrapper_range,
         error_cases => $self->error_code_switch,
-        ret_stmt    => $ret_stmt,
+        ret_stmt    => $self->return_stmt_switch,
     );
-    return $code;
+
+    return $code . "\n";
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -310,7 +302,7 @@ __[ wrapper_cc ]__
     try {
         <% $var_decls %>
 
-        Bacon::Array<cl_long> status(2);
+        Bacon::Array<cl_long> status(3);
         status.fill(0);
         status.set_context(&ctx);
 
@@ -331,7 +323,7 @@ __[ wrapper_cc ]__
 
         double kernel_took = timer.time();
 
-        if (status.get(0)) {
+        if (status.get(1)) {
             <% $error_cases %>
         }
 

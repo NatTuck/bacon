@@ -6,16 +6,17 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Data::Dumper;
+
 use Bacon::Expr;
 extends 'Bacon::Expr';
-
-use Bacon::Utils;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has dims => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
 
 use Bacon::Expr::FieldAccess;
 use Bacon::Expr::BinaryOp qw(mkop);
+use Bacon::Utils;
 
 sub new_dims {
     my ($class, $name, @dims) = @_;
@@ -29,8 +30,10 @@ sub kids {
 
 sub to_ocl {
     my ($self, $fun) = @_;
-    my $type = $fun->vtab->{$self->name}->type_object;
-    return $type->index_to_ocl($self, $fun, @{$self->dims});
+    my $var  = $fun->lookup_variable($self->name);
+    my $type = $var->type;
+    my $code = $type->index_to_ocl($self, $fun, @{$self->dims});
+    return $code;
 }
 
 sub to_cpp {
