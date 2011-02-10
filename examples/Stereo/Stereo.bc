@@ -226,8 +226,6 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
     return disp;
 }
 
-#if 0
-
 // Fast median of 9 code from N. Devillard,
 // http://ndevilla.free.fr/median/median/index.html
 
@@ -256,10 +254,10 @@ median_filter(Array2D<uchar> im)
     int px[9];
     
     for (int ii = 0; ii < 3; ++ii) {
-        int iii = clamp($x + ii - 1, 0, im.rows);
+        int iii = clamp($y + ii - 1, 0, im.rows);
 
         for (int jj = 0; jj < 3; ++jj) {
-            int jjj = clamp($y + jj - 1, 0, im.cols);
+            int jjj = clamp($x + jj - 1, 0, im.cols);
             int nn = 3 * ii + jj;
             
             px[nn] = im[iii, jjj];
@@ -271,7 +269,6 @@ median_filter(Array2D<uchar> im)
     return im2;
 }
 
-#endif
 
 kernel
 Array2D<uchar>

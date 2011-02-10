@@ -68,14 +68,14 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     ss.pspace_h(pspace, cL, cR, +1);
     ss.pspace_v(pspace, cL, cR, +1);
 
-    Array2D<cl_uchar> dsL = ss.half_disparity(cL, cR, pspace, +1);
-    //Array2D<cl_uchar> dsL = ss.median_filter(arL);
+    Array2D<cl_uchar> arL = ss.half_disparity(cL, cR, pspace, +1);
+    Array2D<cl_uchar> dsL = ss.median_filter(arL);
 
     ss.pspace_h(pspace, cR, cL, -1);
     ss.pspace_v(pspace, cR, cL, -1);
 
-    Array2D<cl_uchar> dsR = ss.half_disparity(cR, cL, pspace, -1);
-    //Array2D<cl_uchar> dsR = ss.median_filter(arR);
+    Array2D<cl_uchar> arR = ss.half_disparity(cR, cL, pspace, -1);
+    Array2D<cl_uchar> dsR = ss.median_filter(arR);
 
     show_array2d("Left", dsL);
     show_array2d("Right", dsR);
