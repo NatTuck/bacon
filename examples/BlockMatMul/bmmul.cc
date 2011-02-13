@@ -26,7 +26,7 @@ run_test(string c_file, string a_file, string b_file)
     std::ifstream bbf(b_file.c_str());
     bb.read(&bbf);
 
-    Bacon::Array2D<float> cc = mmul.mat_mul(aa, bb);
+    Bacon::Array2D<float> cc = mmul.blocked_mat_mul(aa, bb);
 
     if (c_file == "") {
         cc.write(&cout);
@@ -48,7 +48,7 @@ random_test(int nn, bool check = true)
     Bacon::Array2D<float> bb(nn, nn);
     bb.fill_identity_matrix();
 
-    Bacon::Array2D<float> cc = mmul.mat_mul(aa, bb);
+    Bacon::Array2D<float> cc = mmul.blocked_mat_mul(aa, bb);
    
     if(!check) {
         cout << "Result not checked." << endl;

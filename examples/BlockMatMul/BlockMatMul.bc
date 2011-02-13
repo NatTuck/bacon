@@ -2,20 +2,46 @@
 
 kernel
 Array2D<float>
-mat_mul(Array2D<float> aa, Array2D<float> bb) 
-    @range [cc.rows, cc.cols]
-    @group [16, 16]
+blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size) 
+    @range [cc.rows / item_size, cc.cols / item_size]
+    @group [group_size, group_size]
     global Array2D<float> cc[aa.rows, bb.cols];
+    local  Array2D<float> aL[block_size, block_size];
+    local  Array2D<float> bL[block_size, block_size];
 {
+    assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
+    assert(cc.rows % block_size == 0, "Uneven block size (rows).");
+    assert(cc.cols % block_size == 0, "Uneven block size (rows).");
+
     float sum = 0.0;
 
-    assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
-
-    for (int kk = 0; kk < aa.cols; ++kk) {
-        sum += aa[$y, kk] * bb[kk, $x];
+    for (int ii = 0; ii < rv.rows; ++ii) { 
+        for (int jj = 0; jj < rv.cols; ++jj) {
+            rv[ii, jj] = 0.0f;
+        }
     }
 
-    cc[$y, $x] = sum;
+    const int rounds = aa.cols / block_size;
+
+    uint base_row = $row * block_size;
+    uint base_col = $col * block_size;
+
+    for (int gg = 0; gg < rounds; ++gg) {
+        // load my cache items
+        for (int ii = 0; ii < rv.rows; ++ii) { 
+            for (int jj = 0; jj < rv.cols; ++jj) {
+                
+            }
+        }
+
+        // add this cell of the matrix multiply
+        for (int kk = 0; kk < aa.cols; ++kk) {
+            sum += aa[$y, kk] * bb[kk, $x];
+        }
+    }
+
+
+    cc[$row, $col] = rv[ii, jj];
 
     return cc;
 }

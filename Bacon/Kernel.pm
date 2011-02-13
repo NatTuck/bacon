@@ -21,6 +21,7 @@ has etab => (is => 'rw', isa => 'Item', default => sub { {} });
 has enum => (is => 'rw', isa => 'Int',  default => 1);
 
 use Bacon::Utils;
+use Bacon::MagicVars;
 
 sub new4 {
     my ($class, $fun, $rtype, $dist, $outer_decls, $body) = @_;
@@ -64,6 +65,7 @@ sub lookup_error_string {
 
 sub init_magic_variables {
     my ($self) = @_;
+    my $code = '';
 
     my @vars = grep { 
         $_->isa('Bacon::Expr::Identifier') 
@@ -75,21 +77,14 @@ sub init_magic_variables {
         $seen{$var->name} = 1;
     }
 
-    my $code = '';
-
-    if ($seen{'$x'}) {
-        $code .= indent(1);
-        $code .= "int _bacon__Sx = get_global_id(0);\n";
-    }
-    
-    if ($seen{'$y'}) {
-        $code .= indent(1);
-        $code .= "int _bacon__Sy = get_global_id(1);\n";
-    }
-    
-    if ($seen{'$z'}) {
-        $code .= indent(1);
-        $code .= "int _bacon__Sz = get_global_id(2);\n";
+    for my $name (keys %seen) {
+        if ($name =~ /^\$(\w+)$/) {
+            my $cc_name = "_bacon__S$1";
+            $code .= indent(1);
+            $code .= "int $cc_name = ";
+            $code .= Bacon::MagicVars::magic_var_ocl($name);
+            $code .= ";\n";
+        }
     }
 
     return $code;

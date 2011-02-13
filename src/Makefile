@@ -5,7 +5,7 @@ BACON="../bacon"
 
 CC=$(CXX)
 CXXFLAGS=-g -fPIC $(shell $(BACON) --ccflags)
-LDFLAGS =-g $(shell (BACON) --ldflags)
+#LDFLAGS =-g $(shell $(BACON) --ldflags)
 
 OBJS=$(shell ls *.cc | perl -pe 's/\.cc\b/.o/')
 HDRS=$(shell ls ../include/*.hh)

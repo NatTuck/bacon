@@ -8,6 +8,7 @@ use namespace::autoclean;
 use Carp;
 
 use Bacon::Utils;
+use Bacon::MagicVars;
 
 use Bacon::Expr;
 extends 'Bacon::Expr';
@@ -23,7 +24,11 @@ sub to_ocl {
     my ($self, undef) = @_;
     my $name = $self->name;
     # Rename "magic" variables.
-    $name =~ s/^\$/_bacon__S/;
+    if ($name =~ /^\$/) {
+        confess "Invalid magic variable: $name"
+            unless Bacon::MagicVars::magic_var_exists($name);
+        $name =~ s/^\$/_bacon__S/;
+    }
     return $name;
 }
 
