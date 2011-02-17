@@ -63,7 +63,7 @@ sub expand {
 
 sub to_ocl {
     my ($self) = @_;
-    return '_Bacon__' . $self->type . '__' . $self->subtype->type;
+    return '_Bacon__' . $self->type . '__' . $self->scope . '__' . $self->subtype->type;
 }
 
 sub to_cpp {

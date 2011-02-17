@@ -60,7 +60,14 @@ sub to_wrapper_hh {
 
 sub cc_name {
     my ($self) = @_;
-    return name_to_cc($self->name);
+    if ($self->type->scope eq 'local') {
+        my $name = $self->name;
+        $name =~ s/__data$//;
+        return "cl::__local($name.byte_size())";
+    }
+    else {
+        return name_to_cc($self->name);
+    }
 }
 
 sub subnodes {

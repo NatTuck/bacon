@@ -3,45 +3,37 @@
 kernel
 Array2D<float>
 blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size) 
-    @range [cc.rows / item_size, cc.cols / item_size]
-    @group [group_size, group_size]
+    @range [cc.rows, cc.cols]
+    @group [block_size, block_size]
     global Array2D<float> cc[aa.rows, bb.cols];
     local  Array2D<float> aL[block_size, block_size];
     local  Array2D<float> bL[block_size, block_size];
 {
     assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
     assert(cc.rows % block_size == 0, "Uneven block size (rows).");
-    assert(cc.cols % block_size == 0, "Uneven block size (rows).");
+    assert(cc.cols % block_size == 0, "Uneven block size (cols).");
 
     float sum = 0.0;
 
-    for (int ii = 0; ii < rv.rows; ++ii) { 
-        for (int jj = 0; jj < rv.cols; ++jj) {
-            rv[ii, jj] = 0.0f;
-        }
-    }
-
     const int rounds = aa.cols / block_size;
 
-    uint base_row = $row * block_size;
-    uint base_col = $col * block_size;
-
     for (int gg = 0; gg < rounds; ++gg) {
-        // load my cache items
-        for (int ii = 0; ii < rv.rows; ++ii) { 
-            for (int jj = 0; jj < rv.cols; ++jj) {
-                
-            }
-        }
+        // load my cache item
+        int base_p = gg * block_size;
+
+        aL[$local_row, $local_col] = aa[$row, base_p + $local_col];
+        bL[$local_row, $local_col] = bb[base_p + $local_row, $col];
+
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         // add this cell of the matrix multiply
-        for (int kk = 0; kk < aa.cols; ++kk) {
-            sum += aa[$y, kk] * bb[kk, $x];
+        for (int kk = 0; kk < block_size; ++kk) {
+            sum += aL[$local_row, kk] * bL[kk, $local_col];
         }
     }
 
 
-    cc[$row, $col] = rv[ii, jj];
+    cc[$row, $col] = sum;
 
     return cc;
 }

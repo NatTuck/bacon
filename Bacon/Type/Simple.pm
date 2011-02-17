@@ -18,6 +18,11 @@ sub new1 {
     return $class->new(type => $type);
 }
 
+sub scope {
+    my ($self) = @_;
+    return "+none=;";
+}
+
 # Indexing a simple type means the user is
 # interacting with a local / private array.
 

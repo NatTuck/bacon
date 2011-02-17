@@ -285,6 +285,27 @@ operator==(Array2D<NumT>& aa, Array2D<NumT>& bb)
 }
 
 template <class NumT>
+bool
+array_equals_debug(Array2D<NumT>& aa, Array2D<NumT>& bb)
+{
+    if (aa.size() != bb.size() || aa.rows() != bb.rows() || aa.cols() != bb.cols())
+        return false;
+
+    for (int ii = 0; ii < aa.rows(); ++ii) {
+        for (int jj = 0; jj < aa.cols(); ++jj) {
+            if (aa.get(ii, jj) != bb.get(ii, jj)) {
+                cout << aa.get(ii, jj) << " != " << bb.get(ii, jj) << endl
+                     << " at " << ii << " " << jj << endl;
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+
+template <class NumT>
 class Array3D : public Array<NumT> {
   public:
     Array3D(cl_uint zz, cl_uint yy, cl_uint xx) 

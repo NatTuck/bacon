@@ -12,8 +12,9 @@ our @ISA = qw(Bacon::Template);
 
 use IO::Handle;
 
-our @TYPES = qw(char short int long uchar ushort uint ulong float);
 # TODO: Add "double"
+our @TYPES  = qw(char short int long uchar ushort uint ulong float);
+our @SCOPES = qw(global local private);
 
 sub write_structs {
     my ($class, $outf) = @_;
@@ -21,11 +22,14 @@ sub write_structs {
 
     my $defs = "";
 
-    for my $type (@TYPES) {
-        $defs .= $self->fill_section(
-            array_structs => 0,
-            type => $type,
-        );
+    for my $scope (@SCOPES) {
+        for my $type (@TYPES) {
+            $defs .= $self->fill_section(
+                array_structs => 0,
+                scope => $scope,
+                type  => $type,
+            );
+        }
     }
 
     my $hdr = $self->fill_section(
@@ -57,28 +61,28 @@ __[ array_top ]__
 
 __[ array_structs ]__
 
-struct _Bacon__Array__<% $type %> {
-    global <% $type %>* data;
+struct _Bacon__Array__<% $scope %>__<% $type %> {
+    <% $scope %> <% $type %>* data;
     uint size;
 };
 
-typedef struct _Bacon__Array__<% $type %> _Bacon__Array__<% $type %>;
+typedef struct _Bacon__Array__<% $scope %>__<% $type %> _Bacon__Array__<% $scope %>__<% $type %>;
 
-struct _Bacon__Array2D__<% $type %> {
-    global <% $type %>* data;
+struct _Bacon__Array2D__<% $scope %>__<% $type %> {
+    <% $scope %> <% $type %>* data;
     uint rows;
     uint cols;
 };
 
-typedef struct _Bacon__Array2D__<% $type %> _Bacon__Array2D__<% $type %>;
-typedef struct _Bacon__Array2D__<% $type %> _Bacon__Array2Z__<% $type %>;
+typedef struct _Bacon__Array2D__<% $scope %>__<% $type %> _Bacon__Array2D__<% $scope %>__<% $type %>;
+typedef struct _Bacon__Array2D__<% $scope %>__<% $type %> _Bacon__Array2Z__<% $scope %>__<% $type %>;
 
-struct _Bacon__Array3D__<% $type %> {
-    global <% $type %>* data;
+struct _Bacon__Array3D__<% $scope %>__<% $type %> {
+    <% $scope %> <% $type %>* data;
     uint deep;
     uint rows;
     uint cols;
 };
 
-typedef struct _Bacon__Array3D__<% $type %> _Bacon__Array3D__<% $type %>;
-typedef struct _Bacon__Array3D__<% $type %> _Bacon__Array3Z__<% $type %>;
+typedef struct _Bacon__Array3D__<% $scope %>__<% $type %> _Bacon__Array3D__<% $scope %>__<% $type %>;
+typedef struct _Bacon__Array3D__<% $scope %>__<% $type %> _Bacon__Array3Z__<% $scope %>__<% $type %>;
