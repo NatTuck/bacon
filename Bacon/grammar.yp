@@ -301,14 +301,21 @@ parameterized_type
     ;
 
 type_specifier
-    : parameterized_type '<' simple_type '>'
-        { Bacon::Type->new_ptype($_[1]->text, $_[3]->text) }
+    : parameterized_type_specifier
     | simple_type
         { Bacon::Type::Simple->new1($_[1]->text) }
     | VOID
         { Bacon::Type::Simple->new1($_[1]->text) }
     | pointer_type
     ;
+
+parameterized_type_specifier
+    : parameterized_type '<' simple_type '>'
+        { Bacon::Type->new_ptype($_[1]->text, $_[3]->text) }
+    | scope_specifier parameterized_type '<' simple_type '>'
+        { Bacon::Type->new_ptype($_[2]->text, $_[4]->text, $_[1]->text) }
+    ;
+
 
 pointer_type
     : simple_type '*'

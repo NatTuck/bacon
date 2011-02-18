@@ -57,16 +57,44 @@ sub to_cpp_decl {
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
 
+    if ($self->type->isa("Bacon::Type::Array")) {
+        return $self->array_to_opencl($fun, $depth);
+    }
+
     my $code = indent($depth) . $self->type->to_ocl . " " . $self->name;
 
     if (defined $self->init) {
         $code .= " = " . $self->init->to_ocl($fun);
     }
     elsif (defined $self->dims) {
+        die "Simple arrays can't be multi-dimensional" if (scalar @{$self->dims} > 1);
         $code .= '[' . join(', ', map { $_->to_ocl($fun) } @{$self->dims}) . ']';
     }
 
     $code .= ";\n";
+    return $code;
+}
+
+sub array_to_opencl {
+    my ($self, $fun, $depth) = @_;
+    my $type = $self->type;
+    my $name = $self->name;
+    my $code = '';
+
+    my $size = $type->index_expr($self, $fun, @{$self->dims});
+
+    $code .= indent($depth) . $self->type->to_ocl . " " . $name . ";\n";
+    
+    for (my $ii = 0; $ii < scalar @{$type->dims}; ++$ii) {
+        my $dim = $type->dims->[$ii];
+        my $val = $self->dims->[$ii]->to_ocl;
+        $code .= indent(1) . "$name.$dim = $val;\n";
+    }    
+
+    my $ptr_type = $self->type->subtype->to_ocl . "*";
+    $code .= indent($depth) . $ptr_type . ' ' . $name . "__data[$size];\n";
+    $code .= indent($depth) . "$name.data = $name" . "__data;\n";
+
     return $code;
 }
 

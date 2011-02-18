@@ -13,7 +13,7 @@ blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size)
     assert(cc.rows % block_size == 0, "Uneven block size (rows).");
     assert(cc.cols % block_size == 0, "Uneven block size (cols).");
 
-    float sum = 0.0;
+    float sum = 0.0f;
 
     const int rounds = aa.cols / block_size;
 
@@ -34,6 +34,79 @@ blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size)
 
 
     cc[$row, $col] = sum;
+
+    return cc;
+}
+
+kernel
+Array2D<float>
+blocked_mat_mul2(Array2D<float> aa, Array2D<float> bb, uint blksz, uint grpsz)
+    @range [cc.rows / blksz, cc.cols / blksz]
+    @group [grpsz, grpsz]
+    global Array2D<float> cc[aa.rows, bb.cols];
+#define LNN (grpsz*blksz)
+    local  Array2D<float> aL[LNN, LNN];
+    local  Array2D<float> bL[LNN, LNN];
+{
+    assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
+    assert(cc.rows % LNN == 0, "Uneven block size (rows).");
+    assert(cc.cols % LNN == 0, "Uneven block size (cols).");
+
+    int ii, jj;
+
+    const int item_base_row = blksz * $row;
+    const int item_base_col = blksz * $col;
+
+    const int rounds = aa.cols / LNN;
+
+    const int BB = blksz;
+    private Array2D<float> sum[BB, BB];
+
+    for (ii = 0; ii < sum.rows; ++ii) {
+        for (jj = 0; jj < sum.cols; ++jj) {
+            sum[ii, jj] = 0.0f;
+        }
+    }
+
+    // each work group calculates a LNN size chunk
+    // by multiplying and accummulating submatrices
+    // loaded from global memory
+    for (int gg = 0; gg < rounds; ++gg) {
+        // load my cache item
+        int base_gg = gg * LNN;
+
+        for (ii = 0; ii < LNN; ++ii) {
+            for (jj = 0; jj < LNN; ++jj) {
+                aL[$local_row + ii, $local_col + jj] = 
+                    aa[$row + ii, base_gg + $local_col + jj];
+                bL[$local_row + ii, $local_col + jj] = 
+                    bb[base_gg + $local_row + ii, $col + jj];
+            }
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        // each work item calculates a blksz chunk
+        // by multiplying and accumulating submatrices
+        // loaded from local memory
+        for (int kk = 0; kk < grpsz; ++kk) {
+            int base_row = $local_row * blksz;
+            int base_col = $local_col * blksz;
+
+            for (ii = 0; ii < blksz; ++ii) {
+                for (jj = 0; jj < blksz; ++jj) {
+                    sum[ii, jj] += aL[base_row + ii, kk] * bL[kk, base_col + jj];
+                }
+            }
+        }
+    }
+
+
+    for (ii = 0; ii < sum.rows; ++ii) {
+        for (jj = 0; jj < sum.cols; ++jj) {
+            cc[item_base_row + ii, item_base_row + jj] = sum[ii, jj];
+        }
+    }
 
     return cc;
 }
