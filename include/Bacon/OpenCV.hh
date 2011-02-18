@@ -17,11 +17,14 @@ namespace Bacon {
 
 template <class NumT>
 Array2D<NumT>
-mat_to_array2d(cv::Mat& aa)
+mat_to_array2d(cv::Mat& aa, int rtn = 1)
 {
     assert(aa.elemSize() == sizeof(NumT));
 
-    Array2D<NumT> bb(aa.rows, aa.cols);
+    cl_uint rows = round_to_next(aa.rows, rtn);
+    cl_uint cols = round_to_next(aa.cols, rtn);
+
+    Array2D<NumT> bb(rows, cols);
 
     for (int ii = 0; ii < aa.rows; ++ii) {
         for (int jj = 0; jj < aa.cols; ++jj) {

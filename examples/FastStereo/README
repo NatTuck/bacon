@@ -1,0 +1,5 @@
+
+== Stereo.bc ==
+
+An implementation of stereo correspondence using a census transform
+and semi-global matching.

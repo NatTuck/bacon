@@ -20,25 +20,45 @@ namespace Bacon {
 
 extern unsigned long Bacon_Array_random_seed;
 
+inline
+cl_uint
+round_to_next(int xx, int nn)
+{
+    cl_uint rem = xx % nn;
+    
+    if (rem == 0) {
+        return xx;
+    }
+    else {
+        return xx + (nn - rem);
+    }
+}
+
 template <class NumT>
 class Array {
   public:
     Array()
         : data_size(0), on_gpu(false), ctx(0)
     {
-        srandom(getpid() * Bacon_Array_random_seed);
-        Bacon_Array_random_seed *= random();
+        init_random();
     }
 
     Array(cl_uint nn) 
-        : data_size(nn), on_gpu(false), ctx(0)
+        : on_gpu(false), ctx(0)
     {
+        init_random();
         reallocate(nn);
     }
 
     ~Array()
     {
         // do nothing
+    }
+
+    void init_random()
+    {
+        srandom(getpid() * Bacon_Array_random_seed);
+        Bacon_Array_random_seed *= random();
     }
 
     void reallocate(int nn)
