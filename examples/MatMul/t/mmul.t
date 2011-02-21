@@ -13,13 +13,17 @@ if (defined $ENV{LD_LIBRARY_PATH}) {
 
 $ENV{LD_LIBRARY_PATH} = "../../lib" . $ldpath;
 
-use Test::Simple tests => 2;
+use Test::Simple tests => 3;
 use Bacon::Test;
 
 my $tmp = "t/out-$$.dat";
 
 system("./mmul -a t/aa.dat -b t/id4.dat -o $tmp");
 files_eq($tmp, "t/aa.dat", "MatMul - identity matrix");
+unlink($tmp);
+
+system("./mmul -p -a t/aa.dat -b t/id4.dat -o $tmp");
+files_eq($tmp, "t/aa.dat", "MatMul - identity matrix, cpu");
 unlink($tmp);
 
 system("./mmul -a t/aa.dat -b t/bb.dat -o $tmp");

@@ -91,7 +91,7 @@ sub array_to_opencl {
         $code .= indent(1) . "$name.$dim = $val;\n";
     }    
 
-    my $ptr_type = $self->type->subtype->to_ocl . "*";
+    my $ptr_type = $self->type->subtype->to_ocl;
     $code .= indent($depth) . $ptr_type . ' ' . $name . "__data[$size];\n";
     $code .= indent($depth) . "$name.data = $name" . "__data;\n";
 

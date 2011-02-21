@@ -17,6 +17,7 @@ using namespace cl;
 namespace Bacon {
 
 unsigned long Bacon_Array_random_seed = 65537;
+bool use_opencl_cpu = false;
 
 void
 context_error_callback(const char* msg, const void* extra_data, 
@@ -44,6 +45,8 @@ Context::~Context()
     // do nothing
 }
 
+
+
 cl::Device
 Context::best_opencl_device()
 {
@@ -53,11 +56,16 @@ Context::best_opencl_device()
     std::vector<Device> devs;
     std::vector<Platform>::iterator pit;
 
+    cl_device_type preferred_type = CL_DEVICE_TYPE_GPU;
+
+    if (use_opencl_cpu) {
+        preferred_type = CL_DEVICE_TYPE_CPU;
+    }
+
     // First, try to find a GPU
     for (pit = platforms.begin(); pit != platforms.end(); ++pit) {
         try {
-            pit->getDevices(CL_DEVICE_TYPE_GPU, &devs);
-            //pit->getDevices(CL_DEVICE_TYPE_CPU, &devs);
+            pit->getDevices(preferred_type, &devs);
         }
         catch (cl::Error ee) {
             if (ee.err() != CL_DEVICE_NOT_FOUND)

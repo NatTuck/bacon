@@ -6,6 +6,8 @@
 
 namespace Bacon {
 
+extern bool use_opencl_cpu;
+
 class Context {
   public:
     Context();

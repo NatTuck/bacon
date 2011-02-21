@@ -4,46 +4,20 @@ kernel
 Array2D<ulong>
 sparse_census(Array2D<uchar> image) 
     @range [image.rows, image.cols]
-    @group [8, 8]
     global Array2D<ulong> census[image.rows, image.cols];
-    local  Array2D<char>  cache [24, 24];
 {
-    int ii, jj;
-
-    // Each work item loads a 3x3 section of cache.
-    int base_cache_row = 3 * $local_row;
-    int base_cache_col = 3 * $local_col;
-    int base_group_row = $row - $local_row - 7;
-    int base_group_col = $col - $local_col - 7;
-    int base_image_row = base_group_row + base_cache_row;
-    int base_image_col = base_group_col + base_cache_col;
-
-    for (ii = 0; ii < 3; ++ii) {
-        int image_row = clamp(base_image_row + ii, 0, (int) image.rows);
-
-        for (jj = 0; jj < 3; ++jj) {
-            int image_col = clamp(base_image_col + jj, 0, (int) image.cols);
-
-            cache[base_cache_row + ii, base_cache_col + jj] = 
-                image[image_row, image_col];
-        }
-    }
-
-    int ctr_row = $row - base_group_row;
-    int ctr_col = $col - base_group_col;
-
     ulong bits = 0;
-    uchar ctr = cache[ctr_row, ctr_col];
+    uchar ctr = image[$y, $x];
     
     for (int by = 0; by < 8; ++by) {
         int yoff = by + by - 7;
-            ii   = ctr_row + yoff;
+        int ii   = clamp($y + yoff, 0, (int) image.rows);
 
         for (int bx = 0; bx < 8; ++bx) {
             int xoff = bx + bx - 7;
-                jj   = ctr_col + xoff;
+            int jj   = clamp($x + xoff, 0, (int) image.cols);
 
-            uchar pval = cache[ii, jj];
+            uchar pval = image[ii, jj];
             
             if (pval < ctr) {
                 int bit = 8*by + bx;
@@ -166,26 +140,89 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulo
     }
 }
 
+int
+score_row_offset(private Array<ulong> aa, private Array<ulong> bb, int cols, int jj, int kk)
+{
+    int bx = jj;
+    int ax = clamp(bx + kk, 0, cols);
+
+    ulong aa_val = aa[ax];
+    ulong bb_val = bb[bx];
+    return 9 * popcount(aa_val ^ bb_val);
+}
+
+void
+traverse_row(Array3D<uchar> pspace, int slice, private Array<ulong> aa, private Array<ulong> bb, 
+    int disp_dir, int ii, int jj0, int jj1, int dj)
+{
+    int max_disp = pspace.cols / 5;
+    int min_disp = 0;
+
+    int prev_score, curr_score, next_score;
+    int best_score, best_disp;
+
+    int prev_disp = -100;
+
+    for (int jj = jj0; jj != jj1; jj += dj) {
+        prev_score = score_row_offset(aa, bb, pspace.cols, jj, min_disp * disp_dir);
+        curr_score = prev_score;
+        next_score = prev_score;
+        
+        best_score = 999999;
+        best_disp  = 255;
+        
+        for (int kk = min_disp; kk < max_disp; ++kk) {
+            prev_score = curr_score;
+            curr_score = next_score;
+            
+            next_score = score_row_offset(aa, bb, pspace.cols, jj, kk * disp_dir)
+                + sgm_penalty(kk, prev_disp);
+            
+            if (curr_score < best_score) {
+                best_disp  = subpixel(kk, prev_score, curr_score, next_score);
+                best_score = curr_score;
+            }
+        }
+        
+        pspace[slice, ii, jj] = best_disp;
+        prev_disp = best_disp;
+    }
+}
+
 kernel
 void
-pspace_h(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @range [aa.rows]
+pspace_h(Array3D<uchar> pspace, Array2D<ulong> aaG, Array2D<ulong> bbG, int direction)
+    @range [2, pspace.rows]
 {
+    private Array<ulong> aa[2100];
+    private Array<ulong> bb[2100];
+
+    for (int ii = 0; ii < pspace.cols; ++ii) {
+        aa[ii] = aaG[$x, ii];
+        bb[ii] = bbG[$x, ii];
+    }
+
     // traverse right
-    pspace_traverse(pspace, 0, aa, bb, direction, $x, $x+1, +1, 0, aa.cols, +1);
+    if ($y == 0)
+        traverse_row(pspace, 0, aa, bb, direction, $x, 0, pspace.cols, +1);
+
     // traverse left
-    pspace_traverse(pspace, 1, aa, bb, direction, $x, $x+1, +1, aa.cols-1, -1, -1);
+    else
+        traverse_row(pspace, 1, aa, bb, direction, $x, pspace.cols-1, -1, -1);
 }
 
 kernel
 void
 pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @range [aa.cols]
+    @range [2, aa.cols]
 {
     // traverse down
-    pspace_traverse(pspace, 2, aa, bb, direction, 0, aa.rows, +1, $x, $x+1, +1);
+    if ($y == 0)
+        pspace_traverse(pspace, 2, aa, bb, direction, 0, aa.rows, +1, $x, $x+1, +1);
+    
     // traverse up
-    pspace_traverse(pspace, 3, aa, bb, direction, aa.rows-1, -1, -1, $x, $x+1, +1);
+    else
+        pspace_traverse(pspace, 3, aa, bb, direction, aa.rows-1, -1, -1, $x, $x+1, +1);
 }
 
 #if 0
@@ -317,4 +354,3 @@ consistent_pixels(Array2D<uchar> dispL, Array2D<uchar> dispR)
 
     return disp;
 }
-

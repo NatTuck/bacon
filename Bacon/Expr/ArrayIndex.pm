@@ -6,6 +6,7 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Try::Tiny;
 use Data::Dumper;
 
 use Bacon::Expr;
@@ -30,10 +31,18 @@ sub kids {
 
 sub to_ocl {
     my ($self, $fun) = @_;
-    my $var  = $fun->lookup_variable($self->name);
-    my $type = $var->type;
-    my $code = $type->index_to_ocl($self, $fun, @{$self->dims});
-    return $code;
+    try {
+        my $var  = $fun->lookup_variable($self->name);
+        my $type = $var->type;
+        my $code = $type->index_to_ocl($self, $fun, @{$self->dims});
+        return $code;
+    } catch {
+        my $file = $self->file;
+        my $line = $self->line;
+
+        warn "At $file:$line, in an array index:\n";
+        die "$_";
+    };
 }
 
 sub to_cpp {

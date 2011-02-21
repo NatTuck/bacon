@@ -67,7 +67,7 @@ main(int argc, char* argv[])
 
     int gen_size = 2;
 
-    while ((opt = getopt(argc, argv, "ha:b:o:n:")) != -1) {
+    while ((opt = getopt(argc, argv, "hca:b:o:n:")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
@@ -81,9 +81,10 @@ main(int argc, char* argv[])
         case 'o':
             c_file = string(optarg);
             break;
+        case 'c':
+            Bacon::use_opencl_cpu = true;
+            break;
         case 'h':
-            show_usage();
-            return 0;
         default:
             show_usage();
             return 0;
