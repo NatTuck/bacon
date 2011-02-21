@@ -26,10 +26,10 @@ $(BCOS): %.o: %.bc Makefile
 $(CCOS): %.o: %.cc Makefile $(BCOS)
 
 test: $(BINARY)
-	./$(BINARY) -c tmp/disp5.png t/view1.png t/view5.png
+	./$(BINARY) -c t/disp5.png t/view1.png t/view5.png
 
 cputest: $(BINARY)
-	./$(BINARY) -c tmp/disp5.png -n t/view1.png t/view5.png
+	./$(BINARY) -c t/disp5.png -n t/view1.png t/view5.png
 
 clean:
 	rm -rf $(BINARY) *.o *~ gen
