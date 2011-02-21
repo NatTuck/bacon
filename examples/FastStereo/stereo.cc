@@ -60,7 +60,6 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
 
     Array2D<cl_ulong> cL = ss.sparse_census(aL);
     Array2D<cl_ulong> cR = ss.sparse_census(aR);
-
     double to_census = tt0.time();
     cout << "Convert and census took: " << to_census << endl;
 
