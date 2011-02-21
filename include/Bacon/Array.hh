@@ -38,13 +38,13 @@ template <class NumT>
 class Array {
   public:
     Array()
-        : data_size(0), on_gpu(false), ctx(0)
+        : data_size(0), on_gpu(false), valid_data(false), ctx(0)
     {
         init_random();
     }
 
     Array(cl_uint nn) 
-        : on_gpu(false), ctx(0)
+        : on_gpu(false), valid_data(false), ctx(0)
     {
         init_random();
         reallocate(nn);
@@ -66,6 +66,7 @@ class Array {
         data_size = nn;
         data_ptr = boost::shared_array<NumT>(new NumT[nn]);
         on_gpu = false;
+        valid_data = false;
     }
 
     void set_context(Bacon::Context* context)
@@ -83,13 +84,15 @@ class Array {
         for(int ii = 0; ii < size(); ++ii)
             data_ptr[ii] = vv;
         on_gpu = false;
+        valid_data = true;
     }
 
     void fill_random()
     {
         for(int ii = 0; ii < size(); ++ii)
             data_ptr[ii] = (NumT)(random() % 100);
-        on_gpu = false;        
+        on_gpu = false;
+        valid_data = true;
     }
 
     cl::Buffer data()
@@ -118,6 +121,7 @@ class Array {
         if (on_gpu)
             recv_dev();
         data_ptr[xx] = vv;
+        valid_data =true;
     }
 
     void send_dev()
@@ -132,6 +136,7 @@ class Array {
         assert(ctx != 0);
         ctx->queue.enqueueReadBuffer(buffer, true, 0, byte_size(), data_ptr.get());
         on_gpu = false;
+        valid_data = true;
     }
 
     size_t byte_size()
@@ -146,6 +151,7 @@ class Array {
         }
         
         on_gpu = false;
+        valid_data = true;
     }
 
     void write_items(std::ostream* out_file)
@@ -194,6 +200,7 @@ class Array {
     cl_uint data_size;
 
     bool on_gpu;
+    bool valid_data;
 
     Bacon::Context* ctx;
     cl::Buffer buffer;

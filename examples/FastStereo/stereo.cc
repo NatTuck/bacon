@@ -52,11 +52,17 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     Stereo ss;
     ss.ctx.show_timing = true;
 
+    Bacon::Timer stereo_timer;
+
+    Bacon::Timer tt0;
     Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL, 8);
     Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR, 8);
 
     Array2D<cl_ulong> cL = ss.sparse_census(aL);
     Array2D<cl_ulong> cR = ss.sparse_census(aR);
+
+    double to_census = tt0.time();
+    cout << "Convert and census took: " << to_census << endl;
 
 #if 0
     show_census("Census Left", cL.ptr(), cL.rows(), cL.cols());
@@ -66,7 +72,7 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
 
     Array3D<cl_uchar> pspace(4, cL.rows(), cL.cols());
 
-    ss.pspace_h(pspace, cL, cR, +1);
+    //    ss.pspace_h(pspace, cL, cR, +1);
 
 #if 0
     show_pspace_slice("pspace 0", pspace, 0);
@@ -74,7 +80,7 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     exit(0);
 #endif
 
-    ss.pspace_v(pspace, cL, cR, +1);
+    //ss.pspace_v(pspace, cL, cR, +1);
 
 #if 0
     show_pspace_slice("pspace 2", pspace, 2);
@@ -84,8 +90,8 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     Array2D<cl_uchar> arL = ss.half_disparity(cL, cR, pspace, +1);
     Array2D<cl_uchar> dsL = ss.median_filter(arL);
 
-    ss.pspace_h(pspace, cR, cL, -1);
-    ss.pspace_v(pspace, cR, cL, -1);
+    //ss.pspace_h(pspace, cR, cL, -1);
+    //ss.pspace_v(pspace, cR, cL, -1);
 
     Array2D<cl_uchar> arR = ss.half_disparity(cR, cL, pspace, -1);
     Array2D<cl_uchar> dsR = ss.median_filter(arR);
@@ -97,7 +103,12 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
 
     Array2D<cl_uchar> arD = ss.consistent_pixels(dsL, dsR);
 
-    return array2d_to_mat(arD);
+    cv::Mat dispM = array2d_to_mat(arD);
+
+    double total_time = stereo_timer.time();
+    cout << "One frame disparity took: " << total_time << endl;
+
+    return dispM;
 }
 
 float
@@ -190,10 +201,7 @@ main(int argc, char* argv[])
     cout.precision(4);
     cout << std::fixed;
 
-    Bacon::Timer timer;
     cv::Mat disp  = stereo_disparity(left, right);
-    double total_time = timer.time();
-    cout << "One frame disparity took: " << total_time << endl;
 
     // Scale to match ground truth.
     disp *= 2;

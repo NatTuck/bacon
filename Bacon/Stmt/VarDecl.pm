@@ -14,6 +14,7 @@ has dims => (is => 'ro', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
 has init => (is => 'ro', isa => 'Maybe[Bacon::Expr]');
 
 use Data::Dumper;
+use List::Util qw(reduce);
 
 use Bacon::Utils;
 use Bacon::Expr::BinaryOp qw(mkop);
@@ -81,7 +82,7 @@ sub array_to_opencl {
     my $name = $self->name;
     my $code = '';
 
-    my $size = $type->index_expr($self, $fun, @{$self->dims});
+    my $size = reduce { $a * $b } (map { $_->value } @{$self->dims});
 
     $code .= indent($depth) . $self->type->to_ocl . " " . $name . ";\n";
     

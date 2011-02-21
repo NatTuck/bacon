@@ -100,11 +100,31 @@ sgm_penalty(int aa, int bb)
     return pen;
 }
 
-void
-pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulong> bb, 
-    int disp_dir, int ii0, int ii1, int di, int jj0, int jj1, int dj)
+int
+score_row_offset(private Array2D<ulong> aa, private Array2D<ulong> bb, int jj, int kk)
 {
-    int max_disp = aa.cols / 5;
+    int cost = 0;
+
+    for (int ii = 0; ii < 3; ++ii) {
+        for (int dx = 0; dx < 3; ++dx) {
+            int bx = clamp(jj + dx, 0, (int) aa.cols);
+            int ax = clamp(bx + kk, 0, (int) aa.cols);
+
+            ulong aa_val = aa[ii, ax];
+            ulong bb_val = bb[ii, bx];
+            cost += popcount(aa_val ^ bb_val);
+        }
+    }
+
+    return cost;
+}
+
+void
+pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aaG, Array2D<ulong> bbG,
+    private Array2D<ulong> aa, private Array2D<ulong> bb, int disp_dir, int ii0, int ii1, int di, 
+    int jj0, int jj1, int dj)
+{
+    int max_disp = pspace.cols / 5;
     int min_disp = 0;
 
     int prev_score, curr_score, next_score;
@@ -113,8 +133,17 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulo
     int prev_disp = -100;
 
     for (int ii = ii0; ii != ii1; ii += di) {
+
+        for (int yy = 0; yy < 3; ++yy) {
+            for (int xx = 0; xx < pspace.cols; ++xx) {
+                int row = clamp(ii + yy - 1, 0, pspace.rows - 1);
+                aa[yy, xx] = aaG[row, xx];
+                bb[yy, xx] = bbG[row, xx];
+            }
+        }
+
         for (int jj = jj0; jj != jj1; jj += dj) {
-            prev_score = score_offset(aa, bb, ii, jj, min_disp * disp_dir);
+            prev_score = score_row_offset(aa, bb, jj, min_disp * disp_dir);
             curr_score = prev_score;
             next_score = prev_score;
 
@@ -125,7 +154,7 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulo
                 prev_score = curr_score;
                 curr_score = next_score;
 
-                next_score = score_offset(aa, bb, ii, jj, (kk + 1) * disp_dir)
+                next_score = score_row_offset(aa, bb, jj, (kk + 1) * disp_dir)
                     + sgm_penalty(kk, prev_disp);
 
                 if (curr_score < best_score) {
@@ -140,19 +169,8 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulo
     }
 }
 
-int
-score_row_offset(private Array<ulong> aa, private Array<ulong> bb, int cols, int jj, int kk)
-{
-    int bx = jj;
-    int ax = clamp(bx + kk, 0, cols);
-
-    ulong aa_val = aa[ax];
-    ulong bb_val = bb[bx];
-    return 9 * popcount(aa_val ^ bb_val);
-}
-
 void
-traverse_row(Array3D<uchar> pspace, int slice, private Array<ulong> aa, private Array<ulong> bb, 
+traverse_row(Array3D<uchar> pspace, int slice, private Array2D<ulong> aa, private Array2D<ulong> bb, 
     int disp_dir, int ii, int jj0, int jj1, int dj)
 {
     int max_disp = pspace.cols / 5;
@@ -164,7 +182,7 @@ traverse_row(Array3D<uchar> pspace, int slice, private Array<ulong> aa, private 
     int prev_disp = -100;
 
     for (int jj = jj0; jj != jj1; jj += dj) {
-        prev_score = score_row_offset(aa, bb, pspace.cols, jj, min_disp * disp_dir);
+        prev_score = score_row_offset(aa, bb, jj, min_disp * disp_dir);
         curr_score = prev_score;
         next_score = prev_score;
         
@@ -175,7 +193,7 @@ traverse_row(Array3D<uchar> pspace, int slice, private Array<ulong> aa, private 
             prev_score = curr_score;
             curr_score = next_score;
             
-            next_score = score_row_offset(aa, bb, pspace.cols, jj, kk * disp_dir)
+            next_score = score_row_offset(aa, bb, jj, kk * disp_dir)
                 + sgm_penalty(kk, prev_disp);
             
             if (curr_score < best_score) {
@@ -194,12 +212,15 @@ void
 pspace_h(Array3D<uchar> pspace, Array2D<ulong> aaG, Array2D<ulong> bbG, int direction)
     @range [2, pspace.rows]
 {
-    private Array<ulong> aa[2100];
-    private Array<ulong> bb[2100];
+    private Array2D<ulong> aa[3, 700];
+    private Array2D<ulong> bb[3, 700];
 
-    for (int ii = 0; ii < pspace.cols; ++ii) {
-        aa[ii] = aaG[$x, ii];
-        bb[ii] = bbG[$x, ii];
+    for (int ii = 0; ii < 3; ++ii) {
+        for (int jj = 0; jj < pspace.cols; ++jj) {
+            int row = clamp($x + ii - 1, 0, pspace.rows - 1);
+            aa[ii, jj] = aaG[row, jj];
+            bb[ii, jj] = bbG[row, jj];
+        }
     }
 
     // traverse right
@@ -216,13 +237,18 @@ void
 pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
     @range [2, aa.cols]
 {
+    private Array2D<ulong> aa_cache[3, 700];
+    private Array2D<ulong> bb_cache[3, 700];
+
     // traverse down
     if ($y == 0)
-        pspace_traverse(pspace, 2, aa, bb, direction, 0, aa.rows, +1, $x, $x+1, +1);
+        pspace_traverse(pspace, 2, aa, bb, aa_cache, bb_cache, 
+            direction, 0, aa.rows, +1, $x, $x+1, +1);
     
     // traverse up
     else
-        pspace_traverse(pspace, 3, aa, bb, direction, aa.rows-1, -1, -1, $x, $x+1, +1);
+        pspace_traverse(pspace, 3, aa, bb, aa_cache, bb_cache,
+            direction, aa.rows-1, -1, -1, $x, $x+1, +1);
 }
 
 #if 0
@@ -271,14 +297,15 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
         path[ii] = pspace[ii, $y, $x];
     }
 
+
     for (int kk = min_disp; kk < max_disp; ++kk) {
         int cost = score_offset(cA, cB, $y, $x, kk * direction);
 
         for (int pp = 0; pp < PATH_COUNT; ++pp) {
-            cost += sgm_penalty(kk, path[pp]);
+            cost += 0; //sgm_penalty(kk, path[pp]);
         }
 
-        if (cost < best_cost) {
+       if (cost < best_cost) {
             best_disp = kk;
             best_cost = cost;
         }
@@ -289,11 +316,10 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
     return disp;
 }
 
-// Fast median of 9 code from N. Devillard,
+// Fast median of 9 based on code from N. Devillard,
 // http://ndevilla.free.fr/median/median/index.html
 
-#define PIX_SWAP(a,b) temp = (a); (a) = (b); (b) = temp;
-#define PIX_SORT(a,b) if ((a)>(b)) { PIX_SWAP((a),(b)) } \
+#define PIX_SORT(a,b) temp = (a); (a) = (a)>(b) ? (b) : (a); (b) = (temp)>(b) ? (temp) : (b);
 
 int
 opt_med9(int* p)
