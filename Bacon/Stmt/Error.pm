@@ -21,6 +21,11 @@ sub new2 {
     return $class->new_from_token0(name => $name, args => $args);
 }
 
+sub kids {
+    my ($self) = @_;
+    return @{$self->args};
+}
+
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
 

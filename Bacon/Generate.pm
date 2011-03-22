@@ -5,10 +5,11 @@ use 5.10.0;
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(bacon_generate);
+our @EXPORT = qw(bacon_generate_ast bacon_generate_ocl);
 
 use IO::Handle;
 use Text::Template;
+use Storable qw(store retrieve);
 use autodie;
 
 use Bacon::CLEnv qw(ocl_write_perror ocl_ccflags ocl_ldflags);
@@ -55,7 +56,12 @@ sub gen_from_template {
     close($out);
 }
 
-sub bacon_generate {
+sub generate_ast {
+    my ($ast, $fn) = @_;
+    store($ast, $fn);
+}
+
+sub bacon_generate_ast {
     my ($ast) = @_;
     my $basefn = $ast->basefn;
 
@@ -63,8 +69,11 @@ sub bacon_generate {
     system "rm -rf ./gen";
     mkdir "gen";
 
-    # Generate the OpenCL Code
-    generate_opencl($ast);
+    # Serialize the AST
+    generate_ast($ast, "gen/$basefn.ast");
+
+    # Temporary...
+    bacon_generate_ocl("gen/$basefn.ast");
 
     # Generate the C++ wrapper code
     generate_cpp($ast);
@@ -86,6 +95,11 @@ sub bacon_generate {
 
     # Generate opencl_perror code.
     ocl_write_perror("gen");    
+}
+
+sub bacon_generate_ocl {
+    my ($ast_fn) = @_;
+    generate_opencl(retrieve($ast_fn));
 }
 
 1;

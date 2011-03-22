@@ -37,6 +37,7 @@ use Bacon::Stdlib;
 use Bacon::Parser;
 use Bacon::Generate;
 
+use Data::Dumper;
 use Getopt::Long qw(GetOptions);
 use Pod::Usage;
 
@@ -70,4 +71,4 @@ if (defined $opt{genstdlib}) {
 
 my $source = shift || pod2usage(1);
 my $ast = bacon_parse($source);
-bacon_generate($ast);
+bacon_generate_ast($ast);

@@ -16,9 +16,8 @@ has range_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
 has group_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
 has outer_vars => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt::VarDecl]', required => 1);
 
-# Error table.
-has etab => (is => 'rw', isa => 'Item', default => sub { {} });
-has enum => (is => 'rw', isa => 'Int',  default => 1);
+# Error table maps strings to unique integers.
+has etab => (is => 'rw', isa => 'Item', lazy_build => 1);
 
 use Bacon::Utils;
 use Bacon::MagicVars;
@@ -52,24 +51,29 @@ sub _build_symtab {
     return $symtab;
 }
 
-sub lookup_error_string {
-    my ($self, $string) = @_;
-    
-    unless (defined $self->etab->{$string}) {
-        $self->enum($self->enum + 1);
-        $self->etab->{$string} = $self->enum;
+sub _build_etab {
+    my ($self) = @_;
+    my @strings = grep { $_->isa('Bacon::Expr::String') } $self->subnodes;
+    my $etab = {};
+
+    for (my $ii = 0; $ii < scalar @strings; ++$ii) {
+        $etab->{$strings[$ii]->value} = $ii + 1;
     }
 
-    return $self->etab->{$string}
+    return $etab;
+}
+
+sub lookup_error_string {
+    my ($self, $string) = @_;
+    return $self->etab->{$string} 
+        or die "No error code for string: $string";
 }
 
 sub init_magic_variables {
     my ($self) = @_;
     my $code = '';
 
-    my @vars = grep { 
-        $_->isa('Bacon::Expr::Identifier') 
-    } $self->subnodes;
+    my @vars = grep { $_->isa('Bacon::Expr::Identifier') } $self->subnodes;
 
     my %seen = ();
 
