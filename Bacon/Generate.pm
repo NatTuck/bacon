@@ -13,6 +13,7 @@ use Storable qw(store retrieve);
 use autodie;
 
 use Bacon::CLEnv qw(ocl_write_perror ocl_ccflags ocl_ldflags);
+use Bacon::TreeNodes;
 
 sub generate_opencl {
     my ($ast) = @_;
@@ -73,7 +74,7 @@ sub bacon_generate_ast {
     generate_ast($ast, "gen/$basefn.ast");
 
     # Temporary...
-    bacon_generate_ocl("gen/$basefn.ast");
+    #bacon_generate_ocl("gen/$basefn.ast");
 
     # Generate the C++ wrapper code
     generate_cpp($ast);

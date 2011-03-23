@@ -15,13 +15,19 @@ using std::endl;
 #include "<% $name %>.hh"
 
 using namespace Bacon;
-using namespace cl;
 
 // Constructor
 <% $name %>::<% $name %>()
 {
+    char **argv = sa_alloc(2, "gen/<% $name %>.ast", 0);
+    rt = Bacon::Runtime::instance();
+    rt->perl_apply(strdupa("bacon_generate_ocl"), argv);
+    sa_free(2, argv);
+
     ctx.load_opencl_program("gen/<% $name %>.cl");
 }
+
+using namespace cl;
 
 // Destructor
 <% $name %>::~<% $name %>()

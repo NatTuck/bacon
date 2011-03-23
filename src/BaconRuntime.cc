@@ -1,4 +1,7 @@
 
+#include <sstream>
+#include <string>
+
 #include "Bacon/Runtime.hh"
 
 #include <EXTERN.h>
@@ -19,12 +22,27 @@ Runtime::instance()
     return Bacon_Runtime_instance;
 }
 
+/* this stuff makes Perl do dynamic loading */
+EXTERN_C void boot_DynaLoader (pTHX_ CV* cv);
+
+EXTERN_C void
+xs_init(pTHX)
+{
+    char *file = strdupa(__FILE__);
+    newXS("DynaLoader::boot_DynaLoader", boot_DynaLoader, file);
+}
+
 Runtime::Runtime()
 {
     PERL_SYS_INIT3(0, 0, 0);
     my_perl = perl_alloc();
     perl_construct(my_perl);
     PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
+    char **argv = sa_alloc(3, "", "-e", "0");
+    perl_parse(my_perl, xs_init, 3, argv, 0);
+    sa_alloc(3);
+    perl_run(my_perl);
+    perl_use("Bacon::Generate");
 }
 
 Runtime::~Runtime()
@@ -35,18 +53,29 @@ Runtime::~Runtime()
 }
 
 void
-Runtime::load_perl(char* source_fn)
+Runtime::perl_apply(char* name, char** argv)
 {
-    char *argv[] = { "", source_fn };
-    perl_parse(my_perl, 0, 2, argv, 0);
+    static char* ZERO = { 0 };
+    if (argv == 0)
+        argv = &ZERO;
+    call_argv(name, G_VOID | G_DISCARD, argv);
 }
 
 void
-Runtime::run_perl(char* name, char** argv)
+Runtime::perl_eval(char* perl_code)
 {
-    if (argv == 0)
-        argv = { 0 };
-    call_argv(name, G_VOID | G_DISCARD, argv);
+    std::ostringstream code;
+    code << "use 5.10.0;";
+    code << perl_code;
+    eval_pv(code.str().c_str(), TRUE);
+}
+
+void
+Runtime::perl_use(const char* module)
+{
+    SV* mod_name = newSVpv(module, 0);
+    load_module(0, mod_name, 0, 0);
+    //sv_free(mod_name);
 }
 
 } // namespace Bacon

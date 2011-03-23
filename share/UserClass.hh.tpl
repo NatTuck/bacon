@@ -15,6 +15,7 @@ class <% $name %> {
 <% $prototypes %>
 
     Bacon::Context ctx;
+    Bacon::Runtime* rt;
 };
 
 #endif

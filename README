@@ -1,0 +1,19 @@
+
+== Introduction ==
+
+Bacon is a language and compiler targeting the OpenCL platform. The goal of the
+project is to provide both easier programmability and better performance.
+
+== Installing Bacon ==
+
+First, install the AMD OpenCL SDK and make sure the ATISTREAMSDKROOT is properly set
+in your ~/.bashrc file.
+
+Next, type "make prereqs" in the base Bacon directory.
+
+Finally, add the following lines to your ~/.bashrc file, with BACON_BASE set to point
+at the top level directory of your Bacon install.
+
+export BACON_BASE="/path/to/bacon"
+export LD_LIBRARY_PATH="$BACON_BASE/lib:$LD_LIBRARY_PATH"
+export PERL5LIB="$BACON_BASE/$PERL5LIB"

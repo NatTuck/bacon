@@ -5,5 +5,6 @@
 #include "Bacon/Context.hh"
 #include "Bacon/Error.hh"
 #include "Bacon/Timer.hh"
+#include "Bacon/Runtime.hh"
 
 #endif
