@@ -13,8 +13,8 @@ bacon - OpenCL frontend, providing a better array compute notation
    --ccflags        Output g++ include flags to build output.
    --ldflags        Output linker flags to build output.
 
- Otherwise, writes some OpenCL and C++ code in './gen' from the
- provided Bacon C source file.
+ Otherwise, partially compiles the provided Bacon C source file
+ and generates wrapper code in the './gen' directory.
 
 =head1 DESCRIPTION
 
@@ -29,8 +29,8 @@ use strict;
 use 5.10.0;
 
 use FindBin qw($Bin);
-$ENV{BACON_BASE} = $Bin;
-use lib $Bin;
+$ENV{BACON_BASE} = "$Bin/..";
+use lib "$Bin/..";
 
 use Bacon::CLEnv qw(ocl_ccflags ocl_ldflags ocl_write_perror);
 use Bacon::Stdlib;

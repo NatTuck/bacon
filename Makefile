@@ -1,4 +1,5 @@
 
+BACON="./bin/bacon"
 LIB=libbacon.so
 HDRS=include/ocl/Bacon/Array.cl
 
@@ -19,7 +20,7 @@ doc:
 	(cd doc && make)
 
 $(HDRS): Bacon/Parser.pm
-	./bacon --genstdlib include
+	$(BACON) --genstdlib include
 
 prereqs:
 	sudo apt-get install build-essential libboost-dev libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-latex-base libclone-perl libdata-section-perl

@@ -1,8 +1,9 @@
 
-== Introduction ==
+== What is Bacon? ==
 
 Bacon is a language and compiler targeting the OpenCL platform. The goal of the
 project is to provide both easier programmability and better performance.
+
 
 == Installing Bacon ==
 
@@ -11,9 +12,17 @@ in your ~/.bashrc file.
 
 Next, type "make prereqs" in the base Bacon directory.
 
+Type "make" to build the Bacon shared library.
+
 Finally, add the following lines to your ~/.bashrc file, with BACON_BASE set to point
 at the top level directory of your Bacon install.
 
 export BACON_BASE="/path/to/bacon"
 export LD_LIBRARY_PATH="$BACON_BASE/lib:$LD_LIBRARY_PATH"
 export PERL5LIB="$BACON_BASE/$PERL5LIB"
+export PATH="$BACON_BASE/bin:$PATH"
+
+
+== Using Bacon ==
+
+Take a look at the included examples to get started.

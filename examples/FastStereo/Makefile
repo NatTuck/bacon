@@ -1,7 +1,7 @@
 
 BINARY=stereo
 
-BACON=../../bacon
+BACON=bacon
 
 CXXFLAGS=-g $(shell $(BACON) --ccflags) `pkg-config --cflags opencv`
 LDFLAGS =$(shell $(BACON) --ldflags) `pkg-config --libs opencv`

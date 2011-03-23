@@ -1,7 +1,7 @@
 
 BINARY=errors
 
-BACON=../../bacon
+BACON=bacon
 
 CXXFLAGS=-g $(shell $(BACON) --ccflags)
 LDFLAGS =$(shell $(BACON) --ldflags)
