@@ -4,7 +4,8 @@ LIB=libbacon.so
 BACON="../bacon"
 
 CC=$(CXX)
-CXXFLAGS=-g -fPIC $(shell $(BACON) --ccflags)
+CXXFLAGS=-g -fPIC $(shell $(BACON) --ccflags) `perl -MExtUtils::Embed -e ccopts`
+LDFLAGS=`perl -MExtUtils::Embed -e ldopts`
 #LDFLAGS =-g $(shell $(BACON) --ldflags)
 
 OBJS=$(shell ls *.cc | perl -pe 's/\.cc\b/.o/')
