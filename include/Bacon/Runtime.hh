@@ -8,6 +8,7 @@ class Runtime {
     static Runtime* instance();
 
     void load_perl(char* source_fn);
+    void run_perl(char* name, char** argv);
 
   private:
     Runtime();

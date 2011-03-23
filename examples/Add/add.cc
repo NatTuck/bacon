@@ -11,6 +11,7 @@ using std::string;
 #include <unistd.h>
 
 #include "gen/Add.hh"
+#include <Bacon/Runtime.hh>
 
 void
 run_test(string c_file, string a_file, string b_file, int nn)

@@ -37,7 +37,16 @@ Runtime::~Runtime()
 void
 Runtime::load_perl(char* source_fn)
 {
-    perl_parse(my_perl, 0, 1, &source_fn, 0);
+    char *argv[] = { "", source_fn };
+    perl_parse(my_perl, 0, 2, argv, 0);
+}
+
+void
+Runtime::run_perl(char* name, char** argv)
+{
+    if (argv == 0)
+        argv = { 0 };
+    call_argv(name, G_VOID | G_DISCARD, argv);
 }
 
 } // namespace Bacon
