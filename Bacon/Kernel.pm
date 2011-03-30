@@ -14,7 +14,8 @@ extends 'Bacon::Function', 'Bacon::Template';
 
 has range_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
 has group_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
-has outer_vars => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt::VarDecl]', required => 1);
+has outer_vars => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt::VarDecl]', lazy_build => 1);
+has setup_code => (is => 'ro', isa => 'Bacon::Stmt::Block', required => 1);
 
 # Error table maps strings to unique integers.
 has etab => (is => 'rw', isa => 'Item', lazy_build => 1);
@@ -22,24 +23,32 @@ has etab => (is => 'rw', isa => 'Item', lazy_build => 1);
 use Bacon::Utils;
 use Bacon::MagicVars;
 
-sub new4 {
-    my ($class, $fun, $rtype, $dist, $outer_decls, $body) = @_;
-    assert_type($body, 'Bacon::Stmt::Block');
+sub new3 {
+    my ($class, $fun, $rtype, $more) = @_;
+    
+    my $setup = Bacon::Stmt::Block->new(
+        file => $fun->file, line => $fun->line,
+        body => $more->{setup},
+    );
 
-    my %dist = @{$dist};
+    my $body = Bacon::Stmt::Block->new(
+        file => $fun->file, line => $fun->line,
+        body => $more->{body},
+    );
+
+    my %dist = @{$more->{ranges}};
     $dist{range} ||= [];
     $dist{group} ||= [];
 
-    my $self = $class->new(
+    return $class->new(
         file => $fun->file, line => $fun->line,
         name => $fun->name, args => $fun->args,
-        body => $body, rets => $rtype,
+        setup_code => $setup,
+        body => $body,
+        rets => $rtype,
         range_dist => $dist{range},
         group_dist => $dist{group},
-        outer_vars => $outer_decls,
     );
-
-    return $self;
 }
 
 sub _build_symtab {
@@ -61,6 +70,12 @@ sub _build_etab {
     }
 
     return $etab;
+}
+
+sub _build_outer_vars {
+    my ($self) = @_;
+    my @vars = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
+    return \@vars;
 }
 
 sub lookup_error_string {

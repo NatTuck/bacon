@@ -3,8 +3,10 @@
 kernel
 void
 test_errors(Array2D<int> aa) 
-    @range [aa.rows, aa.cols]
 {
+ BODY:
+    @range [aa.rows, aa.cols];
+
     int val = aa[$y, $x];
     val = val + 1;
 

@@ -3,9 +3,13 @@
 kernel
 Array2D<float>
 mat_mul(Array2D<float> aa, Array2D<float> bb) 
-    @range [cc.rows, cc.cols]
-    global Array2D<float> cc[aa.rows, bb.cols];
 {
+ SETUP:
+    global Array2D<float> cc[aa.rows, bb.cols];
+
+ BODY:
+    @range [cc.rows, cc.cols];
+
     float sum = 0.0;
 
     assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");

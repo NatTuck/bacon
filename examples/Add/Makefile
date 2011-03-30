@@ -22,8 +22,8 @@ $(BCOS): %.o: %.bc Makefile
 
 $(CCOS): %.o: %.cc Makefile $(BCOS)
 
-test:
-	prove test.t
+test: $(BINARY)
+	(cd ../.. && prove examples/Add/t/*.t)
 
 clean:
 	rm -rf $(BINARY) *.o *~ gen

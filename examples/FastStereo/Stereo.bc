@@ -3,9 +3,13 @@
 kernel
 Array2D<ulong>
 sparse_census(Array2D<uchar> image) 
-    @range [image.rows, image.cols]
-    global Array2D<ulong> census[image.rows, image.cols];
 {
+ SETUP:
+    global Array2D<ulong> census[image.rows, image.cols];
+
+ BODY:
+    @range [image.rows, image.cols];
+
     ulong bits = 0;
     uchar ctr = image[$y, $x];
     
@@ -210,8 +214,10 @@ traverse_row(Array3D<uchar> pspace, int slice, private Array2D<ulong> aa, privat
 kernel
 void
 pspace_h(Array3D<uchar> pspace, Array2D<ulong> aaG, Array2D<ulong> bbG, int direction)
-    @range [2, pspace.rows]
 {
+ BODY:
+    @range [2, pspace.rows];
+
     private Array2D<ulong> aa[3, 700];
     private Array2D<ulong> bb[3, 700];
 
@@ -235,8 +241,10 @@ pspace_h(Array3D<uchar> pspace, Array2D<ulong> aaG, Array2D<ulong> bbG, int dire
 kernel
 void
 pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @range [2, aa.cols]
 {
+ BODY:
+    @range [2, aa.cols];
+
     private Array2D<ulong> aa_cache[3, 700];
     private Array2D<ulong> bb_cache[3, 700];
 
@@ -255,8 +263,10 @@ pspace_v(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
 kernel
 void
 pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direction)
-    @range [aa.rows + aa.cols]
 {
+ BODY:
+    @range [aa.rows + aa.cols];
+
     if ($x < aa.rows) {
         // row $x
     }
@@ -281,9 +291,13 @@ pspace_d(Array3D<uchar> pspace, Array2D<ulong> aa, Array2D<ulong> bb, int direct
 kernel
 Array2D<uchar>
 half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int direction)
-    @range [pspace.rows, pspace.cols]
-    global Array2D<uchar> disp[pspace.rows, pspace.cols];
 {
+ SETUP:
+    global Array2D<uchar> disp[pspace.rows, pspace.cols];
+
+ BODY:
+    @range [pspace.rows, pspace.cols];
+
     int max_disp = pspace.rows / 5;
     int min_disp = 0;
 
@@ -337,9 +351,13 @@ opt_med9(int* p)
 kernel
 Array2D<uchar>
 median_filter(Array2D<uchar> im)
-    @range [im.rows, im.cols]
-    global Array2D<uchar> im2[im.rows, im.cols];
 {
+ SETUP:
+    global Array2D<uchar> im2[im.rows, im.cols];
+
+ BODY:
+    @range [im.rows, im.cols];
+
     int px[9];
     
     for (int ii = 0; ii < 3; ++ii) {
@@ -362,9 +380,13 @@ median_filter(Array2D<uchar> im)
 kernel
 Array2D<uchar>
 consistent_pixels(Array2D<uchar> dispL, Array2D<uchar> dispR)
-    @range [dispL.rows, dispL.cols]
-    global Array2D<uchar> disp[dispL.rows, dispL.cols];
 {
+ SETUP:
+    global Array2D<uchar> disp[dispL.rows, dispL.cols];
+
+ BODY:
+    @range [dispL.rows, dispL.cols];
+
     const int DV = 3;
 
     int dL = dispL[$y, $x];

@@ -14,9 +14,12 @@ add_ints(int a, int b)
 kernel
 Array2D<int>
 add(Array2D<int> aa, Array2D<int> bb) 
-    @range [aa.rows]
-    global Array2D<int> cc[aa.rows, aa.cols];
 {
+ SETUP:
+    global Array2D<int> cc[aa.rows, aa.cols];
+
+ BODY:
+    @range [aa.rows];
 
     for (int ii = 0; ii < aa.cols; ++ii) {
         cc[$x, ii] = add_ints(aa[$x, ii], bb[$x, ii]);

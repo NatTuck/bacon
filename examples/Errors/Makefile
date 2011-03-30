@@ -22,8 +22,8 @@ $(BCOS): %.o: %.bc Makefile
 
 $(CCOS): %.o: %.cc Makefile $(BCOS)
 
-test:
-	echo "No tests ran. Try doing it manually."
+test: $(BINARY)
+	(cd ../.. && prove examples/Errors/t/*.t)
 
 clean:
 	rm -rf $(BINARY) *.o *~ gen

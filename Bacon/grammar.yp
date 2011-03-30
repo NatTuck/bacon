@@ -481,12 +481,12 @@ external_declaration
     ;
 
 kernel_range_spec
-    : RANGE '[' argument_expression_list ']'
+    : RANGE '[' argument_expression_list ']' ';'
         { [range => $_[3]] }
     ;
 
 kernel_group_spec
-    : GROUP '[' argument_expression_list ']'
+    : GROUP '[' argument_expression_list ']' ';'
         { [group => $_[3]] }
     ;
 
@@ -499,25 +499,16 @@ kernel_ranges
         { [@{$_[1]}, @{$_[2]}] } 
     ;
 
-kernel_decl
-    : scope_specifier parameterized_type '<' simple_type '>' IDENTIFIER '[' argument_expression_list ']' ';'
-        { my $type = Bacon::Type->new_ptype($_[2]->text, $_[4]->text, $_[1]->text);
-          return Bacon::Stmt::VarDecl->new_from_token0(
-              name => $_[6], dims => $_[8], type => $type); }
-    ;
-
-kernel_decl_list
-    : kernel_decl
-        { [ $_[1] ] }
-    | kernel_decl_list kernel_decl
-        { [ @{$_[1]}, $_[2] ] }
+kernel_body
+    : '{' SETUP statement_list BODY kernel_ranges statement_list '}'
+        { { setup => $_[3], ranges => $_[5], body => $_[6] } } 
+    | '{' BODY kernel_ranges statement_list '}'
+        { { setup => [], ranges => $_[3], body => $_[4] } }  
     ;
 
 kernel_definition
-    : KERNEL type_specifier function_declarator kernel_ranges kernel_decl_list compound_statement
-        { Bacon::Kernel->new4($_[3], $_[2], $_[4], $_[5], $_[6]) }
-    | KERNEL type_specifier function_declarator kernel_ranges compound_statement
-        { Bacon::Kernel->new4($_[3], $_[2], $_[4], [], $_[5]) }
+    : KERNEL type_specifier function_declarator kernel_body
+        { Bacon::Kernel->new3($_[3], $_[2], $_[4]) }
     ;
 
 function_definition

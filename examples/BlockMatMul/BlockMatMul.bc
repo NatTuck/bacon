@@ -3,12 +3,16 @@
 kernel
 Array2D<float>
 blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size) 
-    @range [cc.rows, cc.cols]
-    @group [block_size, block_size]
+{
+ SETUP:
     global Array2D<float> cc[aa.rows, bb.cols];
     local  Array2D<float> aL[block_size, block_size];
     local  Array2D<float> bL[block_size, block_size];
-{
+
+ BODY:
+    @range [cc.rows, cc.cols];
+    @group [block_size, block_size];
+
     assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
     assert(cc.rows % block_size == 0, "Uneven block size (rows).");
     assert(cc.cols % block_size == 0, "Uneven block size (cols).");
@@ -41,13 +45,17 @@ blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size)
 kernel
 Array2D<float>
 blocked_mat_mul2(Array2D<float> aa, Array2D<float> bb, uint blksz, uint grpsz)
-    @range [cc.rows / blksz, cc.cols / blksz]
-    @group [grpsz, grpsz]
+{
+ SETUP:
     global Array2D<float> cc[aa.rows, bb.cols];
-#define LNN (grpsz*blksz)
+    const int LNN = grpsz*blksz;
     local  Array2D<float> aL[LNN, LNN];
     local  Array2D<float> bL[LNN, LNN];
-{
+
+ BODY:
+    @range [cc.rows / blksz, cc.cols / blksz];
+    @group [grpsz, grpsz];
+
     assert(aa.cols == bb.rows, "Matrixes must have compatible dimensions.");
     assert(cc.rows % LNN == 0, "Uneven block size (rows).");
     assert(cc.cols % LNN == 0, "Uneven block size (cols).");
