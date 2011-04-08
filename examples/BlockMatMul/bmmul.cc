@@ -26,7 +26,7 @@ run_test(string c_file, string a_file, string b_file, int block_size, int group_
     std::ifstream bbf(b_file.c_str());
     bb.read(&bbf);
 
-    Bacon::Array2D<float> cc = mmul.blocked_mat_mul(aa, bb, block_size * group_size);
+    Bacon::Array2D<float> cc = mmul.blocked_mat_mul2(aa, bb, block_size, group_size);
 
     if (c_file == "") {
         cc.write(&cout);
@@ -51,7 +51,7 @@ random_test(int nn, bool check, int block_size, int group_size)
     cout << "Random test of " << nn << "x" << nn 
          << " matrices at block size = " << block_size << endl;
 
-    Bacon::Array2D<float> cc = mmul.blocked_mat_mul(aa, bb, block_size * group_size);
+    Bacon::Array2D<float> cc = mmul.blocked_mat_mul2(aa, bb, block_size, group_size);
    
     if(!check) {
         cout << "Result not checked." << endl;

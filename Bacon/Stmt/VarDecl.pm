@@ -56,6 +56,11 @@ sub to_cpp_decl {
         $code .= ')';
     }
 
+    if (defined $self->init) {
+        $code .= ' = ';
+        $code .= $self->init->to_cpp($fun);
+    }
+
     $code .= ';';
     return $code;
 }
@@ -97,13 +102,13 @@ sub array_to_opencl {
     my $name = $self->name;
     my $code = '';
 
-    my $size = reduce { $a * $b } (map { $_->static_eval } @{$self->dims});
+    my $size = reduce { $a * $b } (map { $_->static_eval($fun) } @{$self->dims});
 
     $code .= indent($depth) . $self->type->to_ocl . " " . $name . ";\n";
     
     for (my $ii = 0; $ii < scalar @{$type->dims}; ++$ii) {
         my $dim = $type->dims->[$ii];
-        my $val = $self->dims->[$ii]->to_ocl;
+        my $val = $self->dims->[$ii]->to_ocl($fun);
         $code .= indent(1) . "$name.$dim = $val;\n";
     }    
 

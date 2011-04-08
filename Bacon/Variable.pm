@@ -21,7 +21,12 @@ sub expand {
 
 sub to_kern_arg {
     my ($self, undef) = @_;
-    return $self->type->to_ocl . ' ' . $self->name;
+    if ($self->has_struct) {
+        $self->type->data_var($self)->to_kern_arg;
+    }
+    else {
+        return $self->type->to_ocl . ' ' . $self->name;
+    }
 }
 
 sub to_fun_arg {
@@ -45,7 +50,7 @@ sub has_dims {
 }
 
 sub init_struct {
-    my ($self) = @_;
+    my ($self, $kern) = @_;
     my $code = "";
 
     my $type = $self->type;
@@ -57,7 +62,8 @@ sub init_struct {
     $code .= indent(1) . "$name.data = $name" . "__data;\n";
 
     for my $dim (@{$type->dims}) {
-        $code .= indent(1) . "$name.$dim = $name" . "__$dim;\n";
+        my $dval = $kern->get_const("$name.$dim");
+        $code .= indent(1) . "$name.$dim = $dval;\n";
     }
     
     return $code;
@@ -72,14 +78,18 @@ sub to_wrapper_hh {
 
 sub cc_name {
     my ($self) = @_;
+
     if ($self->type->scope eq 'local') {
         my $name = $self->name;
         $name =~ s/__data$//;
         return "cl::__local($name.byte_size())";
     }
-    else {
-        return name_to_cc($self->name);
+
+    if ($self->has_struct) {
+        return name_to_cc($self->name) . '.data()';
     }
+
+    return name_to_cc($self->name);
 }
 
 sub subnodes {

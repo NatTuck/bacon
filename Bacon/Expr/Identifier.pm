@@ -22,6 +22,8 @@ sub new_by_name {
 
 sub to_ocl {
     my ($self, $fun) = @_;
+    confess "Undefined \$fun" unless defined $fun;
+
     my $name = $self->name;
 
     # Handle "magic" variables.
@@ -48,6 +50,7 @@ sub to_cpp {
 
 sub static_eval {
     my ($self, $fun) = @_;
+    confess "Undefined \$fun" unless defined $fun;
     return $fun->get_const($self->name);
 }
 

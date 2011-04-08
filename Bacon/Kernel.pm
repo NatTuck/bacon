@@ -23,7 +23,6 @@ has const_vals => (is => 'rw', isa => 'Maybe[HashRef[Int]]');
 # Error table maps strings to unique integers.
 has etab => (is => 'rw', isa => 'Item', lazy_build => 1);
 
-
 use Bacon::Utils;
 use Bacon::MagicVars;
 
@@ -99,9 +98,13 @@ sub build_const_vals {
 
 sub get_const {
     my ($self, $var) = @_;
+    unless (defined $self->const_vals) {
+        confess "No constant values in kernel " . $self->name;
+    }
+
     my $val = $self->const_vals->{$var};
     return $val if (defined $val);
-    die "No constant value for $var.";
+    die "No constant value for $var";
 }
 
 sub var_is_const {
@@ -114,7 +117,10 @@ sub const_args {
     my ($self) = @_;
     my @cargs = ();
 
-    for my $arg (@{$self->args}) {
+    my @args = @{$self->args};
+    push @args, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
+
+    for my $arg (@args) {
         if ($arg->is_const) {
             push @cargs, $arg->name;
         }
@@ -131,7 +137,6 @@ sub const_args {
 sub const_vars {
     my ($self) = @_;
     my @vars = ();
-    push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
     push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
     my @cvars = map { $_->name } grep { $_->is_const } @vars;
     return ($self->const_args, @cvars); 
@@ -171,7 +176,7 @@ sub init_magic_variables {
 sub expanded_args {
     my ($self) = @_;
     my @vars = (@{$self->args}, @{$self->outer_vars});
-    return map { $_->expand } @vars;
+    return grep { !$_->is_const } @vars;
 }
 
 sub init_array_structs {
@@ -182,7 +187,7 @@ sub init_array_structs {
 
     for my $var (@vars) {
         if ($var->has_struct) {
-            $code .= $var->init_struct;
+            $code .= $var->init_struct($self);
         }
     }
 
@@ -482,19 +487,11 @@ __[ wrapper_cc ]__
     cl::Kernel kern;
 
     try {
+        <% $setup_code %>
+
         std::vector<int> cargs;
         <% $push_cargs %>
         kern = spec_kernel(base_name, kernel_name, cargs);
-    }
-    catch (cl::Error ee) {
-        std::ostringstream tmp;
-        tmp << "Code Gen Error (kernel " << kernel_name << "): ";
-        tmp << cl_strerror(ee.err());
-        throw Bacon::Error(tmp.str());
-    }
-
-    try {
-        <% $setup_code %>
 
         Bacon::Array<cl_long> status(3);
         status.fill(0);

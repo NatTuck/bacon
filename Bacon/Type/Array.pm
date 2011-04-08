@@ -44,14 +44,20 @@ sub index_to_ocl {
         . ']';
 }
 
+sub data_var {
+    my ($self, $var) = @_;
+    my $name = $var->name;
+    return Bacon::Variable->new(
+        name => $name . "__data", 
+        type => Bacon::Type::Pointer->new1($self->subtype, $self->scope));
+}
+
 sub expand {
     my ($self, $var) = @_;
     my $name = $var->name;
     my @items = ();
 
-    push @items, Bacon::Variable->new(
-        name => $name . "__data", 
-        type => Bacon::Type::Pointer->new1($self->subtype, $self->scope));
+    push @items, $self->data_var($var);
 
     for my $dim (@{$self->dims}) {
         push @items, Bacon::Variable->new(
