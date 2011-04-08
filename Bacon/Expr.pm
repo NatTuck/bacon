@@ -9,7 +9,14 @@ use namespace::autoclean;
 use Bacon::AstNode;
 extends 'Bacon::AstNode';
 
+use Data::Dumper;
 use Carp;
+
+sub static_eval {
+    my ($self, $fun) = @_;
+    my $obj_text = Dumper($self);
+    confess "Cannot static_eval object:\n$obj_text\n";
+}
 
 sub to_ocl {
     my ($self, $fun) = @_;

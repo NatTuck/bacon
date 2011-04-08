@@ -85,26 +85,29 @@ sub _build_outer_vars {
 sub build_const_vals {
     my ($self) = @_;
 
-    my @vars = @{$self->args};
+    my @vars = ();
     push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
     push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
 
-    my @const_vars = grep { $_->is_const } @vars;
+    my @const_vars = grep { $_->is_const && !$_->has_dims } @vars;
     
     for my $var (@const_vars) {
-        if ($var->dims) {
-            
-        }
-        else {
-            
-        }
+        my $name = $var->name;
+        $self->const_vals->{$name} = $var->init->static_eval($self);
     }
 }
 
 sub get_const {
     my ($self, $var) = @_;
-    build_const_vals($self) unless $self->const_vals;
-    return $self->const_vals->{$var};
+    my $val = $self->const_vals->{$var};
+    return $val if (defined $val);
+    die "No constant value for $var.";
+}
+
+sub var_is_const {
+    my ($self, $vname) = @_;
+    return 0 unless defined $self->symtab->table->{$vname};
+    return $self->lookup_variable($vname)->is_const;
 }
 
 sub const_args {
@@ -254,12 +257,16 @@ sub to_spec_opencl {
     assert_type($self->rets, "Bacon::Type");
 
     my @const_args = $self->const_args;
+    my $spec_text  = "";
     $self->const_vals({});
     for (my $ii = 0; $ii < scalar @const_args; ++$ii) {
         my $vn = $const_args[$ii];
         my $vv = $const_vals[$ii];
         $self->const_vals->{$vn} = $vv;
+        $spec_text .= " $vn = $vv; ";
     }
+
+    $self->build_const_vals;
 
     my $code = "/* Kernel: " . $self->name . 
                " " . $self->source . " */\n";
@@ -272,9 +279,7 @@ sub to_spec_opencl {
     $code .= " [" . join(', ', @range_dims) . "]\n";
     $code .= " * work group size: ";
     $code .= " [" . join(', ', @group_dims) . "]\n";
-    $code .= " * specialized on: ";
-    $code .= " [" . join(', ', $self->const_args) . " = ";
-    $code .= join(', ', @const_args) . "]\n";
+    $code .= " * specialized on:  [ $spec_text ]";
     $code .= " */\n";
 
     my @args = $self->expanded_args;

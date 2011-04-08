@@ -19,6 +19,14 @@ sub new2 {
     return $class->new_attrs(name => $name, field => $field);
 }
 
+sub static_eval {
+    my ($self, $fun) = @_;
+    my $sym = $self->name . "." . $self->field;
+    my $val = $fun->get_const($sym);
+    return $val if (defined $val);
+    die "No static value for $sym";
+}
+
 sub to_ocl {
     my ($self, $fun) = @_;
     my $var = $fun->lookup_variable($self->name)

@@ -73,6 +73,12 @@ sub lookup_error_string {
     die "Error strings in non-kernel functions unsupported.";
 }
 
+sub var_is_const {
+    my ($self, $vname) = @_;
+    # No const value propagation outside of kernels.
+    return 0;
+}
+
 sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");

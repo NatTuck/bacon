@@ -75,7 +75,12 @@ sub to_opencl {
     my $code = indent($depth) . $self->type->to_ocl . " " . $self->name;
 
     if (defined $self->init) {
-        $code .= " = " . $self->init->to_ocl($fun);
+        if ($self->is_const) {
+            $code .= " = " . $self->init->static_eval($fun);
+        }
+        else {
+            $code .= " = " . $self->init->to_ocl($fun);
+        }
     }
     elsif (defined $self->dims) {
         die "Simple arrays can't be multi-dimensional" if (scalar @{$self->dims} > 1);

@@ -21,14 +21,21 @@ sub new_by_name {
 }
 
 sub to_ocl {
-    my ($self, undef) = @_;
+    my ($self, $fun) = @_;
     my $name = $self->name;
-    # Rename "magic" variables.
+
+    # Handle "magic" variables.
     if ($name =~ /^\$/) {
         confess "Invalid magic variable: $name"
             unless Bacon::MagicVars::magic_var_exists($name);
         $name =~ s/^\$/_bacon__S/;
+        return $name;
     }
+
+    if ($fun->var_is_const($name)) {
+        return $self->static_eval($fun);
+    }
+    
     return $name;
 }
 
@@ -41,7 +48,7 @@ sub to_cpp {
 
 sub static_eval {
     my ($self, $fun) = @_;
-    
+    return $fun->get_const($self->name);
 }
 
 __PACKAGE__->meta->make_immutable;

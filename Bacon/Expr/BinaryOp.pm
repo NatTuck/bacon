@@ -12,6 +12,7 @@ extends 'Bacon::Expr', 'Exporter';
 
 our @EXPORT_OK = qw(mkop);
 
+use Data::Dumper;
 use Bacon::Utils;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
@@ -31,6 +32,14 @@ sub new3 {
 sub kids {
     my ($self) = @_;
     return ($self->arg0, $self->arg1);
+}
+
+sub static_eval {
+    my ($self, $fun) = @_;
+    my $op = $self->name;
+    my $aa = $self->arg0->static_eval($fun);
+    my $bb = $self->arg1->static_eval($fun);
+    return eval "$aa $op $bb";
 }
 
 sub to_ocl {
