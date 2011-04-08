@@ -9,6 +9,8 @@ use Carp;
 has name => (is => 'ro', isa => 'Str', required => 1);
 has type => (is => 'rw', isa => 'Maybe[Bacon::Type]');
 
+has static_value => (is => 'rw', isa => 'Maybe[Num');
+
 use Bacon::Utils;
 use Bacon::Type::All;
 
@@ -30,6 +32,16 @@ sub to_fun_arg {
 sub has_struct {
     my ($self) = @_;
     return $self->type->isa("Bacon::Type::Array");
+}
+
+sub is_const {
+    my ($self) = @_;
+    return $self->type->qualifier eq 'const';
+}
+
+sub has_dims {
+    my ($self) = @_;
+    return $self->has_struct;
 }
 
 sub init_struct {

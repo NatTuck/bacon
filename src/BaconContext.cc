@@ -98,11 +98,13 @@ Context::best_opencl_device()
     exit(1);
 }
 
-void
+cl::Program
 Context::load_opencl_program(std::string src_fn)
 {
     // OpenCL wants a vector of (char*, length) pairs, but doesn't
     // take any ownership of the pointers.
+
+    cl::Program pgm;
 
     // First, read the file into one std::string.
 
@@ -174,6 +176,8 @@ Context::load_opencl_program(std::string src_fn)
         }
         exit(1);
     }
+
+    return pgm;
 }
 
 } // namespace Bacon

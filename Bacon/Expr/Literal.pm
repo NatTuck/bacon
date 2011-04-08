@@ -28,5 +28,10 @@ sub to_cpp {
     return $self->value;
 }
 
+sub static_eval {
+    my ($self, undef) = @_;
+    return $self->value;
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

@@ -19,20 +19,16 @@ using namespace Bacon;
 // Constructor
 <% $name %>::<% $name %>()
 {
-    char **argv = sa_alloc(2, "gen/<% $name %>.ast", 0);
-    rt = Bacon::Runtime::instance();
-    rt->perl_apply(strdupa("bacon_generate_ocl"), argv);
-    sa_free(2, argv);
-
-    ctx.load_opencl_program("gen/<% $name %>.cl");
+    // do nothing
 }
-
-using namespace cl;
 
 // Destructor
 <% $name %>::~<% $name %>()
 {
     // do nothing
 }
+
+using namespace cl;
+#define size_t std::size_t
 
 <% $functions %>

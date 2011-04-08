@@ -39,5 +39,10 @@ sub to_cpp {
     return $name;
 }
 
+sub static_eval {
+    my ($self, $fun) = @_;
+    
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

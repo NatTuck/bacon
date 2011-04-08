@@ -7,15 +7,12 @@
 
 #include "Bacon.hh"
 
-class <% $name %> {
+class <% $name %> : public Bacon::Kernel {
   public:
     <% $name %>();
     ~<% $name %>();
 
 <% $prototypes %>
-
-    Bacon::Context ctx;
-    Bacon::Runtime* rt;
 };
 
 #endif

@@ -45,14 +45,24 @@ sub to_funarg {
 
 sub to_cpp_decl {
     my ($self, $fun) = @_;
-    my @dims = map { $_->to_cpp($fun) } @{$self->dims};
     my $code = '';
     $code .= $self->type->to_cpp . ' ';
-    $code .= $self->name . ' ';
-    $code .= '(';
-    $code .= join(', ', @dims);
-    $code .= ');';
+    $code .= $self->name;
+
+    if ($self->dims) {
+        my @dims = map { $_->to_cpp($fun) } @{$self->dims};
+        $code .= '(';
+        $code .= join(', ', @dims);
+        $code .= ')';
+    }
+
+    $code .= ';';
     return $code;
+}
+
+sub to_setup_cc {
+    my ($self, $fun) = @_;
+    return $self->to_cpp_decl($fun);
 }
 
 sub to_opencl {
@@ -82,7 +92,7 @@ sub array_to_opencl {
     my $name = $self->name;
     my $code = '';
 
-    my $size = reduce { $a * $b } (map { $_->value } @{$self->dims});
+    my $size = reduce { $a * $b } (map { $_->static_eval } @{$self->dims});
 
     $code .= indent($depth) . $self->type->to_ocl . " " . $name . ";\n";
     

@@ -23,7 +23,7 @@ $(BCOS): %.o: %.bc Makefile
 $(CCOS): %.o: %.cc Makefile $(BCOS)
 
 test: $(BINARY)
-	./mmul -a t/aa.dat -b t/bb.dat	
+	./bmmul -a t/aa.dat -b t/bb.dat	
 
 clean:
 	rm -rf $(BINARY) *.o *~ gen

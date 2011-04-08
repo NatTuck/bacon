@@ -13,13 +13,11 @@ class Context {
     Context();
     ~Context();
 
-    void load_opencl_program(std::string src_fn);
-
     cl::Device best_opencl_device();
+    cl::Program load_opencl_program(std::string src_fn);
 
     cl::Device dev;
     cl::Context ctx;
-    cl::Program pgm;
     cl::CommandQueue queue;
 
     bool show_timing;

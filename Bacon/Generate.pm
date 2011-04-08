@@ -10,19 +10,11 @@ our @EXPORT = qw(bacon_generate_ast bacon_generate_ocl);
 use IO::Handle;
 use Text::Template;
 use Storable qw(store retrieve);
+use Data::Dumper;
 use autodie;
 
 use Bacon::CLEnv qw(ocl_write_perror ocl_ccflags ocl_ldflags);
 use Bacon::TreeNodes;
-
-sub generate_opencl {
-    my ($ast) = @_;
-    my $basefn = $ast->basefn;
-
-    open my $out, ">", "gen/$basefn.cl";
-    $out->print($ast->to_opencl);
-    close($out);
-}
 
 sub generate_cpp {
     my ($ast) = @_;
@@ -98,9 +90,20 @@ sub bacon_generate_ast {
     ocl_write_perror("gen");    
 }
 
-sub bacon_generate_ocl {
-    my ($ast_fn) = @_;
-    generate_opencl(retrieve($ast_fn));
+sub kernel_spec_name {
+    my ($kern_name, @args) = @_;
+    return "$kern_name:" . join('-', @args);
+}
+
+sub bacon_gen_ocl_kernel {
+    my ($ast_fn, $kern_name, @static_args) = @_;
+    my $ast  = retrieve($ast_fn);
+    my $kern = $ast->get_kernel($kern_name);
+    my $clfn = kernel_spec_name($kern_name, @static_args);
+
+    open my $out, ">", "gen/$clfn.cl";
+    $out->print($ast->to_spec_opencl($kern_name, @static_args));
+    close($out);
 }
 
 1;

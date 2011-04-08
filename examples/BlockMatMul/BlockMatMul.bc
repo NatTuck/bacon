@@ -2,7 +2,7 @@
 
 kernel
 Array2D<float>
-blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size) 
+blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, const uint block_size) 
 {
  SETUP:
     global Array2D<float> cc[aa.rows, bb.cols];
@@ -44,7 +44,7 @@ blocked_mat_mul(Array2D<float> aa, Array2D<float> bb, uint block_size)
 
 kernel
 Array2D<float>
-blocked_mat_mul2(Array2D<float> aa, Array2D<float> bb, uint blksz, uint grpsz)
+blocked_mat_mul2(Array2D<float> aa, Array2D<float> bb, const uint blksz, uint grpsz)
 {
  SETUP:
     global Array2D<float> cc[aa.rows, bb.cols];
@@ -67,8 +67,7 @@ blocked_mat_mul2(Array2D<float> aa, Array2D<float> bb, uint blksz, uint grpsz)
 
     const int rounds = aa.cols / LNN;
 
-    const int BB = blksz;
-    private Array2D<float> sum[BB, BB];
+    private Array2D<float> sum[blksz, blksz];
 
     for (ii = 0; ii < sum.rows; ++ii) {
         for (jj = 0; jj < sum.cols; ++jj) {

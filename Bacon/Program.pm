@@ -37,6 +37,16 @@ sub kernels {
     return grep { $_->isa('Bacon::Kernel') } @{$self->functions};
 }
 
+sub get_kernel {
+    my ($self, $name) = @_;
+
+    for my $kern ($self->kernels) {
+        return $kern if ($kern->name eq $name);
+    }
+
+    die "No such kernel: $name";
+}
+
 sub to_opencl {
     my ($self) = @_;
 
@@ -50,6 +60,32 @@ sub to_opencl {
 
     for my $fun (@{$self->functions}) {
         $code .= $fun->to_opencl($self);
+    }
+
+    $code .= "/* vim: ft=c \n */\n\n";
+    return $code;
+}
+
+sub to_spec_opencl {
+    my ($self, $kern_name, @const_args) = @_;
+
+    my $code = "/* Bacon::Program: " . $self->source . " */\n";
+    $code .= "/* specialized $kern_name on @const_args */\n";
+    $code .= qq{#include <Bacon/Array.cl>\n};
+    
+    for my $var (@{$self->constants}) {
+        die "Global constants not yet supported";
+        #$code .= $var->to_opencl(0);
+    }
+
+    for my $fun (@{$self->functions}) {
+        if ($fun->isa('Bacon::Kernel')) {
+            next unless $fun->name eq $kern_name;
+            $code .= $fun->to_spec_opencl($self, @const_args);
+        } 
+        else {
+            $code .= $fun->to_opencl($self);
+        }
     }
 
     $code .= "/* vim: ft=c \n */\n\n";
