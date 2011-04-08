@@ -13,7 +13,7 @@ if (defined $ENV{LD_LIBRARY_PATH}) {
 
 $ENV{LD_LIBRARY_PATH} = "../../lib" . $ldpath;
 
-use Test::Simple tests => 3;
+use Test::Simple tests => 4;
 use Bacon::Test;
 
 my $tmp = "t/out-$$.dat";
@@ -29,3 +29,7 @@ unlink($tmp);
 system("./mmul -a t/aa.dat -b t/bb.dat -o $tmp");
 files_eq($tmp, "t/out.dat", "MatMul - arbitrary matrix");
 unlink($tmp);
+
+my $result = `./mmul -c -n 1024`;
+chomp $result;
+ok($result eq "Random test succeeded.", "MatMul - large matrix");

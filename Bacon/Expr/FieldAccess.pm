@@ -31,7 +31,13 @@ sub to_ocl {
     my ($self, $fun) = @_;
     my $var = $fun->lookup_variable($self->name)
         or confess "Unknown variable: " . $self->name;
-    return $self->name . "." . $self->field;
+    my $sym = $self->name . "." . $self->field;
+    if ($fun->get_const($sym)) {
+        return $self->static_eval($fun);
+    }
+    else {
+        return $sym;
+    }
 }
 
 sub to_cpp {
