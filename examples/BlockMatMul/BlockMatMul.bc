@@ -52,7 +52,7 @@ blocked_mat_mul_private(Array2D<float> aa, Array2D<float> bb, const uint blksz)
     @range [cc.rows / blksz, cc.cols / blksz];
 
     private Array2D<float> sum[blksz, blksz];
-    int ii, jj, kk;
+    int ii, jj, kk, gg;
 
     for (ii = 0; ii < blksz; ++ii) {
         for (jj = 0; jj < blksz; ++jj) {
@@ -62,14 +62,17 @@ blocked_mat_mul_private(Array2D<float> aa, Array2D<float> bb, const uint blksz)
 
     int base_ii = $row * blksz;
     int base_jj = $col * blksz;
+    int base_kk;
 
-    for (kk = 0; kk < (aa.cols / blksz); ++kk) {
-        int base_kk = kk * blksz;
+    for (gg = 0; gg < aa.cols / blksz; ++gg) {
+        base_kk = gg * blksz;
 
         for (ii = 0; ii < blksz; ++ii) {
             for (jj = 0; jj < blksz; ++jj) {
-                sum[ii, jj] += aa[base_ii + ii, base_kk + jj] * 
-                    bb[base_kk + ii, base_jj + jj];
+                for (kk = 0; kk < blksz; ++kk) {
+                    sum[ii, jj] += aa[base_ii + ii, base_kk + kk] * 
+                        bb[base_kk + kk, base_jj + jj];
+                }
             }
         }
     }
