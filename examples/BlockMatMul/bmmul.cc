@@ -13,7 +13,7 @@ using std::string;
 #include "gen/BlockMatMul.hh"
 
 void
-run_test(string c_file, string a_file, string b_file, int block_size)
+run_test(string c_file, string a_file, string b_file, int block_size, bool priv)
 {
     BlockMatMul mmul;
 
@@ -26,7 +26,12 @@ run_test(string c_file, string a_file, string b_file, int block_size)
     std::ifstream bbf(b_file.c_str());
     bb.read(&bbf);
 
-    Bacon::Array2D<float> cc = mmul.blocked_mat_mul_private(aa, bb, block_size);
+    Bacon::Array2D<float> cc;
+
+    if (priv)
+        cc = mmul.blocked_mat_mul_private(aa, bb, block_size);
+    else
+        cc = mmul.blocked_mat_mul_local(aa, bb, block_size);
 
     if (c_file == "") {
         cc.write(&cout);
@@ -38,7 +43,7 @@ run_test(string c_file, string a_file, string b_file, int block_size)
 }
 
 void
-random_test(int nn, bool check, int block_size)
+random_test(int nn, bool check, int block_size, bool priv)
 {
     BlockMatMul mmul;
 
@@ -51,7 +56,12 @@ random_test(int nn, bool check, int block_size)
     cout << "Random test of " << nn << "x" << nn 
          << " matrices at block size = " << block_size << endl;
 
-    Bacon::Array2D<float> cc = mmul.blocked_mat_mul_private(aa, bb, block_size);
+    Bacon::Array2D<float> cc;
+
+    if (priv)
+        cc = mmul.blocked_mat_mul_private(aa, bb, block_size);
+    else
+        cc = mmul.blocked_mat_mul_local(aa, bb, block_size);
    
     if(!check) {
         cout << "Result not checked." << endl;
@@ -88,11 +98,13 @@ main(int argc, char* argv[])
     string b_file("");
     string c_file("");
 
-    int random_size = 0;
     bool check_result = false;
+    bool private_mem  = false;
+
+    int random_size = 0;
     int block_size = 1;
 
-    while ((opt = getopt(argc, argv, "ha:b:o:n:k:c")) != -1) {
+    while ((opt = getopt(argc, argv, "hpca:b:o:n:k:")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
@@ -112,6 +124,9 @@ main(int argc, char* argv[])
         case 'k':
             block_size = atoi(optarg);
             break;
+        case 'p':
+            private_mem = true;
+            break;
         case 'h':
             show_usage();
             return 0;
@@ -123,10 +138,10 @@ main(int argc, char* argv[])
 
 
     if (random_size != 0) {
-        random_test(random_size, check_result, block_size);
+        random_test(random_size, check_result, block_size, private_mem);
     }
     else {
-        run_test(c_file, a_file, b_file, block_size);
+        run_test(c_file, a_file, b_file, block_size, private_mem);
     }
 
     return 0;

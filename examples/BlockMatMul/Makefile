@@ -23,7 +23,7 @@ $(BCOS): %.o: %.bc Makefile
 $(CCOS): %.o: %.cc Makefile $(BCOS)
 
 test: $(BINARY)
-	./bmmul -a t/aa.dat -b t/bb.dat	
+	(cd ../.. && prove examples/BlockMatMul/t/*.t)
 
 clean:
 	rm -rf $(BINARY) *.o *~ gen

@@ -81,6 +81,8 @@ sub _build_outer_vars {
     return \@vars;
 }
 
+
+
 sub build_const_vals {
     my ($self) = @_;
 
@@ -88,11 +90,24 @@ sub build_const_vals {
     push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
     push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
 
-    my @const_vars = grep { $_->is_const && !$_->has_dims } @vars;
-    
-    for my $var (@const_vars) {
+    my @const_vars = ();
+    for my $var (@vars) {
         my $name = $var->name;
-        $self->const_vals->{$name} = $var->init->static_eval($self);
+
+        if ($var->has_dims) {
+
+            my @dim_ns = @{$var->type->dims};
+            my @dim_vs = @{$var->dims};
+
+            for (my $ii = 0; $ii < scalar @dim_ns; ++$ii) {
+                my $nn = $dim_ns[$ii];
+                my $vv = $dim_vs[$ii]->static_eval($self);
+                $self->const_vals->{"$name.$nn"} = $vv;
+            }
+        }
+        elsif ($var->is_const) {
+            $self->const_vals->{$name} = $var->init->static_eval($self);
+        }
     }
 }
 

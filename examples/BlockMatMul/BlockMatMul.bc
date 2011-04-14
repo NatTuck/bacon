@@ -68,15 +68,15 @@ blocked_mat_mul_private(Array2D<float> aa, Array2D<float> bb, const uint blksz)
 
         for (ii = 0; ii < blksz; ++ii) {
             for (jj = 0; jj < blksz; ++jj) {
-                sum[ii, jj] += aa[base_row + ii, base_kk + jj] * 
-                    bb[base_kk + ii, base_col + jj];
+                sum[ii, jj] += aa[base_ii + ii, base_kk + jj] * 
+                    bb[base_kk + ii, base_jj + jj];
             }
         }
     }
 
     for (ii = 0; ii < blksz; ++ii) {
         for (jj = 0; jj < blksz; ++jj) {
-            sum[base_ii + ii, base_jj + jj] = sum[ii, jj];
+            cc[base_ii + ii, base_jj + jj] = sum[ii, jj];
         }
     }
 
