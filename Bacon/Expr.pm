@@ -10,12 +10,25 @@ use Bacon::AstNode;
 extends 'Bacon::AstNode';
 
 use Data::Dumper;
+use Try::Tiny;
 use Carp;
 
 sub static_eval {
     my ($self, $fun) = @_;
     my $obj_text = Dumper($self);
     confess "Cannot static_eval object:\n$obj_text\n";
+}
+
+sub try_static_eval {
+    my ($self, $fun) = @_;
+    my $val;
+    try {
+        $val = $self->static_eval($fun);
+    }
+    catch {
+        $val = undef;
+    };
+    return $val;
 }
 
 sub to_ocl {
