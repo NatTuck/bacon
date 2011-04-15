@@ -42,8 +42,7 @@ sub try_unrolling {
 
         if ($init->isa('Bacon::Expr::BinaryOp') 
                 && $init->name eq '='
-                && $init->arg0->isa('Bacon::Expr::Identifier'))
-        {       
+                && $init->arg0->isa('Bacon::Expr::Identifier')) {       
             $var_name = $init->arg0->name;
             $var_init = $init->arg1->try_static_eval($fun);
         }
@@ -51,10 +50,13 @@ sub try_unrolling {
 
     return 0 unless $var_name && $var_init;
 
-    /////// FIXME
-
-
     say "$var_name = $var_init";
+
+    if ($self->cond->isa('Bacon::Expr::BinaryOp')
+            && $self->cond->is_const_cond($var_name)) {
+        //////// FIXME
+    }
+
 
     return (1, $var_name, $var_init, $end_cond, $var_incr);
 }
