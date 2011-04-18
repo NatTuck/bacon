@@ -27,10 +27,11 @@ sub kids {
 sub try_unrolling {
     my ($self, $fun) = @_;
 
-    my $var_name;
-    my $var_init;
-    my $end_cond;
-    my $var_incr;
+    my $var_name = undef;
+    my $var_init = undef;
+    my $end_cond = undef;
+    my $end_numb = undef;
+    my $var_incr = undef;
 
     if ($self->init->isa('Bacon::Stmt::VarDecl')) {
         $var_name = $self->init->name;
@@ -48,22 +49,28 @@ sub try_unrolling {
         }
     }
 
-    return 0 unless $var_name && $var_init;
-
     say "$var_name = $var_init";
 
+    return 0 unless (defined $var_name && defined $var_init);
+
     if ($self->cond->isa('Bacon::Expr::BinaryOp')
-            && $self->cond->is_const_cond($var_name)) {
-        //////// FIXME
+            && $self->cond->is_const_cond($fun, $var_name)) {
+        ($end_cond, $end_numb) = $self->cond->normalize_const_cond($fun, $var_name);
     }
 
+    say "$var_name $end_cond $end_numb";
 
-    return (1, $var_name, $var_init, $end_cond, $var_incr);
-}
+    if ($self->incr->isa('Bacon::Expr')) {
+        $var_incr = $self->incr->normalize_increment($fun, $var_name);
+    }
 
-sub can_unroll {
-    my ($self, $fun) = @_;
-    return $self->loop_var($fun);
+    return 0 unless defined $var_incr;
+
+    for my $node ($self->body->subnodes) {
+        return 0 if $node->mutates_variable($var_name);
+    }    
+
+    return (1, $var_name, $var_init, $end_cond, $end_numb, $var_incr);
 }
 
 sub to_opencl {
@@ -75,7 +82,6 @@ sub to_opencl {
     if ($unroll[0]) {
         die "Unroll succeeded";
     }
-
 
     if (defined $self->init) {
         $code .= $self->init->to_opencl($fun, 0);

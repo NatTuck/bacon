@@ -29,6 +29,28 @@ sub set_post {
     return $self;
 }
 
+sub mutates_variable {
+    my ($self, $var) = @_;
+    my @mutating_ops = qw(++ --);
+
+    unless ($self->arg0->isa('Bacon::Expr::Identifier') && 
+            $self->arg0->name eq $var) {
+        return 0;
+    }
+
+    for my $op (@mutating_ops) {
+        return 1 if ($op eq $self->name);
+    }
+
+    return 0;
+}
+
+sub normalize_increment {
+    my ($self, $var) = @_;
+    //// FIXME
+    return undef;
+}
+
 sub kids {
     my ($self) = @_;
     return ($self->arg0,);

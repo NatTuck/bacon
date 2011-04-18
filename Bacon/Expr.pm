@@ -19,6 +19,11 @@ sub static_eval {
     confess "Cannot static_eval object:\n$obj_text\n";
 }
 
+sub is_const {
+    my ($self, $fun) = @_;
+    return $self->try_static_eval($fun) && 1;
+}
+
 sub try_static_eval {
     my ($self, $fun) = @_;
     my $val;
@@ -29,6 +34,11 @@ sub try_static_eval {
         $val = undef;
     };
     return $val;
+}
+
+sub normalize_increment {
+    my ($self, $var) = @_;
+    return undef;
 }
 
 sub to_ocl {

@@ -16,6 +16,7 @@ use Data::Dumper;
 use Scalar::Util qw(blessed);
 use Try::Tiny;
 use Clone qw(clone);
+use List::MoreUtils qw(any);
 
 sub basefn {
     my ($self) = @_;
@@ -123,6 +124,11 @@ sub source {
 sub declared_variables {
     my ($self) = @_;
     return ();
+}
+
+sub mutates_variable {
+    my ($self, $var) = @_;
+    return any { $_->mutates_variable($var) } $self->kids;
 }
 
 sub to_opencl {
