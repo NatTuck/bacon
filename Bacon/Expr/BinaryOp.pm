@@ -80,6 +80,10 @@ sub normalize_const_cond {
         $num = $self->arg1->static_eval($fun);
     }
 
+    if ($op =~ /=/) {
+        die "TODO: Correct loop bounds";
+    }
+
     return ($op, $num);
 }
 
@@ -104,8 +108,20 @@ sub mutates_variable {
 }
 
 sub normalize_increment {
-    my ($self, $var) = @_;
-    //// FIXME
+    my ($self, $fun, $var) = @_;
+
+    unless ($self->arg0->isa('Bacon::Expr::Identifier') && 
+            $self->arg0->name eq $var) {
+        return undef;
+    }
+
+    my $value = $self->arg1->try_static_eval($fun);
+
+    return undef unless defined $value;
+
+    return +$value if ($self->name eq '+=');
+    return -$value if ($self->name eq '-=');
+
     return undef;
 }
 

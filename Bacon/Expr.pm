@@ -37,7 +37,7 @@ sub try_static_eval {
 }
 
 sub normalize_increment {
-    my ($self, $var) = @_;
+    my ($self, $fun, $var) = @_;
     return undef;
 }
 

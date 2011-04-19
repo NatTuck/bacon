@@ -12,12 +12,16 @@ use Try::Tiny;
 use Bacon::Stmt;
 extends 'Bacon::Stmt';
 
+our $MAX_UNROLL = 16;
+
 use Bacon::Utils;
 
 has init => (is => 'rw', isa => 'Bacon::Stmt');
 has cond => (is => 'rw', isa => 'Bacon::Expr');
 has incr => (is => 'rw', isa => 'Bacon::Expr');
 has body => (is => 'rw', isa => 'Bacon::Stmt');
+
+has unroll => (is => 'rw', isa => 'ListRef[Item]');
 
 sub kids {
     my ($self) = @_;
@@ -49,39 +53,47 @@ sub try_unrolling {
         }
     }
 
-    say "$var_name = $var_init";
-
-    return 0 unless (defined $var_name && defined $var_init);
+    return undef unless (defined $var_name && defined $var_init);
 
     if ($self->cond->isa('Bacon::Expr::BinaryOp')
             && $self->cond->is_const_cond($fun, $var_name)) {
         ($end_cond, $end_numb) = $self->cond->normalize_const_cond($fun, $var_name);
     }
 
-    say "$var_name $end_cond $end_numb";
-
     if ($self->incr->isa('Bacon::Expr')) {
         $var_incr = $self->incr->normalize_increment($fun, $var_name);
     }
 
-    return 0 unless defined $var_incr;
+    return undef unless defined $var_incr;
 
     for my $node ($self->body->subnodes) {
-        return 0 if $node->mutates_variable($var_name);
-    }    
+        return undef if $node->mutates_variable($var_name);
+    }
 
-    return (1, $var_name, $var_init, $end_cond, $end_numb, $var_incr);
+    return $self->unroll_loop($fun, $var_name, $var_init, $end_numb, $var_incr, $end_cond);
+}
+
+sub unroll_loop {
+    my ($self, $fun) = @_;
+    $sellf->try_unrolling($fun) unless (defined $self->unroll);
+    my ($var, $r0, $rN, $step, $cond) = @{$self->unroll};
+
+    my $range = $rN - $r0; 
+    my $cost  = $self->cost($fun);
+
+    say "$var from $r0 to $cond $rN by $step; $range items; cost = $cost";
+
+    return undef;
 }
 
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
+
+    my $unrolled = $self->try_unrolling($fun);
+    return $unrolled if $unrolled;
+
+    # Non-unrolled for loop
     my $code = indent($depth) . "for (";
-
-    my @unroll = $self->try_unrolling($fun);
-
-    if ($unroll[0]) {
-        die "Unroll succeeded";
-    }
 
     if (defined $self->init) {
         $code .= $self->init->to_opencl($fun, 0);

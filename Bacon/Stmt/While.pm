@@ -14,6 +14,11 @@ use Bacon::Utils;
 has cond => (is => 'rw', isa => 'Bacon::Expr');
 has body => (is => 'rw', isa => 'Bacon::Stmt');
 
+sub cost {
+    my ($self, $fun) = @_;
+    return +'inf';
+}
+
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
     die "Implement while->to_opencl\n";

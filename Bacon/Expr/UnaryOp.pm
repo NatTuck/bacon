@@ -46,8 +46,21 @@ sub mutates_variable {
 }
 
 sub normalize_increment {
-    my ($self, $var) = @_;
-    //// FIXME
+    my ($self, $fun, $var) = @_;
+
+    unless ($self->arg0->isa('Bacon::Expr::Identifier') && 
+            $self->arg0->name eq $var) {
+        return undef;
+    }
+
+    if ($self->name eq '++') {
+        return +1;
+    }
+
+    if ($self->name eq '--') {
+        return -1;
+    }
+
     return undef;
 }
 

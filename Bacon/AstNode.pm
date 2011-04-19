@@ -131,6 +131,15 @@ sub mutates_variable {
     return any { $_->mutates_variable($var) } $self->kids;
 }
 
+sub cost {
+    my ($self, $fun) = @_;
+    my $cost = 1;
+    for my $kid ($self->kids) {
+        $cost += $kid->cost($fun);
+    }
+    return $cost;
+}
+
 sub to_opencl {
     my ($self, undef, undef) = @_;
     my $type = ref $self ? ref $self : $self;
