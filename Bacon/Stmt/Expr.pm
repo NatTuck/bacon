@@ -20,9 +20,7 @@ sub kids {
 
 sub new2 {
     my ($class, $tok, $expr) = @_;
-    return $class->new_from_token(
-        undef => $tok, expr => $expr
-    );
+    return $class->new(token => $tok, expr => $expr);
 }
 
 sub to_opencl {

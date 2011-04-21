@@ -11,9 +11,9 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has cond  => (is => 'ro', isa => 'Bacon::Expr');
-has case0 => (is => 'ro', isa => 'Bacon::Stmt');
-has case1 => (is => 'ro', isa => 'Maybe[Bacon::Stmt]');
+has cond  => (is => 'ro', isa => 'Bacon::Expr', required => 1);
+has case0 => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
+has case1 => (is => 'ro', isa => 'Maybe[Bacon::Stmt]', required => 1);
 
 sub new3 {
     my ($class, $token, $expr, $block) = @_;
@@ -22,12 +22,11 @@ sub new3 {
 
 sub new4 {
     my ($class, $token, $expr, $case0, $case1) = @_;
-    return $class->new_from_token0(
-        undef, $token,
+    return $class->new(
+        token => $token,
         cond  => $expr,
         case0 => $case0,
-        case1 => $case1
-    );
+        case1 => $case1);
 }
 
 sub kids {

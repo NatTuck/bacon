@@ -12,13 +12,6 @@ extends 'Bacon::Expr';
 has type => (is => 'ro', isa => 'Str', required => 1);
 has arg0 => (is => 'ro', isa => 'Bacon::Expr', required => 1);
 
-sub new2 {
-    my ($class, $type, $arg0) = @_;
-    return $class->new(
-        file => $arg0->file, line => $arg0->line,
-        type => $type, arg0 => $arg0);
-}
-
 sub kids {
     my ($self) = @_;
     return ($self->arg0,);

@@ -12,10 +12,12 @@ use Bacon::Function;
 use Bacon::Template;
 extends 'Bacon::Function', 'Bacon::Template';
 
-has range_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
-has group_dist => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
+has range => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
+has group => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
+has setup => (is => 'ro', isa => 'Bacon::Stmt::Block', required => 1);
+
+
 has outer_vars => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt::VarDecl]', lazy_build => 1);
-has setup_code => (is => 'ro', isa => 'Bacon::Stmt::Block', required => 1);
 
 # Constants table maps constant variables to their compile-time values.
 has const_vals => (is => 'rw', isa => 'Maybe[HashRef[Int]]');
@@ -25,34 +27,6 @@ has etab => (is => 'rw', isa => 'Item', lazy_build => 1);
 
 use Bacon::Utils;
 use Bacon::MagicVars;
-
-sub new3 {
-    my ($class, $fun, $rtype, $more) = @_;
-    
-    my $setup = Bacon::Stmt::Block->new(
-        file => $fun->file, line => $fun->line,
-        body => $more->{setup},
-    );
-
-    my $body = Bacon::Stmt::Block->new(
-        file => $fun->file, line => $fun->line,
-        body => $more->{body},
-    );
-
-    my %dist = @{$more->{ranges}};
-    $dist{range} ||= [];
-    $dist{group} ||= [];
-
-    return $class->new(
-        file => $fun->file, line => $fun->line,
-        name => $fun->name, args => $fun->args,
-        setup_code => $setup,
-        body => $body,
-        rets => $rtype,
-        range_dist => $dist{range},
-        group_dist => $dist{group},
-    );
-}
 
 sub _build_symtab {
     my ($self) = @_;
@@ -77,17 +51,15 @@ sub _build_etab {
 
 sub _build_outer_vars {
     my ($self) = @_;
-    my @vars = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
+    my @vars = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
     return \@vars;
 }
-
-
 
 sub build_const_vals {
     my ($self) = @_;
 
     my @vars = ();
-    push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
+    push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
     push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
 
     my @const_vars = ();
@@ -133,7 +105,7 @@ sub const_args {
     my @cargs = ();
 
     my @args = @{$self->args};
-    push @args, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup_code->subnodes;
+    push @args, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
 
     for my $arg (@args) {
         if ($arg->is_const) {
@@ -217,8 +189,8 @@ sub to_opencl {
     my $code = "/* Kernel: " . $self->name . 
                " " . $self->source . " */\n";
 
-    my @range_dims = map { $_->to_ocl($self) } @{$self->range_dist};
-    my @group_dims = map { $_->to_ocl($self) } @{$self->group_dist};
+    my @range_dims = map { $_->to_ocl($self) } @{$self->range};
+    my @group_dims = map { $_->to_ocl($self) } @{$self->group};
     $code .= "kernel void\n";
     $code .= "/* returns: " . $self->rets->to_cpp . "\n";
     $code .= " * global distrib range: ";
@@ -291,8 +263,8 @@ sub to_spec_opencl {
     my $code = "/* Kernel: " . $self->name . 
                " " . $self->source . " */\n";
 
-    my @range_dims = map { $_->to_ocl($self) } @{$self->range_dist};
-    my @group_dims = map { $_->to_ocl($self) } @{$self->group_dist};
+    my @range_dims = map { $_->to_ocl($self) } @{$self->range};
+    my @group_dims = map { $_->to_ocl($self) } @{$self->group};
     $code .= "kernel void\n";
     $code .= "/* returns: " . $self->rets->to_cpp . "\n";
     $code .= " * global distrib range: ";
@@ -347,12 +319,12 @@ sub to_wrapper_hh {
 
 sub wrapper_range {
     my ($self) = @_;
-    return join(', ', map { $_->to_cpp($self) } (reverse @{$self->range_dist}));
+    return join(', ', map { $_->to_cpp($self) } (reverse @{$self->range}));
 }
 
 sub local_range {
     my ($self) = @_;
-    my $range = join(', ', map { $_->to_cpp($self) } (reverse @{$self->group_dist}));
+    my $range = join(', ', map { $_->to_cpp($self) } (reverse @{$self->group}));
     if ($range) {
         return "NDRange($range)";
     }
@@ -380,7 +352,7 @@ sub to_setup_cc {
     my $name  = $self->name;
     my @lines = ();
 
-    for my $stmt (@{$self->setup_code->body}) {
+    for my $stmt (@{$self->setup->body}) {
         push @lines, $stmt->to_setup_cc($self, 0);
 
         if ($stmt->isa('Bacon::Stmt::VarDecl') && $stmt->dims) {

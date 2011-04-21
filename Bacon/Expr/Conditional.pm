@@ -19,8 +19,7 @@ has case1  => (is => 'ro', isa => 'Bacon::Expr', required => 1);
 
 sub new3 {
     my ($class, $cond, $case0, $case1) = @_;
-    return $class->new_attrs(
-        cond => $cond, case0 => $case0, case1 => $case1);
+    return $class->new(cond => $cond, case0 => $case0, case1 => $case1);
 }
 
 sub kids {

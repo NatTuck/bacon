@@ -12,16 +12,17 @@ use Try::Tiny;
 use Bacon::Stmt;
 extends 'Bacon::Stmt';
 
-our $MAX_UNROLL = 16;
+our $MAX_UNROLL_SIZE = 16;
+our $MAX_UNROLL_COST = 1000;
 
 use Bacon::Utils;
 
-has init => (is => 'rw', isa => 'Bacon::Stmt');
-has cond => (is => 'rw', isa => 'Bacon::Expr');
-has incr => (is => 'rw', isa => 'Bacon::Expr');
-has body => (is => 'rw', isa => 'Bacon::Stmt');
+has init => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
+has cond => (is => 'ro', isa => 'Bacon::Expr', required => 1);
+has incr => (is => 'ro', isa => 'Bacon::Expr', required => 1);
+has body => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
 
-has unroll => (is => 'rw', isa => 'ListRef[Item]');
+has unroll => (is => 'rw', isa => 'Item');
 
 sub kids {
     my ($self) = @_;
@@ -36,6 +37,8 @@ sub try_unrolling {
     my $end_cond = undef;
     my $end_numb = undef;
     my $var_incr = undef;
+
+    return undef;
 
     if ($self->init->isa('Bacon::Stmt::VarDecl')) {
         $var_name = $self->init->name;
@@ -75,7 +78,7 @@ sub try_unrolling {
 
 sub unroll_loop {
     my ($self, $fun) = @_;
-    $sellf->try_unrolling($fun) unless (defined $self->unroll);
+    $self->try_unrolling($fun) unless (defined $self->unroll);
     my ($var, $r0, $rN, $step, $cond) = @{$self->unroll};
 
     my $range = $rN - $r0; 

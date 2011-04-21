@@ -16,10 +16,8 @@ has value => (is => 'ro', isa => 'Str', required => 1);
 sub new1 {
     my ($class, $token) = @_;
     return $class->new(
-        file  => $token->file,
-        line  => $token->line,
-        value => eval $token->text
-    );
+        token => $token,
+        value => eval $token->text);
 }
 
 sub to_ocl {

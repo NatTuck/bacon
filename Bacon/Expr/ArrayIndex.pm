@@ -37,10 +37,8 @@ sub to_ocl {
         my $code = $type->index_to_ocl($self, $fun, @{$self->dims});
         return $code;
     } catch {
-        my $file = $self->file;
-        my $line = $self->line;
-
-        warn "At $file:$line, in an array index:\n";
+        my $source = $self->source;
+        warn "At $source, in an array index:\n";
         die "$_";
     };
 }

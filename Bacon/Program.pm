@@ -6,13 +6,16 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
-extends 'Bacon::AstNode';
+use Bacon::AstNode;
+use Bacon::Template;
+extends 'Bacon::AstNode', 'Bacon::Template';
 
 has constants => (is => 'rw', isa => 'ArrayRef[Bacon::DeclStmt]',
                   default => sub { [] });
 has functions => (is => 'rw', isa => 'ArrayRef[Bacon::Function]',
                   default => sub { [] });
 
+use Data::Dumper;
 use Bacon::Utils;
 
 sub add_constant {
@@ -47,32 +50,10 @@ sub get_kernel {
     die "No such kernel: $name";
 }
 
-sub to_opencl {
-    my ($self) = @_;
-
-    my $code = "/* Bacon::Program: " . $self->source . " */\n";
-    $code .= qq{#include <Bacon/Array.cl>\n};
-
-    for my $var (@{$self->constants}) {
-        die "Global constants not yet supported";
-        #$code .= $var->to_opencl(0);
-    }
-
-    for my $fun (@{$self->functions}) {
-        $code .= $fun->to_opencl($self);
-    }
-
-    $code .= "/* vim: ft=c \n */\n\n";
-    return $code;
-}
-
 sub to_spec_opencl {
     my ($self, $kern_name, @const_args) = @_;
+    my $code = '';
 
-    my $code = "/* Bacon::Program: " . $self->source . " */\n";
-    $code .= "/* specialized $kern_name on @const_args */\n";
-    $code .= qq{#include <Bacon/Array.cl>\n};
-    
     for my $var (@{$self->constants}) {
         die "Global constants not yet supported";
         #$code .= $var->to_opencl(0);
@@ -88,31 +69,71 @@ sub to_spec_opencl {
         }
     }
 
-    $code .= "/* vim: ft=c \n */\n\n";
-    return $code;
+    return $self->fill_section(
+        spec_opencl => 0,
+        source      => $self->source,
+        kern_name   => $kern_name,
+        show_args   => "@const_args",
+        contents    => $code);
 }
 
 sub to_wrapper_cc {
     my ($self) = @_;
-    my $code = "/* Generated Methods */\n";
+    my $code = '';
 
     for my $fun ($self->kernels) {
         $code .= $fun->to_wrapper_cc($self);
     }
 
-    return $code;
+    return $self->fill_section(
+        wrapper_cc => 0,
+        contents   => $code);
 }
 
 sub to_wrapper_hh {
     my ($self) = @_;
-    my $code = indent(1) . "/* Generated prototypes */\n";
+    my $code = '';
 
     for my $fun ($self->kernels) {
         $code .= $fun->to_wrapper_hh($self);
     }
     
-    return $code;
+    return $self->fill_section(
+        wrapper_hh => 0,
+        contents   => $code);
 }
 
 __PACKAGE__->meta->make_immutable;
 1;
+
+__DATA__
+<<"END_OF_DATA";
+
+__[ spec_opencl ]__
+
+/* Bacon::Program: <% $source %> */
+/* specialized <% $kern_name %> on <% $show_args %> */
+
+#include <Bacon/Array.cl>
+
+<% $contents %>
+
+/* vim: ft=c
+ */
+
+__[ wrapper_cc ]__
+
+/* Generated Methods */
+
+<% $contents %>
+
+
+__[ wrapper_hh ]__
+
+/* Generated prototypes */
+
+<% $contents %>
+
+
+__[ EOF ]__
+END_OF_DATA

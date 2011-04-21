@@ -27,7 +27,7 @@ sub mkop {
 
 sub new3 {
     my ($class, $op, $aa, $bb) = @_;
-    return $class->new_attrs(name => $op, arg0 => $aa, arg1 => $bb);
+    return $class->new(name => $op, arg0 => $aa, arg1 => $bb);
 }
 
 sub kids {

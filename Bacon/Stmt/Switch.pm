@@ -11,13 +11,12 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has expr => (is => 'ro', isa => 'Bacon::Expr');
-has body => (is => 'ro', isa => 'Bacon::Stmt');
+has expr => (is => 'ro', isa => 'Bacon::Expr', required => 1);
+has body => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
 
 sub new3 {
     my ($class, $tok, $expr, $body) = @_;
-    return $class->new_from_token(
-        undef => $tok, expr => $expr, body => $body);
+    return $class->new(token => $tok, expr => $expr, body => $body);
 }
 
 sub to_opencl {

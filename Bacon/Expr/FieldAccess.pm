@@ -16,7 +16,7 @@ has field => (is => 'ro', isa => 'Str', required => 1);
 
 sub new2 {
     my ($class, $name, $field) = @_;
-    return $class->new_attrs(name => $name, field => $field);
+    return $class->new0(name => $name, field => $field);
 }
 
 sub static_eval {

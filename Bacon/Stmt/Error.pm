@@ -18,7 +18,7 @@ has args => (is => 'rw', isa => 'ArrayRef[Bacon::Expr]');
 
 sub new2 {
     my ($class, $name, $args) = @_;
-    return $class->new_from_token0(name => $name, args => $args);
+    return $class->new(name => $name, args => $args);
 }
 
 sub kids {

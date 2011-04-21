@@ -11,7 +11,7 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has expr => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
+has expr => (is => 'ro', isa => 'Maybe[Bacon::Expr]', default => undef);
 
 sub kids {
     my ($self) = @_;

@@ -11,8 +11,8 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has cond => (is => 'rw', isa => 'Bacon::Expr');
-has body => (is => 'rw', isa => 'Bacon::Stmt');
+has cond => (is => 'ro', isa => 'Bacon::Expr');
+has body => (is => 'ro', isa => 'Bacon::Stmt');
 
 sub cost {
     my ($self, $fun) = @_;

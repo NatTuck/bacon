@@ -14,20 +14,7 @@ use Bacon::Utils;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has arg0 => (is => 'ro', isa => 'Bacon::Expr', required => 1);
-has post => (is => 'rw', isa => 'Bool', default => 0);
-
-sub new2 {
-    my ($class, $op, $arg) = @_;
-    return $class->new(
-        file => $arg->file, line => $arg->line,
-        name => $op->text, arg0 => $arg);
-}
-
-sub set_post {
-    my ($self) = @_;
-    $self->post(1);
-    return $self;
-}
+has post => (is => 'ro', isa => 'Bool', default => 0);
 
 sub mutates_variable {
     my ($self, $var) = @_;

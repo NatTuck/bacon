@@ -9,20 +9,26 @@ use namespace::autoclean;
 use Data::Dumper;
 use Carp;
 
-extends 'Bacon::AstNode';
-
-has type => (is => 'rw', isa => 'Maybe[Str]');
-has name => (is => 'rw', isa => 'Maybe[Str]');
-has dims => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
-has init => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
+has type   => (is => 'rw', isa => 'Maybe[Str]');
+has name   => (is => 'rw', isa => 'Maybe[Str]');
+has dims   => (is => 'rw', isa => 'Maybe[ArrayRef[Bacon::Expr]]');
+has init   => (is => 'rw', isa => 'Maybe[Bacon::Expr]');
+has source => (is => 'ro', isa => 'Str', required => 1);
 
 use Bacon::Utils;
+
+sub new_from_attr_token {
+    my ($class, $attr, $token) = @_;
+    return $class->new(
+        source => ($token->file.":".$token->line),
+        $attr  => $token->text);
+}
 
 sub new_by_type {
     my ($class, $type) = @_;
 
     if ($type->isa('Bacon::Token')) {
-        return $class->new_from_token(undef => $type, type => $type->text);
+        return $self->new_from_attr_token(type => $type);
     }
 
     if ($type->isa('Bacon::BuildVar')) {
@@ -34,13 +40,15 @@ sub new_by_type {
 
 sub new_by_name {
     my ($class, $name) = @_;
-    return $class->new_from_token(name => $name);
+    return $class->new_from_attr_token(name => $name);
 }
 
 sub new_by_ptype {
     my ($class, $ptype, $param) = @_;
     my $tname = $ptype->text . "<" . $param->text . ">";
-    return $class->new_from_token(undef => $ptype, type => $tname);
+    return $class->new(
+        source => ($ptype->file.":".$ptype->line),
+        type   => $tname);
 }
 
 sub add_type {

@@ -11,18 +11,30 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has name => (is => 'ro', isa => 'Str');
-has stmt => (is => 'ro', isa => 'Bacon::Stmt');
+has name => (is => 'ro', isa => 'Str', required => 1);
+has stmt => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
+has case => (is => 'ro', isa => 'Bool', default => 0);
 
 sub new2 {
     my ($class, $label, $stmt) = @_;
-    return $class->new_from_token($label, stmt => $stmt);
+    return $class->new(name => $label, stmt => $stmt);
+}
+
+sub new_case {
+    my ($class, $label, $stmt) = @_;
+    return $class->new(name => $label, stmt => $stmt, case => 1);
 }
 
 sub to_opencl {
     my ($self, $fun, $depth) = @_;
-    return indent($depth) . $self->name . ":\n"
-        .  $self->to_opencl($fun, $depth + 1);
+    if ($self->case) {
+        return indent($depth) . 'case ' . $self->name . ":\n"
+             . $self->to_opencl($fun, $depth + 1);
+    }
+    else {
+        return indent($depth) . $self->name . ":\n"
+             . $self->to_opencl($fun, $depth + 1);
+    }
 }
 
 __PACKAGE__->meta->make_immutable;

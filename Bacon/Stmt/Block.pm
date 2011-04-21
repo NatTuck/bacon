@@ -13,8 +13,7 @@ extends 'Bacon::Stmt';
 
 use Bacon::Utils;
 
-has body => (is => 'rw', isa => 'ArrayRef[Bacon::Stmt]',
-    default => sub { [] });
+has body => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt]', default => sub { [] });
 
 sub kids {
     my ($self) = @_;

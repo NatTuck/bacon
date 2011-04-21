@@ -37,7 +37,7 @@ sub bacon_parse {
     my $lexer  = make_lexer($source);
 
     my $parser = Bacon::Parser->new();
-    $parser->YYData->{pgm} = Bacon::Program->new(file => $source, line => 1);
+    $parser->YYData->{pgm} = Bacon::Program->new(source => "$source:1");
     $parser->YYParse(yylex => $lexer, yyerror => \&parse_error);
     return $parser->YYData->{pgm};
 }
@@ -47,9 +47,12 @@ sub op {
     map { assert_type($_, 'Bacon::Expr') } @args;
     my $argc = scalar @args;
 
-    return Bacon::Expr::UnaryOp->new2 ($op, @args) if ($argc == 1);
-    return Bacon::Expr::BinaryOp->new3($op, @args) if ($argc == 2);
-    confess("Can't handle operator with $argc arguments");
+    if ($argc == 2) {
+        return Bacon::Expr::BinaryOp->new3($op, @args);
+    }
+    else {
+        confess("Can't handle operator with $argc arguments");
+    }
 }
 
 %}
@@ -64,9 +67,9 @@ sub op {
 
 primary_expression
     : CONSTANT
-        { Bacon::Expr::Literal->new_from_token(value => $_[1]) }
+        { Bacon::Expr::Literal->new(value => $_[1]) }
     | IDENTIFIER
-        { Bacon::Expr::Identifier->new_from_token(name => $_[1]) }
+        { Bacon::Expr::Identifier->new(name => $_[1]) }
     | STRING
         { Bacon::Expr::String->new1($_[1]) }
     | '(' expression ')'
@@ -76,23 +79,19 @@ primary_expression
 postfix_expression
     : primary_expression
     | IDENTIFIER '[' argument_expression_list ']'
-        { Bacon::Expr::ArrayIndex->new_from_token(
-            name => $_[1], dims => [ @{$_[3]} ]) }
+        { Bacon::Expr::ArrayIndex->new(name => $_[1], dims => [ @{$_[3]} ]) }
     | IDENTIFIER '(' ')'
-        { Bacon::Expr::FunCall->new_from_token(
-            name => $_[1]) }
+        { Bacon::Expr::FunCall->new(name => $_[1]) }
     | IDENTIFIER '(' argument_expression_list ')'
-        { Bacon::Expr::FunCall->new_from_token(
-            name => $_[1], args => [ @{$_[3]} ] ) }
+        { Bacon::Expr::FunCall->new(name => $_[1], args => [ @{$_[3]} ]) }
     | IDENTIFIER '.' IDENTIFIER
-        { Bacon::Expr::FieldAccess->new_from_token(
-            name => $_[1], field => $_[3]) }
+        { Bacon::Expr::FieldAccess->new(name => $_[1], field => $_[3]) }
     | postfix_expression PTR_OP IDENTIFIER
-        { op($_[2], $_[1], Bacon::Expr::Identifier->new_by_name($_[3])) }
+        { op($_[2], $_[1], Bacon::Expr::Identifier->new(name => $_[3])) }
     | postfix_expression INC_OP
-        { op($_[2], $_[1])->set_post }
+        { Bacon::Expr::UnaryOp->new(name => $_[2], arg0 => $_[1], post => 1) }
     | postfix_expression DEC_OP
-        { op($_[2], $_[1])->set_post }
+        { Bacon::Expr::UnaryOp->new(name => $_[2], arg0 => $_[1], post => 1) }
     ;
 
 argument_expression_list
@@ -105,13 +104,13 @@ argument_expression_list
 unary_expression
     : postfix_expression
     | INC_OP unary_expression
-        { op($_[1], $_[2]) }
+        { Bacon::Expr::UnaryOp->new(name => $_[1], arg0 => $_[2], post => 0) } 
     | DEC_OP unary_expression
-        { op($_[1], $_[2]) }
+        { Bacon::Expr::UnaryOp->new(name => $_[1], arg0 => $_[2], post => 0) } 
     | unary_operator cast_expression
-        { op($_[1], $_[2]) }
+        { Bacon::Expr::UnaryOp->new(name => $_[1], arg0 => $_[2], post => 0) } 
     | SIZEOF unary_expression
-        { op($_[1], $_[2]) }
+        { Bacon::Expr::UnaryOp->new(name => $_[1], arg0 => $_[2], post => 0) } 
     | SIZEOF '(' type_specifier ')'
         { die("todo: sizeof type") }
     ;
@@ -128,7 +127,7 @@ unary_operator
 cast_expression
     : unary_expression
     | '(' type_specifier ')' cast_expression
-        { Bacon::Expr::Cast->new2($_[2]->type, $_[4]) }
+        { Bacon::Expr::Cast->new(type => $_[2]->type, arg0 => $_[4]) }
     ;
 
 multiplicative_expression
@@ -259,11 +258,11 @@ declarator_list
 
 declarator
     : IDENTIFIER
-        { Bacon::Stmt::VarDecl->new_from_token0(name => $_[1]) } 
+        { Bacon::Stmt::VarDecl->new(name => $_[1]) } 
     | IDENTIFIER '[' argument_expression_list ']'
-        { Bacon::Stmt::VarDecl->new_from_token0(name => $_[1], dims => $_[3]) }
+        { Bacon::Stmt::VarDecl->new(name => $_[1], dims => $_[3]) }
     | IDENTIFIER '=' initializer
-        { Bacon::Stmt::VarDecl->new_from_token0(name => $_[1], init => $_[3]) }
+        { Bacon::Stmt::VarDecl->new(name => $_[1], init => $_[3]) }
     ;
 
 /*                                                                              types */
@@ -334,9 +333,9 @@ scope_specifier
 
 function_declarator
     : IDENTIFIER '(' parameter_list ')'
-        { Bacon::Function->new_from_token0(name => $_[1], args => $_[3]) }
+        { { name => $_[1], args => $_[3] } }
     | IDENTIFIER '(' ')'
-        { Bacon::Function->new_from_token0(name => $_[1], args => []) }
+        { { name => $_[1], args => [] } }
     ;
 
 parameter_list
@@ -380,18 +379,18 @@ statement
 
 labeled_statement
     : IDENTIFIER ':' statement
-        { Bacon::LabeledStmt->new2($_[1], $_[3]) }
+        { Bacon::Stmt::WithLabel->new2($_[1], $_[3]) }
     | CASE constant_expression ':' statement
-        { Bacon::CaseStmt->new2($_[2], $_[4]) }
+        { Bacon::Stmt::WithLabel->new_case($_[2], $_[4]) }
     | DEFAULT ':' statement
-        { Bacon::CaseStmt->new2($_[1], $_[3]) }
+        { Bacon::Stmt::WithLabel->new2($_[1], $_[3]) }
     ;
 
 compound_statement
     : '{' '}'
-        { Bacon::Stmt::Block->new_from_token( undef => $_[1]) }
+        { Bacon::Stmt::Block->new(token => $_[1]) }
     | '{' statement_list '}'
-        { Bacon::Stmt::Block->new_from_token( undef => $_[1], body => $_[2]) }
+        { Bacon::Stmt::Block->new(token => $_[1], body => $_[2]) }
     ;
 
 statement_list
@@ -407,7 +406,7 @@ statement_list
 
 expression_statement
     : ';'
-        { Bacon::Stmt->new_from_token(undef => $_[1]) }
+        { Bacon::Stmt->new(token => $_[1]) }
     | expression ';'
         { Bacon::Stmt::Expr->new2($_[2], $_[1]) }
     ;
@@ -424,35 +423,33 @@ selection_statement
 for_var_init
     : expression_statement
     | type_specifier IDENTIFIER '=' expression_statement
-        { Bacon::Stmt::VarDecl->new_from_token0(
+        { Bacon::Stmt::VarDecl->new(
               name => $_[2], type => $_[1], init => $_[4]->expr) }
     ;
 
 iteration_statement
     : WHILE '(' expression ')' statement
-        { Bacon::WhileLoop->new_from_token(undef => $_[1])
-            ->update(cond => $_[3], body => $_[5]) }
+        { Bacon::WhileLoop->new(token => $_[1], cond => $_[3], body => $_[5]) }
     | DO statement WHILE '(' expression ')' ';'
-        { Bacon::DoLoop->new_from_token(undef => $_[1])
-            ->update(cond => $_[5], body => $_[2]) }
+        { Bacon::DoLoop->new(token => $_[1], cond => $_[5], body => $_[2]) }
     | FOR '(' for_var_init expression_statement ')' statement
-        { Bacon::ForLoop->new_from_token(undef => $_[1])
-            ->update(init => $_[3], cond => $_[4], body => $_[6]) }
+        { Bacon::Stmt::For->new(token => $_[1], init => $_[3], cond => $_[4]->expr, body => $_[6]) }
     | FOR '(' for_var_init expression_statement expression ')' statement
-        { Bacon::Stmt::For->new_from_token(
-            undef => $_[1], init => $_[3], cond => $_[4]->expr, 
-            incr => $_[5], body => $_[7]) }
+        { Bacon::Stmt::For->new(token => $_[1], init => $_[3], cond => $_[4]->expr, 
+              incr => $_[5], body => $_[7]) }
     ;
 
 jump_statement
     : GOTO IDENTIFIER ';'
+        { die "No 'goto' in Bacon at " . $_[1]->source . "\n"; }
     | CONTINUE ';'
+        { Bacon::Stmt::Raw->new(code => $_[1]); } 
     | BREAK ';'
+        { Bacon::Stmt::Raw->new(code => $_[1]); } 
     | RETURN ';'
-        { Bacon::Stmt::Return->new_from_token(name => $_[1]) }
+        { Bacon::Stmt::Return->new(name => $_[1]) }
     | RETURN expression ';'
-        { Bacon::Stmt::Return->new_from_token(
-            name => $_[1], expr => $_[2]) }
+        { Bacon::Stmt::Return->new(name => $_[1], expr => $_[2]) }
     ;
 
 error_statement
@@ -480,40 +477,51 @@ external_declaration
 
 kernel_range_spec
     : RANGE '[' argument_expression_list ']' ';'
-        { [range => $_[3]] }
+        { {range => $_[3]} }
     ;
 
 kernel_group_spec
     : GROUP '[' argument_expression_list ']' ';'
-        { [group => $_[3]] }
+        { {group => $_[3]} }
     ;
 
 kernel_ranges
     : kernel_range_spec
-        { $_[1] }
+        { \$_[1] }
     | kernel_group_spec
-        { $_[1] }
+        { \$_[1] }
     | kernel_range_spec kernel_group_spec
-        { [@{$_[1]}, @{$_[2]}] } 
+        { \{%{$_[1]}, %{$_[2]}} } 
     ;
 
 kernel_body
     : '{' SETUP statement_list BODY kernel_ranges statement_list '}'
-        { { setup => $_[3], ranges => $_[5], body => $_[6] } } 
+        { { setup => Bacon::Stmt::Block->new(token => $_[2], body => $_[3]), 
+            ranges => ${$_[5]}, 
+            body => Bacon::Stmt::Block->new(token => $_[4], body => $_[6]) } } 
     | '{' BODY kernel_ranges statement_list '}'
-        { { setup => [], ranges => $_[3], body => $_[4] } }  
+        { { setup => Bacon::Stmt::Block->new(token => $_[2]), 
+            ranges => ${$_[3]}, 
+            body => Bacon::Stmt::Block->new(token => $_[2], body => $_[4]) } }  
     ;
 
 kernel_definition
     : KERNEL type_specifier function_declarator kernel_body
-        { Bacon::Kernel->new3($_[3], $_[2], $_[4]) }
+        { Bacon::Kernel->new(
+              name  => $_[3]->{name}, 
+              args  => $_[3]->{args}, 
+              body  => $_[4]->{body}, 
+              rets  => $_[2],
+              range => $_[4]->{ranges}->{range} || [],
+              group => $_[4]->{ranges}->{group} || [],
+              setup => $_[4]->{setup}) }
     ;
 
 function_definition
     : type_specifier function_declarator compound_statement
-        { Bacon::Function->new3($_[1], $_[2], $_[3]) }
-    | type_specifier function_declarator compound_statement
-        { Bacon::Function->new3(undef, $_[1], $_[2]) }
+        { Bacon::Function->new(
+              name => $_[2]->{name}, args => $_[2]->{args}, 
+              body => $_[3], rets => $_[1]) }
     ;
 
 %%

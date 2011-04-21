@@ -12,23 +12,15 @@ use Bacon::AstNode;
 extends 'Bacon::AstNode', 'Bacon::Template';
 use Bacon::SymbolTable;
 
-has name => (is => 'rw', isa => 'Str');
-has args => (is => 'rw', isa => 'ArrayRef[Bacon::Variable]');
-has body => (is => 'rw', isa => 'Maybe[Bacon::Stmt::Block]');
-has rets => (is => 'rw', isa => 'Maybe[Bacon::Type]');
+has name => (is => 'ro', isa => 'Str', required => 1);
+has args => (is => 'ro', isa => 'ArrayRef[Bacon::Variable]', required => 1);
+has body => (is => 'ro', isa => 'Bacon::Stmt::Block', required => 1);
+has rets => (is => 'ro', isa => 'Bacon::Type', required => 1);
 
 has symtab => (is => 'rw', isa => 'Bacon::SymbolTable', lazy_build => 1);
 
 
 use Bacon::Utils;
-
-sub new3 {
-    my ($class, $return_type, $self, $body) = @_;
-    assert_type($body, 'Bacon::Stmt::Block');
-    $self->rets($return_type);
-    $self->body($body);
-    return $self;
-}
 
 sub kids {
     my ($self) = @_;

@@ -13,12 +13,7 @@ use Bacon::MagicVars;
 use Bacon::Expr;
 extends 'Bacon::Expr';
 
-has name => (is => 'rw', isa => 'Str');
-
-sub new_by_name {
-    my ($class, $name) = @_;
-    return $class->new_from_token(name => $name);
-}
+has name => (is => 'ro', isa => 'Str');
 
 sub to_ocl {
     my ($self, $fun) = @_;
