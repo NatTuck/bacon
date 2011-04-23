@@ -14,21 +14,21 @@ use Try::Tiny;
 use Carp;
 
 sub static_eval {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     my $obj_text = Dumper($self);
     confess "Cannot static_eval object:\n$obj_text\n";
 }
 
 sub is_const {
-    my ($self, $fun) = @_;
-    return $self->try_static_eval($fun) && 1;
+    my ($self, $env) = @_;
+    return $self->try_static_eval($env) && 1;
 }
 
 sub try_static_eval {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     my $val;
     try {
-        $val = $self->static_eval($fun);
+        $val = $self->static_eval($env);
     }
     catch {
         $val = undef;
@@ -37,15 +37,14 @@ sub try_static_eval {
 }
 
 sub normalize_increment {
-    my ($self, $fun, $var) = @_;
+    my ($self, $env, $var) = @_;
     return undef;
 }
 
 sub to_ocl {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     my $etype = ref $self ? ref $self : $self;
-    my $fname = $fun->name;
-    confess "Cannot generate OpenCL for $etype in $fname";
+    confess "Cannot generate OpenCL for $etype";
 }
 
 sub to_cpp {

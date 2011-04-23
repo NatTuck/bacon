@@ -39,11 +39,13 @@ sub fill_file {
 sub fill_section {
     my ($self, $sec, $depth, %hash) = @_;
     my $class = ref $self ? ref $self : $self;
+    my $source = $self->section_data($sec)
+        or confess "No such section: $sec";
 
     my $tpl = Text::Template->new(
         TYPE => 'STRING',  
-        SOURCE => ${$self->section_data($sec)},
-        DELIMITERS => ['<%', '%>']
+        SOURCE => ${$source},
+        DELIMITERS => ['<%', '%>'],
     ) or die "Template construction failed for section $sec in class $class"; 
 
     return indent_block($depth, $tpl->fill_in(HASH => \%hash));

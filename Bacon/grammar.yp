@@ -55,6 +55,21 @@ sub op {
     }
 }
 
+sub var_decl {
+    my ($info, $type) = @_;
+    assert_type($type, "Bacon::Type");
+    my $name = $info->{name} or
+        confess Dumper($info);
+    my $var = Bacon::Variable->new(
+        name => $name->text, 
+        type => $type);    
+    return Bacon::Stmt::VarDecl->new(
+        name => $info->{name},
+        dims => $info->{dims},
+        init => $info->{init},
+        var  => $var);
+}
+
 %}
 
 %start translation_unit
@@ -246,7 +261,7 @@ constant_expression
 
 declaration
     : type_specifier declarator_list ';'
-        { [ map { $_->type($_[1]); $_ } @{$_[2]} ] }
+        { [map { var_decl($_, $_[1]) } @{$_[2]}] }
     ;
 
 declarator_list
@@ -258,11 +273,11 @@ declarator_list
 
 declarator
     : IDENTIFIER
-        { Bacon::Stmt::VarDecl->new(name => $_[1]) } 
+        { {name => $_[1]} } 
     | IDENTIFIER '[' argument_expression_list ']'
-        { Bacon::Stmt::VarDecl->new(name => $_[1], dims => $_[3]) }
+        { {name => $_[1], dims => $_[3]} }
     | IDENTIFIER '=' initializer
-        { Bacon::Stmt::VarDecl->new(name => $_[1], init => $_[3]) }
+        { {name => $_[1], init => $_[3]} }
     ;
 
 /*                                                                              types */
@@ -423,8 +438,7 @@ selection_statement
 for_var_init
     : expression_statement
     | type_specifier IDENTIFIER '=' expression_statement
-        { Bacon::Stmt::VarDecl->new(
-              name => $_[2], type => $_[1], init => $_[4]->expr) }
+        { var_decl({name => $_[2], init => $_[4]->expr}, $_[1]) }
     ;
 
 iteration_statement
@@ -525,4 +539,3 @@ function_definition
     ;
 
 %%
-

@@ -24,12 +24,12 @@ sub new2 {
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     if (!defined $self->expr) {
         return indent($depth) . "/* pass */;\n";
     }
     else {
-        return indent($depth) . $self->expr->to_ocl($fun) . ";\n";
+        return indent($depth) . $self->expr->to_ocl($env) . ";\n";
     }
 }
 

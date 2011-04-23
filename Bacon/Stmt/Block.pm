@@ -23,19 +23,19 @@ sub kids {
 # Return a list of variable declarations in this block.
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     my $code = indent($depth - 1) . "{\n";
-    $code .= $self->contents_to_opencl($fun, $depth);
+    $code .= $self->contents_to_opencl($env, $depth);
     $code .= indent($depth - 1) . "}\n";
     return $code;
 }
 
 sub contents_to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     my $code = '';
 
     for my $smt (@{$self->body}) {
-        $code .= $smt->to_opencl($fun, $depth);
+        $code .= $smt->to_opencl($env, $depth);
     }
 
     return $code;

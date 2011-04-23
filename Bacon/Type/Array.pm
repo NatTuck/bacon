@@ -23,24 +23,24 @@ sub new1 {
 }
 
 sub index {
-    my ($self, $var, $fun, @vals) = @_;
+    my ($self, $var, $env, @vals) = @_;
     my $type_n = scalar @{$self->dims};
     my $user_n = scalar @vals;
     confess "Wrong number of indices (got $user_n of $type_n on ${\$var->name})" 
         unless ($type_n == $user_n);
-    return $self->index_expr($var, $fun, @vals);
+    return $self->index_expr($var, $env, @vals);
 }
 
 sub index_expr {
-    my ($self, undef, $fun, $idx) = @_;
-    return $idx->to_ocl($fun);
+    my ($self, undef, $env, $idx) = @_;
+    return $idx->to_ocl($env);
 }
 
 sub index_to_ocl {
-    my ($self, $var, $fun, @dims) = @_;
+    my ($self, $var, $env, @dims) = @_;
     return $var->name . ".data"
         . '['
-        . $self->index($var, $fun, @dims)
+        . $self->index($var, $env, @dims)
         . ']';
 }
 

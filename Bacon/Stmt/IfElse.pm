@@ -35,16 +35,16 @@ sub kids {
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     my $code = indent($depth) 
         . "if (" 
-        . $self->cond->to_ocl($fun) 
+        . $self->cond->to_ocl($env) 
         . ")\n"
-        . $self->case0->to_opencl($fun, $depth + 1);
+        . $self->case0->to_opencl($env, $depth + 1);
 
     if (defined $self->case1) {
         $code .= indent($depth) . "else\n";
-        $code .= $self->case1->to_opencl($fun, $depth + 1);
+        $code .= $self->case1->to_opencl($env, $depth + 1);
     }
 
     return $code;

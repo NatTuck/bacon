@@ -18,9 +18,9 @@ sub kids {
 }
 
 sub to_ocl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     return "((" . $self->type . ")"
-        . $self->arg0->to_ocl($fun) 
+        . $self->arg0->to_ocl($env) 
         . ")";
 }
 

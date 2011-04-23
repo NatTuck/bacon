@@ -20,20 +20,21 @@ sub new2 {
 }
 
 sub static_eval {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
+    assert_type($env, 'Bacon::Environment');
     my $sym = $self->name . "." . $self->field;
-    my $val = $fun->get_const($sym);
+    my $val = $env->value($sym);
     return $val if (defined $val);
-    die "No static value for $sym";
+    confess "No static value for $sym";
 }
 
 sub to_ocl {
-    my ($self, $fun) = @_;
-    my $var = $fun->lookup_variable($self->name)
+    my ($self, $env) = @_;
+    my $var = $env->lookup($self->name)
         or confess "Unknown variable: " . $self->name;
     my $sym = $self->name . "." . $self->field;
-    if ($fun->get_const($sym)) {
-        return $self->static_eval($fun);
+    if ($env->value($sym)) {
+        return $self->static_eval($env);
     }
     else {
         return $sym;
@@ -43,7 +44,7 @@ sub to_ocl {
 sub to_cpp {
     my ($self, $fun) = @_;
     confess "Undefined function" unless defined $fun;
-    my $var = $fun->lookup_variable($self->name)
+    my $var = $fun->env->lookup($self->name)
         or confess "Unknown variable: " . $self->name;
 
     return $self->name . '.' . $self->field . '()';

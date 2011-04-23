@@ -26,14 +26,14 @@ sub new_case {
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     if ($self->case) {
         return indent($depth) . 'case ' . $self->name . ":\n"
-             . $self->to_opencl($fun, $depth + 1);
+             . $self->to_opencl($env, $depth + 1);
     }
     else {
         return indent($depth) . $self->name . ":\n"
-             . $self->to_opencl($fun, $depth + 1);
+             . $self->to_opencl($env, $depth + 1);
     }
 }
 

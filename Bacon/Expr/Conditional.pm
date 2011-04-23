@@ -28,13 +28,13 @@ sub kids {
 }
 
 sub to_ocl {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     return "("
-        . $self->cond->to_ocl($fun)
+        . $self->cond->to_ocl($env)
         . " ? "
-        . $self->case0->to_ocl($fun)
+        . $self->case0->to_ocl($env)
         . " : "
-        . $self->case1->to_ocl($fun)
+        . $self->case1->to_ocl($env)
         . ")";
 }
 

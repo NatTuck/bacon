@@ -16,89 +16,11 @@ has range => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
 has group => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
 has setup => (is => 'ro', isa => 'Bacon::Stmt::Block', required => 1);
 
-
-has outer_vars => (is => 'ro', isa => 'ArrayRef[Bacon::Stmt::VarDecl]', lazy_build => 1);
-
-# Constants table maps constant variables to their compile-time values.
-has const_vals => (is => 'rw', isa => 'Maybe[HashRef[Int]]');
-
 # Error table maps strings to unique integers.
 has etab => (is => 'rw', isa => 'Item', lazy_build => 1);
 
 use Bacon::Utils;
 use Bacon::MagicVars;
-
-sub _build_symtab {
-    my ($self) = @_;
-    my $symtab = Bacon::Function::_build_symtab($self);
-    
-    $symtab->add_outers(@{$self->outer_vars});
-
-    return $symtab;
-}
-
-sub _build_etab {
-    my ($self) = @_;
-    my @strings = grep { $_->isa('Bacon::Expr::String') } $self->subnodes;
-    my $etab = {};
-
-    for (my $ii = 0; $ii < scalar @strings; ++$ii) {
-        $etab->{$strings[$ii]->value} = $ii + 1;
-    }
-
-    return $etab;
-}
-
-sub _build_outer_vars {
-    my ($self) = @_;
-    my @vars = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
-    return \@vars;
-}
-
-sub build_const_vals {
-    my ($self) = @_;
-
-    my @vars = ();
-    push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
-    push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
-
-    my @const_vars = ();
-    for my $var (@vars) {
-        my $name = $var->name;
-
-        if ($var->has_dims) {
-
-            my @dim_ns = @{$var->type->dims};
-            my @dim_vs = @{$var->dims};
-
-            for (my $ii = 0; $ii < scalar @dim_ns; ++$ii) {
-                my $nn = $dim_ns[$ii];
-                my $vv = $dim_vs[$ii]->static_eval($self);
-                $self->const_vals->{"$name.$nn"} = $vv;
-            }
-        }
-        elsif ($var->is_const) {
-            $self->const_vals->{$name} = $var->init->static_eval($self);
-        }
-    }
-}
-
-sub get_const {
-    my ($self, $var) = @_;
-    unless (defined $self->const_vals) {
-        confess "No constant values in kernel " . $self->name;
-    }
-
-    my $val = $self->const_vals->{$var};
-    return $val if (defined $val);
-    die "No constant value for $var";
-}
-
-sub var_is_const {
-    my ($self, $vname) = @_;
-    return 0 unless defined $self->symtab->table->{$vname};
-    return $self->lookup_variable($vname)->is_const;
-}
 
 sub const_args {
     my ($self) = @_;
@@ -108,12 +30,14 @@ sub const_args {
     push @args, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
 
     for my $arg (@args) {
-        if ($arg->is_const) {
-            push @cargs, $arg->name;
+        my $var = $self->env->lookup($arg->name);
+
+        if ($var->is_const) {
+            push @cargs, $var->name;
         }
-        elsif ($arg->has_dims) {
-            for my $dim (@{$arg->type->dims}) {
-                push @cargs, $arg->name . '.' . $dim;
+        elsif ($var->has_dims) {
+            for my $dim (@{$var->type->dims}) {
+                push @cargs, $var->name . '.' . $dim;
             }
         }
     }
@@ -121,18 +45,32 @@ sub const_args {
     return @cargs;
 }
 
-sub const_vars {
+after _build_env => sub {
     my ($self) = @_;
-    my @vars = ();
-    push @vars, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
-    my @cvars = map { $_->name } grep { $_->is_const } @vars;
-    return ($self->const_args, @cvars); 
+    my @rvs = $self->returnable_vars;
+
+    for (my $ii = 0; $ii < scalar @rvs; ++$ii) {
+        my $var = $rvs[$ii];
+        $var->ridx($ii);
+    }
+};
+
+sub _build_etab {
+    my ($self) = @_;
+    my @strings = grep { $_->isa('Bacon::Expr::String') } $self->subnodes;
+    my $etab = {};
+
+    for (my $ii = 0; $ii < scalar @strings; ++$ii) {
+        $strings[$ii]->idx($ii + 1);
+        $etab->{$strings[$ii]->value} = $ii + 1;
+    }
+
+    return $etab;
 }
 
-sub lookup_error_string {
-    my ($self, $string) = @_;
-    return $self->etab->{$string} 
-        or die "No error code for string: $string";
+sub kids {
+    my ($self) = @_;
+    return (@{$self->args}, $self->body, $self->setup);
 }
 
 sub init_magic_variables {
@@ -160,65 +98,46 @@ sub init_magic_variables {
     return $code;
 }
 
+sub outer_decls {
+    my ($self) = @_;
+    my @decls = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
+    return map { $_->var } @decls;
+}
+
+sub local_decls {
+    my ($self) = @_;
+    my @decls = ();
+    push @decls, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
+    push @decls, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
+    return @decls;
+}
+
 sub expanded_args {
     my ($self) = @_;
-    my @vars = (@{$self->args}, @{$self->outer_vars});
-    return grep { !$_->is_const } @vars;
+    my @args = @{$self->args};
+    my @vars = $self->outer_decls;
+    return grep { !$_->is_const } (@args, @vars);
+}
+
+sub returnable_vars {
+    my ($self) = @_;
+    return grep { 
+        $_->type->is_returnable && $_->type->to_cpp eq $self->rets->to_cpp
+    } $self->expanded_args;
 }
 
 sub init_array_structs {
-    my ($self) = @_;
-    my @vars = (@{$self->symtab->args}, @{$self->symtab->outers});
+    my ($self, $env) = @_;
+    my @vars = $self->expanded_args;
 
     my $code = "";
 
-    for my $var (@vars) {
+    for my $decl (@vars) {
+        my $var = $env->lookup($decl->name);
         if ($var->has_struct) {
-            $code .= $var->init_struct($self);
+            $code .= $var->init_struct($env);
         }
     }
-
-    return $code;
-}
-
-sub to_opencl {
-    my ($self, $pgm) = @_;
-    assert_type($pgm, "Bacon::Program");
-    assert_type($self->rets, "Bacon::Type");
-
-    my $code = "/* Kernel: " . $self->name . 
-               " " . $self->source . " */\n";
-
-    my @range_dims = map { $_->to_ocl($self) } @{$self->range};
-    my @group_dims = map { $_->to_ocl($self) } @{$self->group};
-    $code .= "kernel void\n";
-    $code .= "/* returns: " . $self->rets->to_cpp . "\n";
-    $code .= " * global distrib range: ";
-    $code .= " [" . join(', ', @range_dims) . "]\n";
-    $code .= " * work group size: ";
-    $code .= " [" . join(', ', @group_dims) . "]\n";
-    $code .= " */\n";
-
-    my @args = $self->expanded_args;
-
-    $code .= $self->name . "(";
-    $code .= join(', ', map { $_->to_kern_arg($self) } @args);
-    $code .= ", global long* _bacon__status)\n";
-
-    $code .= "{\n";
-
-    $code .= $self->init_magic_variables;
-
-    $code .= $self->init_array_structs;
-    
-    my @vars = $self->symtab_find_local_vars;
-    for my $var (@vars) {
-        $code .= $var->decl_to_opencl($self, 1);
-    }
-
-    $code .= $self->body->contents_to_opencl($self, 1);
-
-    $code .= "}\n\n";
 
     return $code;
 }
@@ -243,59 +162,87 @@ sub exclude_vars {
     return @vars;
 }
 
+sub eval_const_vars {
+    my ($self, $env) = @_;
+    
+    my @decls = $self->local_decls;
+
+    my @const_vars = ();
+    for my $decl (@decls) {
+        my $var  = $env->lookup($decl->name);
+        my $name = $var->name;
+        
+        if ($var->has_dims) {
+            my @dim_ns = @{$var->type->dims};
+            my @dim_vs = @{$decl->dims};
+            
+            for (my $ii = 0; $ii < scalar @dim_ns; ++$ii) {
+                my $nn = $dim_ns[$ii];
+                my $vv = $dim_vs[$ii]->static_eval($env);
+                $env->lookup("$name.$nn")->value($vv);
+            }
+        }
+        elsif ($var->is_const) {
+            my $value = $decl->init->static_eval($env);
+            $var->value($value);
+        }
+    }
+}
+
+sub list_to_text {
+    my ($self, $env, @xs) = @_;
+    my @ys = ();
+    for my $xx (@xs) {
+        push @ys, $xx->to_ocl($env);
+    }
+    return join(', ', @ys);
+}
+
 sub to_spec_opencl {
     my ($self, $pgm, @const_vals) = @_;
     assert_type($pgm, "Bacon::Program");
     assert_type($self->rets, "Bacon::Type");
+    $self->etab or die;
 
     my @const_args = $self->const_args;
     my $spec_text  = "";
-    $self->const_vals({});
+
+    my %const_vals = ();
+
     for (my $ii = 0; $ii < scalar @const_args; ++$ii) {
         my $vn = $const_args[$ii];
         my $vv = $const_vals[$ii];
-        $self->const_vals->{$vn} = $vv;
+        $const_vals{$vn} = $vv;
         $spec_text .= " $vn = $vv; ";
     }
 
-    $self->build_const_vals;
-
-    my $code = "/* Kernel: " . $self->name . 
-               " " . $self->source . " */\n";
-
-    my @range_dims = map { $_->to_ocl($self) } @{$self->range};
-    my @group_dims = map { $_->to_ocl($self) } @{$self->group};
-    $code .= "kernel void\n";
-    $code .= "/* returns: " . $self->rets->to_cpp . "\n";
-    $code .= " * global distrib range: ";
-    $code .= " [" . join(', ', @range_dims) . "]\n";
-    $code .= " * work group size: ";
-    $code .= " [" . join(', ', @group_dims) . "]\n";
-    $code .= " * specialized on:  [ $spec_text ]";
-    $code .= " */\n";
+    my $env = $self->env->update_with(%const_vals);
+    $self->eval_const_vars($env);
 
     my @args = $self->expanded_args;
+    my $arg_list = join(', ', map { $_->to_kern_arg($self) } @args);
 
-    $code .= $self->name . "(";
-    $code .= join(', ', map { $_->to_kern_arg($self) } @args);
-    $code .= ", global long* _bacon__status)\n";
-
-    $code .= "{\n";
-
-    $code .= $self->init_magic_variables;
-
-    $code .= $self->init_array_structs;
-    
-    my @vars = $self->symtab_find_local_vars;
+    my @vars = $self->local_decls;
+    my $decl_locals = '';
     for my $var (@vars) {
-        $code .= $var->decl_to_opencl($self, 1);
+        $decl_locals .= $var->decl_to_opencl($env, 1);
     }
 
-    $code .= $self->body->contents_to_opencl($self, 1);
-
-    $code .= "}\n\n";
-
-    return $code;
+    return $self->fill_section(
+        spec_opencl => 0,
+        name        => $self->name,
+        source      => $self->source,
+        rets        => $self->rets->to_cpp,
+        body        => $self->body->contents_to_opencl($env, 1),
+        init_magic  => $self->init_magic_variables,
+        init_array  => $self->init_array_structs($env),
+        self        => $self,
+        range       => $self->list_to_text($env, @{$self->range}),
+        group       => $self->list_to_text($env, @{$self->group}),
+        spec_text   => $spec_text,
+        arg_list    => $arg_list,
+        decl_locals => $decl_locals,
+    );
 }
 
 sub wrapper_args {
@@ -419,12 +366,13 @@ sub return_stmt_switch {
     my ($self) = @_;
     return "return;" if $self->returns_void;
 
-    my @vars  = $self->symtab->possible_return_vars;
+    my @vars = $self->returnable_vars;
 
     my @lines = 'switch (status.get(0)) {';
   
-    for(my $ii = 0; $ii < (scalar @vars); ++$ii) {
-        my $name = $vars[$ii]->name;
+    for my $var (@vars) {
+        my $name = $var->name;
+        my $ii   = $self->env->lookup($name)->ridx;
         push @lines, qq{    case $ii: return $name;};
     }
 
@@ -463,6 +411,24 @@ __PACKAGE__->meta->make_immutable;
 
 __DATA__
 <<"END_OF_DATA";
+
+__[ spec_opencl ]__
+
+/* Kernel: <% $name %> @ <% $source %> */
+
+kernel void
+/* returns: <% $rets %>
+ * global distrib range: [ <% $range %> ]
+ * work group size: [ <% $group %> ]
+ * specialized on:  [ <% $spec_text %> ]
+ */
+<% $name %>(<% $arg_list %>, global long* _bacon__status)
+{
+    <% $init_magic %>
+    <% $init_array %>
+    <% $decl_locals %>
+    <% $body %>
+}
 
 __[ wrapper_cc ]__
 
@@ -517,7 +483,5 @@ __[ wrapper_cc ]__
     }
 }
 
-
-
-__[ foo ]__
+__[ EOF ]__
 END_OF_DATA

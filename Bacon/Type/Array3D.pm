@@ -14,7 +14,7 @@ has '+dims' => (default => sub { ['deep', 'rows', 'cols'] });
 use Bacon::Expr::BinaryOp qw(mkop);
 
 sub index_expr {
-    my ($self, $var, $fun, $dep, $row, $col) = @_;
+    my ($self, $var, $env, $dep, $row, $col) = @_;
 
     my $rows = Bacon::Expr::FieldAccess->new2(
         $var->name, 'rows');
@@ -23,9 +23,9 @@ sub index_expr {
 
     my $dep_off = mkop('*', $rows, $cols);
 
-    return '(' . $dep_off->to_ocl($fun) . " * " . $dep->to_ocl($fun) . ') + ' 
-         . '(' . $cols->to_ocl($fun) . " * " . $row->to_ocl($fun) . ') + '
-         . $col->to_ocl($fun);
+    return '(' . $dep_off->to_ocl($env) . " * " . $dep->to_ocl($env) . ') + ' 
+         . '(' . $cols->to_ocl($env) . " * " . $row->to_ocl($env) . ') + '
+         . $col->to_ocl($env);
 }
 
 __PACKAGE__->meta->make_immutable;

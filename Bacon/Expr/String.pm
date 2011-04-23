@@ -12,6 +12,7 @@ extends 'Bacon::Expr';
 use Bacon::Utils;
 
 has value => (is => 'ro', isa => 'Str', required => 1);
+has idx   => (is => 'rw', isa => 'Maybe[Int]');
 
 sub new1 {
     my ($class, $token) = @_;

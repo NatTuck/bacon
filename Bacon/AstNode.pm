@@ -73,12 +73,31 @@ sub mutates_variable {
 }
 
 sub cost {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     my $cost = 1;
     for my $kid ($self->kids) {
-        $cost += $kid->cost($fun);
+        $cost += $kid->cost($env);
     }
     return $cost;
+}
+
+sub partial_eval {
+    my ($self, $env) = @_;
+    my $class = ref($self);
+    my @attrs = $class->meta->get_all_attributes;
+    my %copy  = ();
+
+    for my $attr (@attrs) {
+        my $value = $self->$attr;
+        if (blessed($value) && $value->can('partial_eval')) {
+            $copy{$attr} = $value->partial_eval($env);
+        }
+        else {
+            $copy{$attr} = clone($value);
+        }
+    }
+
+    return $class->new(%copy);
 }
 
 sub to_opencl {

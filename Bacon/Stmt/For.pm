@@ -10,7 +10,8 @@ use Data::Dumper;
 use Try::Tiny;
 
 use Bacon::Stmt;
-extends 'Bacon::Stmt';
+use Bacon::Template;
+extends 'Bacon::Stmt', 'Bacon::Template';
 
 our $MAX_UNROLL_SIZE = 16;
 our $MAX_UNROLL_COST = 1000;
@@ -22,15 +23,17 @@ has cond => (is => 'ro', isa => 'Bacon::Expr', required => 1);
 has incr => (is => 'ro', isa => 'Bacon::Expr', required => 1);
 has body => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
 
-has unroll => (is => 'rw', isa => 'Item');
+has can_unroll  => (is => 'rw', isa => 'Maybe[Bool]');
+has unroll_info => (is => 'rw', isa => 'Maybe[Item]');
 
 sub kids {
     my ($self) = @_;
     return ($self->init, $self->cond, $self->incr, $self->body);
 }
 
-sub try_unrolling {
-    my ($self, $fun) = @_;
+sub build_unroll_info {
+    my ($self, $env) = @_;
+    return if (defined $self->can_unroll);
 
     my $var_name = undef;
     my $var_init = undef;
@@ -38,11 +41,9 @@ sub try_unrolling {
     my $end_numb = undef;
     my $var_incr = undef;
 
-    return undef;
-
     if ($self->init->isa('Bacon::Stmt::VarDecl')) {
         $var_name = $self->init->name;
-        $var_init = $self->init->init->try_static_eval($fun);
+        $var_init = $self->init->init->try_static_eval($env);
     }
     
     if ($self->init->isa('Bacon::Stmt::Expr')) {
@@ -52,76 +53,80 @@ sub try_unrolling {
                 && $init->name eq '='
                 && $init->arg0->isa('Bacon::Expr::Identifier')) {       
             $var_name = $init->arg0->name;
-            $var_init = $init->arg1->try_static_eval($fun);
+            $var_init = $init->arg1->try_static_eval($env);
         }
     }
 
-    return undef unless (defined $var_name && defined $var_init);
+    unless (defined $var_name && defined $var_init) {
+        $self->can_unroll(0);
+        return;
+    }
 
     if ($self->cond->isa('Bacon::Expr::BinaryOp')
-            && $self->cond->is_const_cond($fun, $var_name)) {
-        ($end_cond, $end_numb) = $self->cond->normalize_const_cond($fun, $var_name);
+            && $self->cond->is_const_cond($env, $var_name)) {
+        ($end_cond, $end_numb) = $self->cond->normalize_const_cond($env, $var_name);
     }
 
     if ($self->incr->isa('Bacon::Expr')) {
-        $var_incr = $self->incr->normalize_increment($fun, $var_name);
+        $var_incr = $self->incr->normalize_increment($env, $var_name);
     }
 
-    return undef unless defined $var_incr;
-
-    for my $node ($self->body->subnodes) {
-        return undef if $node->mutates_variable($var_name);
+    unless (defined $var_incr) {
+        $self->can_unroll(0);
+        return;
     }
 
-    return $self->unroll_loop($fun, $var_name, $var_init, $end_numb, $var_incr, $end_cond);
+    if ($self->body->mutates_variable($var_name)) {
+        $self->can_unroll(0);
+        return;
+    }
+
+    $self->can_unroll(1);
+    $self->unroll_info(
+        [$var_name, $var_init, $end_numb, $var_incr, $end_cond]);
 }
 
-sub unroll_loop {
-    my ($self, $fun) = @_;
-    $self->try_unrolling($fun) unless (defined $self->unroll);
-    my ($var, $r0, $rN, $step, $cond) = @{$self->unroll};
+sub unroll {
+    my ($self, $env) = @_;
+    return unless $self->can_unroll;
+    my ($var, $r0, $rN, $incr, $cond) = @{$self->unroll_info};
+    my $range = $rN - $r0;
+    my $cost  = $self->cost($env);
 
-    my $range = $rN - $r0; 
-    my $cost  = $self->cost($fun);
-
-    say "$var from $r0 to $cond $rN by $step; $range items; cost = $cost";
-
-    return undef;
+    return "$var [$r0 .. $rN] by $incr; $range items, $cost";
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
+    $self->build_unroll_info($env);
 
-    my $unrolled = $self->try_unrolling($fun);
-    return $unrolled if $unrolled;
-
-    # Non-unrolled for loop
-    my $code = indent($depth) . "for (";
-
-    if (defined $self->init) {
-        $code .= $self->init->to_opencl($fun, 0);
-        chomp($code);
-        $code =~ s/;$//;
-        $code .= "; ";
-    }
-    else {
-        $code .= "; ";
+    if ($self->can_unroll) {
+        #say $self->unroll($env);
     }
 
-    if (defined $self->cond) {
-        $code .= $self->cond->to_ocl($fun);
-    }
-    $code .= "; ";
+    my $init = $self->init->to_opencl($env, 0);
+    $init =~ s/;$//;
+    chomp $init;
 
-    if (defined $self->incr) {
-        $code .= $self->incr->to_ocl($fun);
-    }
-    $code .= ")\n";
-
-    $code .= $self->body->to_opencl($fun, $depth + 1);
-
-    return $code;
+    return $self->fill_section(
+        opencl_code => $depth,
+        init => $init,
+        cond => $self->cond->to_ocl($env),
+        incr => $self->incr->to_ocl($env),
+        body => $self->body->contents_to_opencl($env, $depth));
 }
 
 __PACKAGE__->meta->make_immutable;
 1;
+
+__DATA__
+<<"END_OF_DATA";
+
+__[ opencl_code ]__
+
+for (<% $init %>; <% $cond %>; <% $incr %>) {
+    <% $body %>
+}
+
+__[ EOF ]__
+END_OF_DATA

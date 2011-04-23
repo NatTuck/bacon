@@ -8,6 +8,7 @@ our @EXPORT = qw(indent assert_type in_list cpp_type cpp_header_type name_to_cc)
 
 use Carp;
 use Try::Tiny;
+use Scalar::Util qw(blessed);
 
 sub indent {
     my ($depth) = @_;
@@ -29,7 +30,7 @@ sub assert_type {
         unless (ref $obj);
 
     try {
-        unless ($obj->isa($expect_type)) {
+        unless (blessed($obj) && $obj->isa($expect_type)) {
             my $actual_type = ref($obj);
             confess("Got type '$actual_type' instead of '$expect_type'");
         }

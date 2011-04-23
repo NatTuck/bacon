@@ -23,19 +23,19 @@ sub new1 {
 }
 
 sub index {
-    my ($self, $var, $fun, $idx, @extra) = @_;
+    my ($self, $var, $env, $idx, @extra) = @_;
     croak "Wrong number of indices" unless (scalar @extra == 0);
-    return $self->index_expr($var, $fun, $idx);
+    return $self->index_expr($var, $env, $idx);
 }
 
 sub index_expr {
-    my ($self, undef, $fun, $idx) = @_;
-    return $idx->to_ocl($fun);
+    my ($self, undef, $env, $idx) = @_;
+    return $idx->to_ocl($env);
 }
 
 sub index_to_ocl {
-    my ($self, $var, $fun, @dims) = @_;
-    return $var->name . '[' . $self->index($var, $fun, @dims) . ']';
+    my ($self, $var, $env, @dims) = @_;
+    return $var->name . '[' . $self->index($var, $env, @dims) . ']';
 }
 
 sub to_ocl {

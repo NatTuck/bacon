@@ -19,15 +19,16 @@ sub kids {
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     my $code = '';
 
-    if ($fun->isa("Bacon::Kernel")) {
+    if ($env->in_kernel) {
         if (defined $self->expr) {
-            die "Must return exactly one variable"
-                unless ($self->expr->isa("Bacon::Expr::Identifier"));
+            assert_type($self->expr, "Bacon::Expr::Identifier");
+            my $ridx = $env->lookup($self->expr->name)->ridx;
+            $code .= indent($depth) . "_bacon__status[0] = $ridx;\n";
         }
-        
+
         $code .= indent($depth) . "return;\n";
     }
     else {
@@ -36,7 +37,7 @@ sub to_opencl {
         }
         else {
             $code .= indent($depth) . "return "
-                . $self->expr->to_ocl($fun) . ";\n";
+                . $self->expr->to_ocl($env) . ";\n";
         }
     }
     

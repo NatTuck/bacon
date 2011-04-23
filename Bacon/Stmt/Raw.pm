@@ -14,7 +14,7 @@ has code => (is => 'ro', isa => 'Str', required => 1);
 use Bacon::Utils;
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     return indent($depth) . $self->code . ";\n";    
 }
 

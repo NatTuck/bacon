@@ -15,12 +15,12 @@ has cond => (is => 'ro', isa => 'Bacon::Expr');
 has body => (is => 'ro', isa => 'Bacon::Stmt');
 
 sub cost {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     return +'inf';
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     die "TODO: DoWhile->to_opencl";
 }
 

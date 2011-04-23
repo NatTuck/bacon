@@ -8,13 +8,13 @@ use Moose;
 
 use Bacon::Stmt;
 use Bacon::Template;
-
 extends 'Bacon::Stmt', 'Bacon::Template';
 
-use Bacon::Utils;
+has name => (is => 'ro', isa => 'Str', required => 1);
+has args => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
 
-has name => (is => 'rw', isa => 'Str');
-has args => (is => 'rw', isa => 'ArrayRef[Bacon::Expr]');
+use Bacon::Utils;
+use Bacon::Expr::String;
 
 sub new2 {
     my ($class, $name, $args) = @_;
@@ -27,14 +27,14 @@ sub kids {
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
 
     given ($self->name) {
         when ('fail') { 
-            return $self->gen_fail($fun, $depth); 
+            return $self->gen_fail($env, $depth); 
         }
         when ('assert') {
-            return $self->gen_assert($fun, $depth);
+            return $self->gen_assert($env, $depth);
         }
     }
 
@@ -42,14 +42,16 @@ sub to_opencl {
 }
 
 sub gen_fail {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
+    my $string = $self->args->[0];
+    assert_type($string, 'Bacon::Expr::String');
 
-    my $string   = $self->args->[0]->value;
-    my $err_no   = $fun->lookup_error_string($string);
+    my $err_no   = $string->idx
+        or die "No error number set";
     my $err_data = "0";
 
     if (scalar @{$self->args} > 1) {
-        $err_data = $self->args->[1]->to_ocl($fun); 
+        $err_data = $self->args->[1]->to_ocl($env); 
     }
 
     return $self->fill_section(
@@ -60,15 +62,17 @@ sub gen_fail {
 }
 
 sub gen_assert {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
+    my $expr     = $self->args->[0]->to_ocl($env);
+    my $string   = $self->args->[1];
+    assert_type($string, 'Bacon::Expr::String');
 
-    my $expr     = $self->args->[0]->to_ocl($fun);
-    my $string   = $self->args->[1]->value;
-    my $err_no   = $fun->lookup_error_string($string);
+    my $err_no   = $string->idx
+        or die "No error number set";
     my $err_data = "0";
 
     if (scalar @{$self->args} > 2) {
-        $err_data = $self->args->[2]->to_ocl($fun); 
+        $err_data = $self->args->[2]->to_ocl($env); 
     }
 
     return $self->fill_section(

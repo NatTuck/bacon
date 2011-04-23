@@ -20,7 +20,7 @@ sub cost {
 }
 
 sub to_opencl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     die "Implement while->to_opencl\n";
 }
 

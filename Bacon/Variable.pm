@@ -6,10 +6,11 @@ use feature 'switch';
 use Moose;
 use Carp;
 
-has name => (is => 'ro', isa => 'Str', required => 1);
-has type => (is => 'rw', isa => 'Maybe[Bacon::Type]');
+has name  => (is => 'ro', isa => 'Str', required => 1);
+has type  => (is => 'ro', isa => 'Maybe[Bacon::Type]');
 
-has static_value => (is => 'rw', isa => 'Maybe[Num');
+has ridx  => (is => 'rw', isa => 'Maybe[Num]');
+has value => (is => 'rw', isa => 'Maybe[Num]');
 
 use Bacon::Utils;
 use Bacon::Type::All;
@@ -49,8 +50,25 @@ sub has_dims {
     return $self->has_struct;
 }
 
+sub dim_vars {
+    my ($self) = @_;
+    my @vars = ();
+
+    return @vars unless $self->has_dims;
+
+    for my $dim (@{$self->type->dims}) {
+        my $var = Bacon::Variable->new(
+            name => $self->name . ".$dim",
+            type => Bacon::Type::Simple->new1("uint"));
+        push @vars, $var;
+    }
+
+    return @vars;
+}
+
 sub init_struct {
-    my ($self, $kern) = @_;
+    my ($self, $env) = @_;
+    assert_type($env, 'Bacon::Environment');
     my $code = "";
 
     my $type = $self->type;
@@ -62,7 +80,7 @@ sub init_struct {
     $code .= indent(1) . "$name.data = $name" . "__data;\n";
 
     for my $dim (@{$type->dims}) {
-        my $dval = $kern->get_const("$name.$dim");
+        my $dval = $env->value("$name.$dim");
         $code .= indent(1) . "$name.$dim = $dval;\n";
     }
     

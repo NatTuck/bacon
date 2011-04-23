@@ -30,11 +30,11 @@ sub kids {
 }
 
 sub to_ocl {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     try {
-        my $var  = $fun->lookup_variable($self->name);
+        my $var  = $env->lookup($self->name);
         my $type = $var->type;
-        my $code = $type->index_to_ocl($self, $fun, @{$self->dims});
+        my $code = $type->index_to_ocl($self, $env, @{$self->dims});
         return $code;
     } catch {
         my $source = $self->source;

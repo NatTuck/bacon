@@ -33,7 +33,7 @@ sub mutates_variable {
 }
 
 sub normalize_increment {
-    my ($self, $fun, $var) = @_;
+    my ($self, $env, $var) = @_;
 
     unless ($self->arg0->isa('Bacon::Expr::Identifier') && 
             $self->arg0->name eq $var) {
@@ -57,17 +57,17 @@ sub kids {
 }
 
 sub to_ocl {
-    my ($self, $fun, $depth) = @_;
+    my ($self, $env) = @_;
     if ($self->post) {
         return "(" 
-            . $self->arg0->to_ocl($fun) 
+            . $self->arg0->to_ocl($env) 
             . $self->name 
             . ")";
     }
     else {
         return "(" 
             . $self->name 
-            . $self->arg0->to_ocl($fun, 0) 
+            . $self->arg0->to_ocl($env) 
             . ")";
     }
 }

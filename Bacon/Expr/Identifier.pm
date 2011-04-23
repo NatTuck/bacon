@@ -15,9 +15,14 @@ extends 'Bacon::Expr';
 
 has name => (is => 'ro', isa => 'Str');
 
+sub static_eval {
+    my ($self, $env) = @_;
+    return $env->value($self->name);
+}
+
 sub to_ocl {
-    my ($self, $fun) = @_;
-    confess "Undefined \$fun" unless defined $fun;
+    my ($self, $env) = @_;
+    confess "Undefined \$env" unless defined $env;
 
     my $name = $self->name;
 
@@ -29,8 +34,10 @@ sub to_ocl {
         return $name;
     }
 
-    if ($fun->var_is_const($name)) {
-        return $self->static_eval($fun);
+    my $var  = $env->lookup($name);
+
+    if ($var && $var->is_const) {
+        return $self->static_eval($env);
     }
     
     return $name;
@@ -41,12 +48,6 @@ sub to_cpp {
     my $name = $self->name;
     confess "Can't use magic variables in C++" if ($name =~ /^\$/);
     return $name;
-}
-
-sub static_eval {
-    my ($self, $fun) = @_;
-    confess "Undefined \$fun" unless defined $fun;
-    return $fun->get_const($self->name);
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -47,12 +47,12 @@ sub is_cond {
 }
 
 sub is_const_cond {
-    my ($self, $fun, $var) = @_;
+    my ($self, $env, $var) = @_;
     confess "No var specified" unless defined $var;
 
     return 0 unless $self->is_cond;
 
-    unless ($self->arg0->is_const($fun) || $self->arg1->is_const($fun)) {
+    unless ($self->arg0->is_const($env) || $self->arg1->is_const($env)) {
         return 0;
     }
 
@@ -65,19 +65,19 @@ sub is_const_cond {
 }
 
 sub normalize_const_cond {
-    my ($self, $fun, $var) = @_;
-    die "That's not a constant condition" unless $self->is_const_cond($fun, $var);
+    my ($self, $env, $var) = @_;
+    die "That's not a constant condition" unless $self->is_const_cond($env, $var);
 
     my $op = $self->name;
     my $num;
 
-    if ($self->arg0->is_const($fun)) {
-        $num = $self->arg0->static_eval($fun);
+    if ($self->arg0->is_const($env)) {
+        $num = $self->arg0->static_eval($env);
         # Flip the conditional 
         $op =~ tr/<>/></;
     }
     else {
-        $num = $self->arg1->static_eval($fun);
+        $num = $self->arg1->static_eval($env);
     }
 
     if ($op =~ /=/) {
@@ -108,14 +108,14 @@ sub mutates_variable {
 }
 
 sub normalize_increment {
-    my ($self, $fun, $var) = @_;
+    my ($self, $env, $var) = @_;
 
     unless ($self->arg0->isa('Bacon::Expr::Identifier') && 
             $self->arg0->name eq $var) {
         return undef;
     }
 
-    my $value = $self->arg1->try_static_eval($fun);
+    my $value = $self->arg1->try_static_eval($env);
 
     return undef unless defined $value;
 
@@ -126,19 +126,19 @@ sub normalize_increment {
 }
 
 sub static_eval {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     my $op = $self->name;
-    my $aa = $self->arg0->static_eval($fun);
-    my $bb = $self->arg1->static_eval($fun);
+    my $aa = $self->arg0->static_eval($env);
+    my $bb = $self->arg1->static_eval($env);
     return 0 + eval "$aa $op $bb";
 }
 
 sub to_ocl {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     return "("
-        . $self->arg0->to_ocl($fun)
+        . $self->arg0->to_ocl($env)
         . $self->name 
-        . $self->arg1->to_ocl($fun) 
+        . $self->arg1->to_ocl($env) 
         . ")";
 }
 

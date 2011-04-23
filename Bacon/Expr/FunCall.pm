@@ -25,11 +25,11 @@ sub kids {
 }
 
 sub to_ocl {
-    my ($self, $fun) = @_;
+    my ($self, $env) = @_;
     my $name = $self->name;
 
     my @args = @{$self->args};
-    my @ac   = map { $_->to_ocl($fun) } @args;
+    my @ac   = map { $_->to_ocl($env) } @args;
     return $name
         . '(' 
         . join(', ', @ac) 
