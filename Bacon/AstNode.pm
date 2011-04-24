@@ -12,7 +12,7 @@ use Bacon::Utils;
 
 use Carp;
 use Data::Dumper;
-use Scalar::Util qw(blessed);
+use Scalar::Util qw(blessed reftype);
 use Try::Tiny;
 use Clone qw(clone);
 use List::MoreUtils qw(any);
@@ -81,25 +81,6 @@ sub cost {
     return $cost;
 }
 
-sub partial_eval {
-    my ($self, $env) = @_;
-    my $class = ref($self);
-    my @attrs = $class->meta->get_all_attributes;
-    my %copy  = ();
-
-    for my $attr (@attrs) {
-        my $value = $self->$attr;
-        if (blessed($value) && $value->can('partial_eval')) {
-            $copy{$attr} = $value->partial_eval($env);
-        }
-        else {
-            $copy{$attr} = clone($value);
-        }
-    }
-
-    return $class->new(%copy);
-}
-
 sub to_opencl {
     my ($self, undef, undef) = @_;
     my $type = ref $self ? ref $self : $self;
@@ -120,7 +101,8 @@ sub to_cpp {
 
 sub kids {
     my ($self) = @_;
-    return ();
+    my @kids = ();
+    return @kids;
 }
 
 sub subnodes {
@@ -130,6 +112,41 @@ sub subnodes {
         push @subnodes, $_->subnodes;
     }
     return ($self, @subnodes);
+}
+
+sub transform_value {
+    my ($self, $sub, $value) = @_;
+    return undef unless defined $value;
+
+    if (blessed($value) && $value->isa('Bacon::AstNode')) {
+        my $copy = $value->transform($sub);
+        return clone($sub->($copy));
+    }
+    elsif (reftype($value) && reftype($value) eq reftype([])) {
+        # Handle Array attributes.
+        return [ map { $self->transform_value($sub, $_) } @$value ];
+    }
+    else {
+        if (defined reftype($value)) {
+            say "Didn't expect value:";
+            say Dumper($value);
+            confess "giving up";
+        }
+        return clone($value);
+    }
+}
+
+sub transform {
+    my ($self, $sub) = @_;
+    my $class = ref($self);
+
+    my %attrs = ();
+
+    for my $name (keys %$self) {
+        $attrs{$name} = $self->transform_value($sub, $self->$name);
+    }
+
+    return $class->new(%attrs);
 }
 
 __PACKAGE__->meta->make_immutable;

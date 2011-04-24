@@ -16,7 +16,9 @@ use Bacon::Utils;
 sub indent_block {
     my ($depth, $text) = @_;
     my $code = '';
-    for my $line (split /\n/, $text) {
+
+    my @lines = split /\n/, $text;
+    for my $line (@lines) {
         next unless $line =~ /\S/;
         $code .= indent($depth) . $line . "\n";
     }

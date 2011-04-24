@@ -1,10 +1,12 @@
 package Bacon::Utils;
 use warnings FATAL => 'all';
 use strict;
+use 5.10.0;
 
 use Exporter;
 our @ISA    = qw(Exporter);
-our @EXPORT = qw(indent assert_type in_list cpp_type cpp_header_type name_to_cc);
+our @EXPORT = qw(indent assert_type in_list cpp_type cpp_header_type 
+                 name_to_cc greatest_factor_not_above);
 
 use Carp;
 use Try::Tiny;
@@ -54,6 +56,22 @@ sub name_to_cc {
         $name =~ s/$/()/;
     }
     return $name;
+}
+
+sub greatest_factor_not_above {
+    my ($nn, $top) = @_;
+    my $answer = 1;
+
+    my $bound = $nn;
+    $bound = $top if $bound > $top;
+
+    for (my $ii = 2; $ii <= $bound; ++$ii) {
+        if ($nn % $ii == 0) {
+            $answer = $ii;
+        }
+    }
+
+    return $answer;
 }
 
 1;

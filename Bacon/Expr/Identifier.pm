@@ -5,15 +5,17 @@ use 5.10.0;
 
 use Moose;
 use namespace::autoclean;
-use Carp;
-
-use Bacon::Utils;
-use Bacon::MagicVars;
 
 use Bacon::Expr;
 extends 'Bacon::Expr';
 
 has name => (is => 'ro', isa => 'Str');
+
+use Carp;
+use Data::Dumper;
+
+use Bacon::Utils;
+use Bacon::MagicVars;
 
 sub static_eval {
     my ($self, $env) = @_;
@@ -34,9 +36,7 @@ sub to_ocl {
         return $name;
     }
 
-    my $var  = $env->lookup($name);
-
-    if ($var && $var->is_const) {
+    if (defined $env->value($name)) {
         return $self->static_eval($env);
     }
     

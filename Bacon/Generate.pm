@@ -3,6 +3,8 @@ use warnings FATAL => 'all';
 use strict;
 use 5.10.0;
 
+our $USE_INDENT = 1;
+
 use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(bacon_generate_ast bacon_generate_ocl);
@@ -104,6 +106,11 @@ sub bacon_gen_ocl_kernel {
     open my $out, ">", "gen/$clfn.cl";
     $out->print($ast->to_spec_opencl($kern_name, @static_args));
     close($out);
+
+    if ($USE_INDENT) {
+        system(qq{indent -kr -i4 -ts4 -nut "gen/$clfn.cl"});
+        system(qq{rm gen/*.cl~});
+    }
 }
 
 1;

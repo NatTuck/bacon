@@ -6,12 +6,20 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Exporter; 
 use Bacon::Expr;
-extends 'Bacon::Expr';
+extends 'Bacon::Expr', 'Exporter';
+
+our @EXPORT_OK = qw(mklit);
 
 use Bacon::Utils;
 
 has value => (is => 'ro', isa => 'Str', required => 1);
+
+sub mklit {
+    my ($value) = @_;
+    return __PACKAGE__->new(value => $value, source => 'generated:0');
+}
 
 sub new1 {
     my ($class, $token) = @_;

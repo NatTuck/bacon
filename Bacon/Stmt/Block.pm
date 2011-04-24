@@ -34,7 +34,8 @@ sub contents_to_opencl {
     my ($self, $env, $depth) = @_;
     my $code = '';
 
-    for my $smt (@{$self->body}) {
+    my @stmts = @{$self->body};
+    for my $smt (@stmts) {
         $code .= $smt->to_opencl($env, $depth);
     }
 

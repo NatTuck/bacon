@@ -100,22 +100,23 @@ sub init_magic_variables {
 
 sub outer_decls {
     my ($self) = @_;
-    my @decls = grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
-    return map { $_->var } @decls;
+    return grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
+}
+
+sub inner_decls {
+    my ($self) = @_;
+    return grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
 }
 
 sub local_decls {
     my ($self) = @_;
-    my @decls = ();
-    push @decls, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
-    push @decls, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->body->subnodes;
-    return @decls;
+    return ($self->outer_decls, $self->inner_decls);
 }
 
 sub expanded_args {
     my ($self) = @_;
     my @args = @{$self->args};
-    my @vars = $self->outer_decls;
+    my @vars =  map { $_->var } $self->outer_decls;
     return grep { !$_->is_const } (@args, @vars);
 }
 
@@ -222,7 +223,7 @@ sub to_spec_opencl {
     my @args = $self->expanded_args;
     my $arg_list = join(', ', map { $_->to_kern_arg($self) } @args);
 
-    my @vars = $self->local_decls;
+    my @vars = $self->inner_decls;
     my $decl_locals = '';
     for my $var (@vars) {
         $decl_locals .= $var->decl_to_opencl($env, 1);

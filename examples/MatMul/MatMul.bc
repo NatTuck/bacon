@@ -22,3 +22,27 @@ mat_mul(Array2D<float> aa, Array2D<float> bb)
 
     return cc;
 }
+
+kernel
+Array2D<float>
+mmul_1d(Array2D<float> aa, Array2D<float> bb)
+{
+ SETUP:
+    global Array2D<float> cc[aa.rows, bb.cols];
+
+ BODY:
+    @range [cc.rows];
+    int yy = $x;
+
+    for (int xx = 0; xx < cc.cols; ++xx) {
+        float sum = 0.0;
+
+        for (int kk = 0; kk < aa.cols; ++kk) {
+            sum += aa[yy, kk] * bb[kk, xx];
+        }
+
+        cc[yy, xx] = sum;
+    }
+
+    return cc;
+}

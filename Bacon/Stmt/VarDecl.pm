@@ -38,6 +38,11 @@ sub new_dimen {
         name => $name, type => 'uint', init => $val_expr);
 }
 
+sub to_setup_cc {
+    my ($self, $fun) = @_;
+    return $self->to_cpp_decl($fun);
+}
+
 sub to_cpp_decl {
     my ($self, $fun) = @_;
     my $code = '';
@@ -63,34 +68,31 @@ sub to_cpp_decl {
     return $code;
 }
 
-sub to_setup_cc {
-    my ($self, $fun) = @_;
-    return $self->to_cpp_decl($fun);
-}
-
-sub to_opencl {
+sub decl_to_opencl {
     my ($self, $env, $depth) = @_;
+    assert_type($env, 'Bacon::Environment');
+    return '' if $self->var->is_const;
 
     if ($self->var->type->isa("Bacon::Type::Array")) {
         return $self->array_to_opencl($env, $depth);
     }
 
-    my $code = indent($depth) . $self->var->type->to_ocl . " " . $self->name;
+    my $code = indent($depth) . $self->var->type->to_ocl 
+        . ' ' . $self->name . ";\n";
+    return $code;
+}
+
+sub to_opencl {
+    my ($self, $env, $depth) = @_;
+    return '' if $self->var->is_const;
+
+    my $code = '';
 
     if (defined $self->init) {
-        if ($self->var->is_const) {
-            $code .= " = " . $self->init->static_eval($env);
-        }
-        else {
-            $code .= " = " . $self->init->to_ocl($env);
-        }
-    }
-    elsif (defined $self->dims) {
-        die "Simple arrays can't be multi-dimensional" if (scalar @{$self->dims} > 1);
-        $code .= '[' . join(', ', map { $_->to_ocl($env) } @{$self->dims}) . ']';
-    }
+        $code .= indent($depth) . $self->name;
+        $code .= " = " . $self->init->to_ocl($env) . ";\n";
+    }    
 
-    $code .= ";\n";
     return $code;
 }
 
@@ -116,32 +118,6 @@ sub array_to_opencl {
     $code .= indent($depth) . "$name.data = $name" . "__data;\n";
 
     return $code;
-}
-
-sub decl_to_opencl {
-    my ($self, $env, $depth) = @_;
-    assert_type($env, 'Bacon::Environment');
-    return ""; # FIXME: Huh?
-
-    my $code = indent($depth);
-    $code .= $self->type . ' ' . $self->name;
-
-    if (defined $self->dims) {
-        my @dims = map { $_->to_ocl($env) } @{$self->dims};
-        $code .= '[' . join(', ', @dims) . ']';
-    }
-
-    if (defined $self->init && $self->init->isa('Bacon::Expr::Literal')) {
-        $code .= ' = ' . $self->init->to_ocl($env); 
-    }
-
-    $code .= ";\n";
-    return $code;
-}
-
-sub cpp_dims {
-    my ($self, $fun) = @_;
-    confess "Cpp Dims";
 }
 
 __PACKAGE__->meta->make_immutable;
