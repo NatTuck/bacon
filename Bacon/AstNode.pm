@@ -127,11 +127,6 @@ sub transform_value {
         return [ map { $self->transform_value($sub, $_) } @$value ];
     }
     else {
-        if (defined reftype($value)) {
-            say "Didn't expect value:";
-            say Dumper($value);
-            confess "giving up";
-        }
         return clone($value);
     }
 }

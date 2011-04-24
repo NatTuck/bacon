@@ -1,0 +1,71 @@
+\documentclass{llncs}
+
+\begin{document}
+
+\title{Bacon: GPU Programming With Just in Time Specialization}
+
+\author{Nat Tuck\inst{1}}
+
+\institute{University of Massachusetts Lowell, Lowell MA 01854, USA}
+
+\maketitle
+
+\begin{abstract}
+
+This paper describes Bacon, a programming language that provides
+simpler development and better optimizations for OpenCL compatible
+general purpose GPUs.
+
+\end{abstract}
+
+\section{Introduction}
+
+OpenCL is a standard language for data parallel computation primarily
+targetted at graphics processing units.
+
+Although OpenCL maps well to GPU hardware and provides detailed
+control, it has some weaknesses. The C++ interface to OpenCL is very
+verbose, and requires quite a bit of boilerplate to get any program to
+run at all. OpenCL doesn't provide any mechanism for dynamic memory
+allocation. Existing implementations of OpenCL don't do loop unrolling
+for loops with unknown iteration counts.
+
+Bacon was developed to try to improve the OpenCL programming
+experience. It extends the OpenCL C programming language and provides
+a compiler that hopes to solve these issues. C++ wrapper code is
+generated automatically. Just in time specialization allows the 
+illusion of dynamic stack allocation as well as the unrolling of
+some loops.
+
+Partial evaluation has been shown to provide improved performance in
+scientific computing applications. A good example of this is shown in
+\cite{Berlin:1990}.
+
+The design of the OpenCL runtime system depends on device-specific
+code generation occuring at runtime, which suggests the use of
+parameter information for optimization at runtime.
+
+\section{Bacon}
+\subsection{Language}
+
+The Bacon programming language is based on OpenCL C with a small
+number of modifications. 
+
+- 
+
+
+\subsection{Implementation}
+
+Hai
+
+\section{Result}
+
+Hai
+
+\section{Conclusion}
+
+Hai
+
+\bibliography{bacon}{}
+\bibliographystyle{splncs03}
+\end{document}

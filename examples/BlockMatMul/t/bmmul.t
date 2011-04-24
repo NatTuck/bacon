@@ -13,7 +13,7 @@ if (defined $ENV{LD_LIBRARY_PATH}) {
 
 $ENV{LD_LIBRARY_PATH} = "../../lib" . $ldpath;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Bacon::Test;
 
 my $tmp = "t/out-$$.dat";
@@ -33,4 +33,11 @@ unlink($tmp);
 system("./bmmul -p -k 2 -a t/aa.dat -b t/bb.dat -o $tmp");
 files_eq($tmp, "t/out.dat", "BlockMatMul - private mem arbitrary matrix");
 unlink($tmp);
+
+my $result  = `./bmmul -p -k 2 -c -n 512`;
+my $correct = <<"EOF";
+Random test of 512x512 matrices at block size = 2
+Random test succeeded.
+EOF
+ok($result eq $correct, "BlockMatMul - private block large matrix");
 

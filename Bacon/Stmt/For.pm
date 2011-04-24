@@ -13,8 +13,8 @@ use Bacon::Stmt;
 use Bacon::Template;
 extends 'Bacon::Stmt', 'Bacon::Template';
 
-our $MAX_UNROLL_SIZE = 64;
-our $MAX_UNROLL_COST = 10000;
+our $MAX_UNROLL_SIZE = 16;
+our $MAX_UNROLL_COST = 1000;
 #our $MAX_UNROLL_COST = 0;
 
 has init => (is => 'ro', isa => 'Bacon::Stmt', required => 1);

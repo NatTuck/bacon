@@ -1,11 +1,9 @@
 
-all: BaconManual.pdf
 
-BaconManual.pdf: BaconManual.tex
-	pdflatex BaconManual.tex > build.log
-	pdflatex BaconManual.tex >> build.log
+all:
+	(cd Manual && make)
+	(cd Paper && make)
 
 clean:
-	rm -f *.dvi *.pdf *.aux *.log
-
-.PHONY: all clean
+	(cd Manual && make clean)
+	(cd Paper && make clean)
