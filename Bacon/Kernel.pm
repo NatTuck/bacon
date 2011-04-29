@@ -440,12 +440,24 @@ __[ wrapper_cc ]__
     const char* base_name   = "<% $base_name %>";
     cl::Kernel kern;
 
+    ctx.show_timing = 1;
+    cout << std::fixed;
+
     try {
+        Bacon::Timer timer;
+
         <% $setup_code %>
 
         std::vector<int> cargs;
         <% $push_cargs %>
+
+        timer.reset();
         kern = spec_kernel(base_name, kernel_name, cargs);
+        double spec_took = timer.time();
+
+        if (ctx.show_timing) {
+            cout << "Kernel " << kernel_name << " spec: " << spec_took << endl; 
+        }
 
         Bacon::Array<cl_long> status(3);
         status.fill(0);
@@ -457,13 +469,12 @@ __[ wrapper_cc ]__
 
         NDRange range(<% $nd_range %>);
 
-        Bacon::Timer timer;
 
+        timer.reset();
         Event done;
         ctx.queue.enqueueNDRangeKernel(
             kern, NullRange, range, <% $local_range %>, 0, &done);
         done.wait();
-
         double kernel_took = timer.time();
 
         if (status.get(1)) {

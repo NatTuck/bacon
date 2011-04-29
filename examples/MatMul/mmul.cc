@@ -10,6 +10,8 @@ using std::string;
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <Bacon/Timer.hh>
+
 #include "gen/MatMul.hh"
 
 void
@@ -38,9 +40,12 @@ run_test(string c_file, string a_file, string b_file)
 }
 
 void
-random_test(int nn, bool check = true)
+random_test(int nn, bool check = true, bool timing = false)
 {
     MatMul mmul;
+
+    Bacon::Timer tt;
+    double seconds;
 
     Bacon::Array2D<float> aa(nn, nn);
     aa.fill_random();
@@ -48,8 +53,21 @@ random_test(int nn, bool check = true)
     Bacon::Array2D<float> bb(nn, nn);
     bb.fill_identity_matrix();
 
+    tt.reset();
     Bacon::Array2D<float> cc = mmul.mat_mul(aa, bb);
-   
+    seconds = tt.time();
+
+    if (timing) {
+        cout << "First run took " << seconds << " seconds." << endl;
+
+        tt.reset();
+        cc = mmul.mat_mul(aa, bb);
+        seconds = tt.time();
+
+        cout << "Second run took " << seconds << " seconds." << endl;
+    }
+
+
     if(!check) {
         cout << "Result not checked." << endl;
         return;
@@ -81,8 +99,9 @@ main(int argc, char* argv[])
 
     int random_size = 0;
     bool check_result = false;
+    bool print_timing = false;
 
-    while ((opt = getopt(argc, argv, "hpa:b:o:n:c")) != -1) {
+    while ((opt = getopt(argc, argv, "hpta:b:o:n:c")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
@@ -102,6 +121,9 @@ main(int argc, char* argv[])
         case 'p':
             Bacon::use_opencl_cpu = true;
             break;
+        case 't':
+            print_timing = true;
+            break;
         case 'h':
             show_usage();
             return 0;
@@ -113,7 +135,7 @@ main(int argc, char* argv[])
 
 
     if (random_size != 0) {
-        random_test(random_size, check_result);
+        random_test(random_size, check_result, print_timing);
     }
     else {
         run_test(c_file, a_file, b_file);
