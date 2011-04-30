@@ -1,6 +1,14 @@
 \documentclass{llncs}
+
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{verbatim}
+\usepackage{placeins}
+\usepackage{afterpage}
+
+\floatstyle{boxed}
+\newfloat{listing}{thp}{lop}
+\floatname{listing}{Listing}
 
 \begin{document}
 
@@ -14,9 +22,11 @@
 
 \begin{abstract}
 
-This paper describes Bacon, a programming language that provides
-simpler development and better optimizations for OpenCL compatible
-general purpose GPUs.
+This paper describes Bacon, a programming language that makes it
+easier to write high performance kernels to run on for OpenCL
+compatible general purpose GPUs. The design and implementation is
+described, and benchmarks are given showing performance gains over
+comparable OpenCL programs.
 
 \end{abstract}
 
@@ -49,74 +59,195 @@ delaying compilation until runtime when the target GPU device is
 known, but requires each developer to write quite a bit of code to
 load the source code and perform various other bookkeeping.
 
-Bacon was developed to try to improve the OpenCL programming
-experience. It extends the OpenCL C programming language and provides
-a compiler that hopes to solve these issues. C++ wrapper code is
-generated automatically. Just in time specialization allows the 
-illusion of dynamic stack allocation as well as the unrolling of
-some loops.
+Bacon was developed to try to improve upon the OpenCL programming
+experience and make it easier to write high performance programs for
+GPU hardware. It does this by extending the OpenCL C syntax into a new
+language called Bacon C, and by performing some pre-optimizations as
+the Bacon C code is compiled to OpenCL C.
 
-Partial evaluation has been shown to provide improved performance in
-scientific computing applications. A good example of this is shown by Berlin
-\cite{Berlin:1990}.
+The key optimization performed by the Bacon compiler is just in time
+specialization. When a kernel is called, a specialzied version of the
+kernel is generated with some of its variable arguments replaced with
+compile-time constants. This allows for a variety of agressive
+optimizatons to be performed by the OpenCL compiler. Further, it
+allows for some variable sized array declarations to be turned into
+constant sized arrays that are allowed by OpenCL.
 
-The design of the OpenCL runtime system depends on device-specific
-code generation occuring at runtime, which suggests the use of
-parameter information for optimization at runtime.
+We evaluate these improvements below using matrix multiplication as a
+test case. Both simpler code and improved performance are
+demonstrated.
 
 \section{Bacon}
 \subsection{Language}
 
-The Bacon programming language is based on OpenCL C with a small
-number of modifications:
+\begin{listing}[tb]
+\begin{verbatim}
+kernel
+Array2D<float>
+mat_mul(Array2D<float> aa, Array2D<float> bb) 
+{
+ SETUP:
+    global Array2D<float> cc[aa.rows, bb.cols];
 
-- Kernel definition format that allows auto-generation of
-  C++ interface code.
-- Native 2D and 3D array syntax.
-- Runtime value specialization, allowing for
-  - Variable size array declarations
-  - The expectation of loop unrolling
+ BODY:
+    @range [cc.rows, cc.cols];
 
-Because private array items are actually assigned to device registers,
-at least in the AMD implementation of OpenCL, this means that a loop
-over a variable sized local array can be expected to be as efficient
-as the manually unrolled version.
+    float sum = 0.0;
+    assert(aa.cols == bb.rows, 
+        "Matrixes must have compatible dimensions.");
+    for (int kk = 0; kk < aa.cols; ++kk) {
+        sum += aa[$row, kk] * bb[kk, $col];
+    }
+    cc[$y, $x] = sum;
+    return cc;
+}
+\end{verbatim}
+\caption{Naive Matrix Multiplication in Bacon C}\label{mmk}
+\end{listing}
+
+Bacon C is based on OpenCL C with extensions for improved usability
+and to enable the automatic generation of C++ wrapper code. A sample
+Bacon C kernel that performs matrix multiplication is shown in
+Listing~\ref{mmk}.
+
+Wrapper code generation is enabled by the separation of each kernel
+declarations into separate SETUP and BODY sections. Conceptually, the
+SETUP section is for code is independent of any specific parallel
+thread while the BODY section is the code that runs in parallel. This
+allows the declaration and dynamic sizing of variables that will
+reside in GPU global memory and can be returned to the host process.
+
+Each BODY includes a @range declaration that specifes the range it
+will be executed over in parallel. Within the BODY, the current
+position in that range is held in special variables named {\tt\$row},
+{\tt\$col}, and {\tt\$dep} for the first, second, and third dimension
+respectively.
+
+Parameterized types for 1D, 2D and 3D arrays are provided
+natively. The types are parameterized using C++-style angle bracket
+syntax. Both declarations and element access use a comma separated
+list of dimensions in square brackets. The dimensions of these arrays
+can be accessed using struct-style dot notation.
+
+Additional error handling is provided through the {\tt assert} and
+{\tt fail} keywords which will raise exceptions in the host process if
+triggered. Fail throws an error if it is executed at all, while assert
+is triggered if its condition is false.
+
+Each Bacon kernel has a set of specialization variables. The
+dimensions of any arrays passed as arguments to a kernel are always
+specialization variables. Other specialization variables can be
+specified explicitly by declaring arguments using the {\tt const}
+qualifier. Whenever a kernel is called with a new set of
+specialization variables a specialized version of that kernel is
+generated and executed.
+
+\begin{listing}[t!]
+\begin{verbatim}
+kernel
+Array2D<float>
+blocked_mat_mul_private(Array2D<float> aa, Array2D<float> bb, 
+                        const uint blksz)
+{
+ SETUP:
+    global Array2D<float> cc[aa.rows, bb.cols];
+
+ BODY:
+    @range [cc.rows / blksz, cc.cols / blksz];
+
+    private Array2D<float> sum[blksz, blksz];
+    int ii, jj, kk, gg;
+
+    for (ii = 0; ii < blksz; ++ii) {
+        for (jj = 0; jj < blksz; ++jj) {
+            sum[ii, jj] = 0.0;
+        }
+    }
+
+    int base_ii = $row * blksz;
+    int base_jj = $col * blksz;
+    int base_kk;
+
+    for (gg = 0; gg < aa.cols / blksz; ++gg) {
+        base_kk = gg * blksz;
+
+        for (ii = 0; ii < blksz; ++ii) {
+            for (jj = 0; jj < blksz; ++jj) {
+                for (kk = 0; kk < blksz; ++kk) {
+                    sum[ii, jj] += aa[base_ii + ii, base_kk + kk] * 
+                        bb[base_kk + kk, base_jj + jj];
+                }
+            }
+        }
+    }
+
+    for (ii = 0; ii < blksz; ++ii) {
+        for (jj = 0; jj < blksz; ++jj) {
+            cc[base_ii + ii, base_jj + jj] = sum[ii, jj];
+        }
+    }
+
+    return cc;
+}
+\end{verbatim}
+\caption{Blocked Matrix Multiplication in Bacon C}\label{bmmk}
+\end{listing}
+\afterpage{\FloatBarrier}
+
+This specialization, in addition to providing performance benefits,
+allows for the simulation of variable sized arrays in thread-local
+memory as long as the array size depends only on {\tt const} variables
+and array dimensions. The blocked matrix multiply kernel in
+Listing~\ref{bmmk} gives an example of this feature.
 
 \subsection{Implementation}
 
-Bacon consists of a compiler that translates Bacon C into an
-intermediate representation and generates interface code to load and
-execute that code at runtime from a C++ host application.
+The Bacon system consists of two pieces: the front-end compiler and the
+runtime library. The front-end library parses the Bacon C source and
+outputs a C++ wrapper and an intermediate form of the parsed code. The
+runtime library is called from the generated wrapper to load the
+intermediate form code, generate specialized OpenCL C code when a
+kernel is called, and run that code on the GPU using the OpenCL
+runtime.
+
+The system is built using Perl and C++. The front-end compiler parses
+the source code using Parse::Yapp, a yacc-compatible parser generator
+for Perl. This constructs abstract syntax tree, which is then walked
+to generate the C++ wrapper. The abstract syntax tree (AST) is then
+serialized for later loading by the runtime library.
+
+The generated C++ wrapper provides a C++ function with the kernel's
+type signature that can be called from the user's application. When
+this functions is called, the runtime library loads the AST and walks
+it to generate the specialized OpenCL code. Optimizatons are performed
+at code generation time without any intermediate pass that transforms
+the representation.
+
+The two optimizations that are performed by the Bacon library are
+constant propagation and loop unrolling. Constant propagation is used
+to determine the exact set and values of the specialized variables,
+building a mapping {\tt const} variables to their values so that
+references to these variables can be replaced with integer literals in
+the generated OpenCL C code. Loop unrolling is then performed on any
+loops that can be statically analized.
+
+Loop unrolling is included because neither the AMD nor Nvidia OpenCL
+compilers do it by default, and manually unrolling loops is time
+consuming and error prone. Loop unrolling in Bacon is an even more
+powerful optimization than usual due to the ability to either fully
+unroll loops or to unroll them by a factor that is guaranteed to
+evenly divide the iteration count because array sizes are always known
+due to just in time specialization.
+
+The implemetnation of Bacon is available publically under an open
+source license. The current version can be downloaded from the public
+git repository\footnote{http://code.ferrus.net/compilers/bacon.git}.
 
 \section{Performance Results}
 
 \subsection{Matrix Multiplication}
 
-To analyze the performance of the Bacon system, we performed a number
-of tests multiplying random 4096x4096 matrixes of single precision
-point numbers.
-
-Testing was performed using the hardware shown in Table~\ref{hw}. At
-the time of this writing this represents an inexpensive (\~\$500) new
-PC for computer gaming, but both the CPU and GPU archetectures are
-less than one design generation behind the latest hardware from AMD.
-
-\begin{table}[htb]
-\begin{tabular}{ l @{\hspace{10pt}} l @{\hspace{10pt}} l }
-Device & Speed & RAM \\
-\hline
-\noalign{\smallskip}
-AMD Phenom II X3 720 & 3 Cores @ 2.8 GHz & 4GB DDR2 @ 800MHz \\
-\noalign{\smallskip}
-ATI Radeon 5830 & 1120 Stream Cores @ 800 MHz & 1GB GDDR5 @ 1000 MHz \\
-\noalign{\smallskip}
-\end{tabular}
-\caption{Hardware used for performance testing}\label{hw}
-\end{table}
-
-The baseline measurement is a naive matrix multiplication written in OpenCL C.
-
-\begin{table}
+\begin{table}[t!]
 \begin{tabular}{ l @{\hspace{10pt}} r @{\hspace{10pt}} r }
 Test & Time (s) & Speedup \\
 \hline
@@ -133,16 +264,48 @@ Bacon - Blocked (Best) & 1.97 & 6.1 \\
 \caption{Summary of 4k Matrix Multiplication Performance}\label{mm1}
 \end{table}
 
-\begin{figure}[htb]
+In order to evaluate the performance of the Bacon system, we compare
+the run time of matrix multiplication kernels in both Bacon C and
+OpenCL C.
+
+Testing was performed on an ATI Radeon 5830 GPU. This is a cut down
+version of AMD's current top of the line GPU chipset, which at the
+time of this writing sells new for around \$140. A similar Nvidia card
+was purchased for comparison testing, but the comparsion was not
+performed due to implementation incompatibilities that we have not yet
+resolved.
+
+Four implementations of matrix multiplication were tested:
+
+\begin{description}
+  \item[Bacon - Naive] Shown in Listing~\ref{mmk}.
+  \item[OpenCL - Naive] An equivilent OpenCL C implementation.
+  \item[Bacon - Blocked] Shown in listing~\ref{bmmk}.
+  \item[OpenCL - Hand Vectorized] Hand unrolled using vector types to
+    compute 4x4 blocks. Based on a sample from the AMD OpenCL SDK.
+\end{description}
+
+Tests were performed on 4096x4096 matrices to create large enough
+chunks of work to be able to time the results without worrying about
+factors like OpenCL queue latencies. As table~\ref{mm1} shows, the
+optimizations provided by the Bacon system provide significant
+speedups on this test. As a comparison to show how good GPUs are for
+this kind of taask, a naive serial implementation running on a CPU can
+take as much as 45 minutes to do this calculation\footnote{Tested on
+  an AMD Phenom II X3 @ 2.8 GHz}, although a highly optimized
+implementation can approach the GPU times\footnote{ATLAS BLAS clocks
+  in at 7.8 seconds}.
+
+
+\begin{figure}[tbh]
 \begin{center}
 \includegraphics[clip]{unrolling}
 \end{center}
-\caption{Summary of 4k Matrix Multiplication Performance}\label{unroll}
+\caption{Performance of 4k Matrix Multiplication with Unrolled Loops}\label{unroll}
 \end{figure}
 
 \section{Conclusion}
-
-Hai
+Hai \cite{Berlin:1990}.
 
 \bibliography{bacon}{}
 \bibliographystyle{splncs03}
