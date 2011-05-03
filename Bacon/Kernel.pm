@@ -440,8 +440,8 @@ __[ wrapper_cc ]__
     const char* base_name   = "<% $base_name %>";
     cl::Kernel kern;
 
-    ctx.show_timing = 1;
-    cout << std::fixed;
+    //ctx.show_timing = 1;
+    //cout << std::fixed;
 
     try {
         Bacon::Timer timer;

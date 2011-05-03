@@ -26,7 +26,7 @@ This paper describes Bacon, a programming language that makes it
 easier to write high performance kernels to run on for OpenCL
 compatible general purpose GPUs. The design and implementation is
 described, and benchmarks are given showing performance gains over
-comparable OpenCL programs.
+comparable programs written directly in OpenCL C.
 
 \end{abstract}
 
@@ -38,11 +38,11 @@ years. In response to the platform specific programming solutions from
 Nvidia and Microsoft, Apple developed the OpenCL standard as an open and
 cross platform programming interface to this hardware.
 
-The OpenCL standard consists of two major pieces. First, it defines a
-programming language called OpenCL C for writing compute kernels to
-run on parallel hardware. Second, it defines runtime APIs for C and
-C++ that allow these kernels to be compiled, loaded, and executed from
-programs running on a host machine.
+The OpenCL standard\cite{opencl} consists of two major pieces. First,
+it defines a programming language called OpenCL C for writing compute
+kernels to run on parallel hardware. Second, it defines runtime APIs
+for C and C++ that allow these kernels to be compiled, loaded, and
+executed from programs running on a host machine.
 
 OpenCL C uses the syntax of C99 and provides a set of built in data
 types and functions that expose the numeric computatation capabilities
@@ -66,16 +66,27 @@ language called Bacon C, and by performing some pre-optimizations as
 the Bacon C code is compiled to OpenCL C.
 
 The key optimization performed by the Bacon compiler is just in time
-specialization. When a kernel is called, a specialzied version of the
-kernel is generated with some of its variable arguments replaced with
-compile-time constants. This allows for a variety of agressive
-optimizatons to be performed by the OpenCL compiler. Further, it
-allows for some variable sized array declarations to be turned into
-constant sized arrays that are allowed by OpenCL.
+specialization. Rather than performing When a kernel is called, a
+specialzied version of the kernel is generated with some of its
+variable arguments replaced with compile-time constants. This allows
+for a variety of agressive optimizatons to be performed by the OpenCL
+compiler. Further, it allows for some variable sized array
+declarations to be turned into constant sized arrays that are allowed
+by OpenCL.
 
 We evaluate these improvements below using matrix multiplication as a
 test case. Both simpler code and improved performance are
 demonstrated.
+
+\section{Previous Work}
+
+Specialization, also known as partial evaluation, has been shown to be
+a very effective optimization by projects such as
+Tempo\cite{consel:1998}, which does general partial evaluation of C
+code at compile time. Just in time specialization was popularized by
+its use in typing dynamic languages, as shown in the Self
+language\cite{chambers:1992}. Just in time specialization on values has
+been used in Prolog systems by Bolz\cite{bolz:2010}.
 
 \section{Bacon}
 \subsection{Language}
@@ -211,10 +222,10 @@ kernel is called, and run that code on the GPU using the OpenCL
 runtime.
 
 The system is built using Perl and C++. The front-end compiler parses
-the source code using Parse::Yapp, a yacc-compatible parser generator
-for Perl. This constructs abstract syntax tree, which is then walked
-to generate the C++ wrapper. The abstract syntax tree (AST) is then
-serialized for later loading by the runtime library.
+the source code using Parse::Yapp\cite{parse::yapp}, a yacc-compatible
+parser generator for Perl. This constructs abstract syntax tree, which
+is then walked to generate the C++ wrapper. The abstract syntax tree
+(AST) is then serialized for later loading by the runtime library.
 
 The generated C++ wrapper provides a C++ function with the kernel's
 type signature that can be called from the user's application. When
@@ -266,14 +277,17 @@ Bacon - Blocked (Best) & 1.97 & 6.1 \\
 
 In order to evaluate the performance of the Bacon system, we compare
 the run time of matrix multiplication kernels in both Bacon C and
-OpenCL C.
+OpenCL C. These results are summarized in Table~\ref{mm1}, which shows
+that Bacon is able to provide measurable performance improvements over
+similar programs written directly in OpenCL C. 
 
-Testing was performed on an ATI Radeon 5830 GPU. This is a cut down
-version of AMD's current top of the line GPU chipset, which at the
-time of this writing sells new for around \$140. A similar Nvidia card
-was purchased for comparison testing, but the comparsion was not
-performed due to implementation incompatibilities that we have not yet
-resolved.
+Testing was performed on an ATI Radeon HD 5830 GPU. This is a cut down
+version of AMD's current top of the line GPU, the Radeon HD 6970. The
+5830 sells for around \$140 at the time of this writing compared to
+\$340 for the 6970, while providing over 60\% of the theoretical
+compute power. A similar Nvidia card was purchased for comparison
+testing, but the comparsion was not performed due to implementation
+incompatibilities that we have not yet resolved.
 
 Four implementations of matrix multiplication were tested:
 
@@ -285,17 +299,11 @@ Four implementations of matrix multiplication were tested:
     compute 4x4 blocks. Based on a sample from the AMD OpenCL SDK.
 \end{description}
 
-Tests were performed on 4096x4096 matrices to create large enough
-chunks of work to be able to time the results without worrying about
-factors like OpenCL queue latencies. As table~\ref{mm1} shows, the
-optimizations provided by the Bacon system provide significant
-speedups on this test. As a comparison to show how good GPUs are for
-this kind of taask, a naive serial implementation running on a CPU can
-take as much as 45 minutes to do this calculation\footnote{Tested on
-  an AMD Phenom II X3 @ 2.8 GHz}, although a highly optimized
-implementation can approach the GPU times\footnote{ATLAS BLAS clocks
-  in at 7.8 seconds}.
-
+Timings were taken multiplying 4096x4096 matrices. Each test was
+performed five times and the average result was taken. The times were
+very consistent; most tests had a coefficient of variation under one
+percent. The speedups over the naive OpenCL implementationa are shown
+in Figure~\ref{unroll}.
 
 \begin{figure}[tbh]
 \begin{center}
@@ -304,9 +312,53 @@ implementation can approach the GPU times\footnote{ATLAS BLAS clocks
 \caption{Performance of 4k Matrix Multiplication with Unrolled Loops}\label{unroll}
 \end{figure}
 
-\section{Conclusion}
-Hai \cite{Berlin:1990}.
+These measurements clearly show that value specialization provides
+significant speedups over a non-specialized OpenCL kernel. This result
+was expected; providing constant values at compile time allows the
+OpenCL C compiler to do extensive and agressive constant
+propagantion-based optimizations.
 
-\bibliography{bacon}{}
+The results from loop unrolling are more complicated. Unrolling loops
+too much drastically decrease performance, most likely due to the
+exhaustion of registers on the GPU device. Still, when properly tuned,
+loop unrolling provides significant speedups allowing the blocked
+Bacon kernel to beat the hand vectorized OpenCL kernel by nearly 30
+percent.
+
+\section{Future Work}
+
+The Bacon system could benefit from a number of extensions to improve
+its performance, generality, and utility to developers. One obvious
+area of improvement would be to automatically determine the best
+factor for loop unrolling rather than expecting it to be tuned
+manually. The unrolling analysis could also be extended to the
+implicit parallel ``loops'' created by the range of the computation;
+optimally, it should be possible to generate kernels like the blocked
+matrix mulitplication shown from the naive matrix multiplication
+kernel. Another simple improvement would be to perform strip mining
+(Wolfe \cite{wolfe:1996}, section 9.8) and generate explicit vector
+code for loops.
+
+Just in time specialization as a method to improve performance on
+parallel computations seems very promising in general, but there are
+some limitations imposed by the use of OpenCL as a compiler target. An
+implementation of this technique targetting a parallel processor at a
+lower level would allow for more flexibiltiy and much faster
+specialization times.
+
+\section{Conclusion}
+
+We have shown that Bacon allows a high performance GPU matrix
+multiplication kernel to be written in a naive style and executed with
+nearly the performance of a hand-vectorized OpenCL kernel due to the
+performance benefits of just in time specialization. Further, we have
+shown that by re-writing that kernel with a generalized block strategy
+and selecting appropriate loop unrolling settings, the performance of
+the hand vectorized OpenCL kernel can be exceeded.
+
+We are distributing this tool in the hope that it will be practically
+useful for developing kernels targeting OpenCL compatible GPU devices.
+
+\bibliography{bacon}{} 
 \bibliographystyle{splncs03}
 \end{document}
