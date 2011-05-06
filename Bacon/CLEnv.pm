@@ -15,8 +15,9 @@ sub find_opencl_config {
     my $ARCH = `uname -m`;
     chomp $ARCH;
 
-    if ($ENV{ATISTREAMSDKROOT}) {
-        my $base = $ENV{ATISTREAMSDKROOT};
+    my $approot = $ENV{ATISTREAMSDKROOT} || $ENV{AMDAPPSDKROOT};
+    if ($approot) {
+        my $base = $approot;
         $CL_INC = "$base/include";
         $CL_LIB = "$base/lib/$ARCH";
         $CL_VER = "ATI";
