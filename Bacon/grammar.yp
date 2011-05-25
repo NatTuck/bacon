@@ -82,7 +82,7 @@ sub var_decl {
 
 primary_expression
     : CONSTANT
-        { Bacon::Expr::Literal->new(value => $_[1]) }
+        { Bacon::Expr::Literal->new(token => $_[1], value => $_[1]->number) }
     | IDENTIFIER
         { Bacon::Expr::Identifier->new(name => $_[1]) }
     | STRING

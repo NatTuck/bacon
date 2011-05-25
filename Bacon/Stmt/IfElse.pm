@@ -31,7 +31,12 @@ sub new4 {
 
 sub kids {
     my ($self) = @_;
-    return ($self->cond, $self->case0, $self->case1);
+    if (defined $self->case1) {
+        return ($self->cond, $self->case0, $self->case1);
+    }
+    else {
+        return ($self->cond, $self->case0);        
+    }
 }
 
 sub to_opencl {

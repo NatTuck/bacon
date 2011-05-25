@@ -25,7 +25,9 @@ sub static_eval {
     my $sym = $self->name . "." . $self->field;
     my $val = $env->value($sym);
     return $val if (defined $val);
-    confess "No static value for $sym";
+
+    $env->dump_values;
+    confess "No static value for $sym in FieldAccess at " . $self->source;
 }
 
 sub to_ocl {

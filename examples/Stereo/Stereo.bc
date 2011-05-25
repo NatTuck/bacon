@@ -205,6 +205,7 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
 {
  SETUP:
     global Array2D<uchar> disp[pspace.rows, pspace.cols];
+    const int PATH_COUNT = 4;
 
  BODY:
     @range [pspace.rows, pspace.cols];
@@ -212,7 +213,6 @@ half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int 
     int max_disp = pspace.rows / 5;
     int min_disp = 0;
 
-#define PATH_COUNT 4
     int path[PATH_COUNT];
 
     int best_cost = 999999;

@@ -69,7 +69,9 @@ sub declared_variables {
 
 sub mutates_variable {
     my ($self, $var) = @_;
-    return any { $_->mutates_variable($var) } $self->kids;
+    return any { 
+        $_->mutates_variable($var);
+    } $self->kids;
 }
 
 sub cost {

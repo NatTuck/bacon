@@ -58,9 +58,38 @@ sub local_decls {
     return grep { $_->isa('Bacon::Stmt::VarDecl') } $self->subnodes;
 }
 
+sub eval_const_vars {
+    my ($self, $env) = @_;
+    
+    my @decls = $self->local_decls;
+
+    my @const_vars = ();
+    for my $decl (@decls) {
+        my $var  = $env->lookup($decl->name);
+        my $name = $var->name;
+        
+        if ($var->has_dims) {
+            my @dim_ns = @{$var->type->dims};
+            my @dim_vs = @{$decl->dims};
+            
+            for (my $ii = 0; $ii < scalar @dim_ns; ++$ii) {
+                my $nn = $dim_ns[$ii];
+                my $vv = $dim_vs[$ii]->static_eval($env);
+                $env->lookup("$name.$nn")->value($vv);
+            }
+        }
+        elsif ($var->is_const) {
+            my $value = $decl->init->static_eval($env);
+            $var->value(embiggen($value));
+        }
+    }
+}
+
 sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");
+
+    $self->eval_const_vars($self->env);
 
     my $code = "/* Function: " . $self->name . 
                " " . $self->source . " */\n";

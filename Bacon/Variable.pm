@@ -4,13 +4,15 @@ use 5.10.0;
 use feature 'switch';
 
 use Moose;
+
 use Carp;
+use Bacon::BigNum;
 
 has name  => (is => 'ro', isa => 'Str', required => 1);
 has type  => (is => 'ro', isa => 'Maybe[Bacon::Type]');
 
 has ridx  => (is => 'rw', isa => 'Maybe[Num]');
-has value => (is => 'rw', isa => 'Maybe[Num]');
+has value => (is => 'rw', isa => 'Maybe[BigNum]');
 
 use Bacon::Utils;
 use Bacon::Type::All;

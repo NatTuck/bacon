@@ -6,6 +6,8 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Bacon::BigNum;
+
 use Exporter; 
 use Bacon::Expr;
 extends 'Bacon::Expr', 'Exporter';
@@ -14,21 +16,21 @@ our @EXPORT_OK = qw(mklit);
 
 use Bacon::Utils;
 
-has value => (is => 'ro', isa => 'Str', required => 1);
+has value => (is => 'ro', isa => 'BigNum', required => 1);
 
 sub mklit {
     my ($value) = @_;
-    return __PACKAGE__->new(value => $value, source => 'generated:0');
-}
-
-sub new1 {
-    my ($class, $token) = @_;
-    return $class->new_from_token0(value => $token);
+    return __PACKAGE__->new(value => embiggen($value), source => 'generated:0');
 }
 
 sub to_ocl {
     my ($self, undef) = @_;
-    return $self->value;
+    if ($self->value->isa('Math::BigFloat')) {
+        return $self->value;
+    }
+    else {
+        return $self->value;
+    }
 }
 
 sub to_cpp {

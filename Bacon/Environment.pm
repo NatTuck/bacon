@@ -14,6 +14,8 @@ has in_kernel => (is => 'ro', isa => 'Bool', required => 1);
 use Clone qw(clone);
 use Try::Tiny;
 
+use Bacon::Utils qw(embiggen);
+
 sub lookup {
     my ($self, $name) = @_;
 
@@ -56,7 +58,8 @@ sub update_with {
     
     for my $name (keys %vals) {
         my $var = clone($self->lookup($name));
-        $var->value($vals{$name});
+        my $vv  = embiggen($vals{$name});
+        $var->value($vv);
         $env->add($var);
     }
 

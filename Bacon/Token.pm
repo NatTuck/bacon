@@ -11,9 +11,16 @@ has text => (is => 'ro', isa => 'Str', required => 1);
 has file => (is => 'ro', isa => 'Str', required => 1);
 has line => (is => 'ro', isa => 'Int', required => 1);
 
+use Bacon::Utils qw(embiggen);
+
 sub source {
     my ($self) = @_;
     return $self->file . ":" . $self->line;
+}
+
+sub number {
+    my ($self) = @_;
+    return embiggen($self->text);
 }
 
 __PACKAGE__->meta->make_immutable;

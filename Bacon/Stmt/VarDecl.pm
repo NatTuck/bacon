@@ -78,7 +78,18 @@ sub decl_to_opencl {
     }
 
     my $code = indent($depth) . $self->var->type->to_ocl 
-        . ' ' . $self->name . ";\n";
+        . ' ' . $self->name;
+
+    if (defined $self->dims) {
+        my @dims = @{$self->dims};
+        unless (scalar @dims == 1) {
+            die "Simple array can't have multiple dimensions at " . $self->source; 
+        }
+
+        $code .= '[' . $dims[0]->to_ocl($env) . ']';
+    }
+
+    $code .= ";\n";
     return $code;
 }
 

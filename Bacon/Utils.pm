@@ -6,11 +6,14 @@ use 5.10.0;
 use Exporter;
 our @ISA    = qw(Exporter);
 our @EXPORT = qw(indent assert_type in_list cpp_type cpp_header_type 
-                 name_to_cc greatest_factor_not_above);
+                 name_to_cc greatest_factor_not_above embiggen);
 
 use Carp;
 use Try::Tiny;
 use Scalar::Util qw(blessed);
+
+use Math::BigInt;
+use Math::BigFloat;
 
 sub indent {
     my ($depth) = @_;
@@ -72,6 +75,22 @@ sub greatest_factor_not_above {
     }
 
     return $answer;
+}
+
+sub embiggen {
+    my ($number) = @_;
+
+    confess ("Number undefined")
+        unless (defined $number);
+
+    my $text = "$number";
+    if ($text =~ /\./ || $text =~ /e/i) {
+        $text =~ s/f$//i;
+        return Math::BigFloat->new($text);
+    }
+    else {
+        return Math::BigInt->new($text);
+    }
 }
 
 1;
