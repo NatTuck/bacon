@@ -1,0 +1,13 @@
+
+
+This paper describes Bacon, a data-parallel programming language
+targetting OpenCL-compatible graphics processors. Bacon is an
+extension of the existing OpenCL C language intended to make it easier
+for programmers to write high performance kernels for GPU accelerated
+applications. 
+
+The design and implementation are described and
+benchmarks are provided showing performance improvements over a
+similar simple OpenCL C kernel.
+
+Bacon, like OpenCL C, is based on C99 with 
