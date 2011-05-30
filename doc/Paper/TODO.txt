@@ -1,3 +1,5 @@
 
 Previous work on GPU-targeted languages.
-
+ - http://code.google.com/p/clutil/
+ - http://code.google.com/p/scalacl/
+ - http://clyther.sourceforge.net/

@@ -26,11 +26,11 @@
 \begin{abstract}
 
 This paper describes Bacon, a data-parallel programming system
-targetting OpenCL-compatible graphics processors. This system is built
+targeting OpenCL-compatible graphics processors. This system is built
 upon the existing OpenCL standard in order to make it easier for
 programmers to write high performance kernels for GPU accelerated
 applications. The OpenCL C syntax is extended into a new language,
-Bacon C, intended to make development significantly more convienient
+Bacon C, intended to make development significantly more convenient
 and enabling pre-optimizations based on just-in-time specialization as
 this code is compiled via OpenCL at runtime.
 
@@ -49,8 +49,10 @@ more complex computation, stereo disparity, is considered.
 The use of Graphics Processing Units (GPUs) for general purpose
 parallel computing has become increasingly feasible over the last few
 years. In response to the platform specific programming solutions from
-Nvidia and Microsoft, Apple developed the OpenCL standard as an open and
-cross platform programming interface to this hardware.
+Nvidia and Microsoft, Apple developed the OpenCL standard as an open
+and cross platform programming interface to this hardware. This
+standard has since been implemented by a number of major vendors
+including AMD, Nvidia, Intel, and IBM.
 
 The OpenCL standard\cite{opencl} consists of two major pieces. First,
 it defines a programming language called OpenCL C for writing compute
@@ -59,40 +61,43 @@ for C and C++ that allow these kernels to be compiled, loaded, and
 executed from programs running on a host machine.
 
 OpenCL C uses the syntax of C99 and provides a set of built in data
-types and functions that expose the numeric computatation capabilities
+types and functions that expose the numeric computation capabilities
 common to modern GPU devices. The specification explicitly disallows
 the use of various C99 functionality that is not supported by GPU
 hardware, including function pointers, recursion, and any sort of
 dynamic memory allocation or array sizing. 
 
 Rather than providing a stand-alone program to compile OpenCL C
-kernels, the OpenCL C and C++ APIs give developers the nessisary
-pieces to build a compiler into their host program. This allows OpenCL
-programs to be portable across different hardware archetectures by
+kernels, the OpenCL C and C++ APIs give developers the pieces
+necessary to build a compiler into their host program. This allows OpenCL
+programs to be portable across different hardware by architectures
 delaying compilation until runtime when the target GPU device is
 known, but requires each developer to write quite a bit of code to
-load the source code and perform various other bookkeeping.
+load the source code and perform various other bookkeeping activities.
 
-Bacon was developed to try to improve upon the OpenCL programming
+Bacon was developed to improve upon the OpenCL programming
 experience and make it easier to write high performance programs for
 GPU hardware. It does this by extending the OpenCL C syntax into a new
-language called Bacon C, and by performing some pre-optimizations as
+language called Bacon C, and by performing pre-optimizations as
 the Bacon C code is compiled to OpenCL C.
 
 The key optimization performed by the Bacon compiler is just in time
-specialization. Rather than performing When a kernel is called, a
-specialzied version of the kernel is generated with some of its
-variable arguments replaced with compile-time constants. This allows
-for a variety of agressive optimizatons to be performed by the OpenCL
-compiler. Further, it allows for some variable sized array
-declarations to be turned into constant sized arrays that are allowed
-by OpenCL.
+specialization. When a Bacon kernel is written, some integer arguments
+can be marked as specialization-time constants. When a kernel is first
+called with a given set of values for those arguments a specialized
+version of that kernel is generated with those variable arguments
+replaced with constant values. This allows for a variety of
+optimizations be performed by the OpenCL compiler. Further, it allows
+for any variable sized array declarations that depend only on these
+specialization-time constants to be turned into constant sized arrays
+that are allowed by OpenCL.
 
-We evaluate these improvements below using matrix multiplication as a
-test case. Both simpler code and improved performance are
-demonstrated.
+These improvements are evaluated using matrix multiplication as a test
+case. Both simpler code and improved performance are demonstrated.
 
-\section{Previous Work}
+\section{Previous and Similar Work}
+
+\subsection{Partial Evaluation}
 
 Specialization, also known as partial evaluation, has been shown to be
 a very effective optimization by projects such as
@@ -101,6 +106,11 @@ code at compile time. Just in time specialization was popularized by
 its use in typing dynamic languages, as shown in the Self
 language\cite{chambers:1992}. Just in time specialization on values has
 been used in Prolog systems by Bolz\cite{bolz:2010}.
+
+\subsection{OpenCL Libraries and Front-Ends}
+
+Bacon is not the first attempt to provide an improved programmer
+experience for OpenCL. 
 
 \section{Bacon}
 \subsection{Language}
@@ -119,7 +129,7 @@ mat_mul(Array2D<float> aa, Array2D<float> bb)
 
     float sum = 0.0;
     assert(aa.cols == bb.rows, 
-        "Matrixes must have compatible dimensions.");
+        "Matrices must have compatible dimensions.");
     for (int kk = 0; kk < aa.cols; ++kk) {
         sum += aa[$row, kk] * bb[kk, $col];
     }
@@ -142,14 +152,14 @@ thread while the BODY section is the code that runs in parallel. This
 allows the declaration and dynamic sizing of variables that will
 reside in GPU global memory and can be returned to the host process.
 
-Each BODY includes a @range declaration that specifes the range it
+Each BODY includes a @range declaration that specifies the range it
 will be executed over in parallel. Within the BODY, the current
 position in that range is held in special variables named {\tt\$row},
 {\tt\$col}, and {\tt\$dep} for the first, second, and third dimension
 respectively.
 
-Parameterized types for 1D, 2D and 3D arrays are provided
-natively. The types are parameterized using C++-style angle bracket
+Parametrized types for 1D, 2D and 3D arrays are provided
+natively. The types are parametrized using C++-style angle bracket
 syntax. Both declarations and element access use a comma separated
 list of dimensions in square brackets. The dimensions of these arrays
 can be accessed using struct-style dot notation.
@@ -244,7 +254,7 @@ is then walked to generate the C++ wrapper. The abstract syntax tree
 The generated C++ wrapper provides a C++ function with the kernel's
 type signature that can be called from the user's application. When
 this functions is called, the runtime library loads the AST and walks
-it to generate the specialized OpenCL code. Optimizatons are performed
+it to generate the specialized OpenCL code. Optimizations are performed
 at code generation time without any intermediate pass that transforms
 the representation.
 
@@ -264,7 +274,7 @@ unroll loops or to unroll them by a factor that is guaranteed to
 evenly divide the iteration count because array sizes are always known
 due to just in time specialization.
 
-The implemetnation of Bacon is available publically under an open
+The implementation of Bacon is available publicly under an open
 source license. The current version can be downloaded from the public
 git repository\footnote{http://code.ferrus.net/compilers/bacon.git}.
 
@@ -300,14 +310,14 @@ version of AMD's current top of the line GPU, the Radeon HD 6970. The
 5830 sells for around \$140 at the time of this writing compared to
 \$340 for the 6970, while providing over 60\% of the theoretical
 compute power. A similar Nvidia card was purchased for comparison
-testing, but the comparsion was not performed due to implementation
+testing, but the comparison was not performed due to implementation
 incompatibilities that we have not yet resolved.
 
 Four implementations of matrix multiplication were tested:
 
 \begin{description}
   \item[Bacon - Naive] Shown in Listing~\ref{mmk}.
-  \item[OpenCL - Naive] An equivilent OpenCL C implementation.
+  \item[OpenCL - Naive] An equivalent OpenCL C implementation.
   \item[Bacon - Blocked] Shown in listing~\ref{bmmk}.
   \item[OpenCL - Hand Vectorized] Hand unrolled using vector types to
     compute 4x4 blocks. Based on a sample from the AMD OpenCL SDK.
@@ -316,7 +326,7 @@ Four implementations of matrix multiplication were tested:
 Timings were taken multiplying 4096x4096 matrices. Each test was
 performed five times and the average result was taken. The times were
 very consistent; most tests had a coefficient of variation under one
-percent. The speedups over the naive OpenCL implementationa are shown
+percent. The speedups over the naive OpenCL implementation are shown
 in Figure~\ref{unroll}.
 
 \begin{figure}[tbh]
@@ -348,7 +358,7 @@ factor for loop unrolling rather than expecting it to be tuned
 manually. The unrolling analysis could also be extended to the
 implicit parallel ``loops'' created by the range of the computation;
 optimally, it should be possible to generate kernels like the blocked
-matrix mulitplication shown from the naive matrix multiplication
+matrix multiplication shown from the naive matrix multiplication
 kernel. Another simple improvement would be to perform strip mining
 (Wolfe \cite{wolfe:1996}, section 9.8) and generate explicit vector
 code for loops.
@@ -356,8 +366,8 @@ code for loops.
 Just in time specialization as a method to improve performance on
 parallel computations seems very promising in general, but there are
 some limitations imposed by the use of OpenCL as a compiler target. An
-implementation of this technique targetting a parallel processor at a
-lower level would allow for more flexibiltiy and much faster
+implementation of this technique targeting a parallel processor at a
+lower level would allow for more flexibility and much faster
 specialization times.
 
 \section{Conclusion}
