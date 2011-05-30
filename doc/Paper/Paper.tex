@@ -36,11 +36,12 @@ this code is compiled via OpenCL at runtime.
 
 Benchmarks are provided for matrix multiplication comparing a Bacon
 implementation to versions using OpenCL directly. Speedups are
-demonstrated both for naive implementations and when comparing a naive
-Bacon implementation to a hand-vectorized OpenCL kernel. This latter
-result demonstrates the benefit of the total loop unrolling enabled by
-just-in-time specialization. Additionally, a Bacon implementation of a
-more complex computation, stereo disparity, is considered.
+demonstrated both for naive implementations and when comparing a Bacon
+implementation of generalized block decomposed matrix multiplication
+to a hand-vectorized OpenCL kernel. This latter result demonstrates
+the benefit of the total loop unrolling enabled by just-in-time
+specialization. Additionally, a Bacon implementation of a more complex
+computation, stereo disparity, is considered.
 
 \end{abstract}
 
@@ -110,7 +111,20 @@ been used in Prolog systems by Bolz\cite{bolz:2010}.
 \subsection{OpenCL Libraries and Front-Ends}
 
 Bacon is not the first attempt to provide an improved programmer
-experience for OpenCL. 
+experience for OpenCL. Rick Webber has developed an improved C++ API
+called clUtil\cite{webber:2011}. Bindings for other languages, like
+the JOCL\cite{hutter:2011} binding for Java, provide APIs at a variety
+of levels of abstraction.
+
+Another very interesting approach allows the programmer to describe
+the computation to be executed on the GPU in the same language as the
+rest of the program. An OpenCL kernel is then generated
+automatically. This has the potential benefit of increased expressive
+power and programmer familiarity at the cost of increased complexity
+and necessarily leaky abstraction when the host language contains
+features that can't be cleanly transformed into GPU code. Examples of
+this approach include CLyther\cite{rossross:2011} for Python and
+ScalaCL\cite{chafik:2011} for the functional language Scala.
 
 \section{Bacon}
 \subsection{Language}
@@ -133,7 +147,7 @@ mat_mul(Array2D<float> aa, Array2D<float> bb)
     for (int kk = 0; kk < aa.cols; ++kk) {
         sum += aa[$row, kk] * bb[kk, $col];
     }
-    cc[$y, $x] = sum;
+    cc[$row, $col] = sum;
     return cc;
 }
 \end{verbatim}
@@ -158,7 +172,7 @@ position in that range is held in special variables named {\tt\$row},
 {\tt\$col}, and {\tt\$dep} for the first, second, and third dimension
 respectively.
 
-Parametrized types for 1D, 2D and 3D arrays are provided
+Parametrized types for 1D, 2D, and 3D arrays are provided
 natively. The types are parametrized using C++-style angle bracket
 syntax. Both declarations and element access use a comma separated
 list of dimensions in square brackets. The dimensions of these arrays
@@ -232,24 +246,23 @@ blocked_mat_mul_private(Array2D<float> aa, Array2D<float> bb,
 This specialization, in addition to providing performance benefits,
 allows for the simulation of variable sized arrays in thread-local
 memory as long as the array size depends only on {\tt const} variables
-and array dimensions. The blocked matrix multiply kernel in
+and array dimensions. This works around one of the main constraints
+imposed by OpenCL. The blocked matrix multiply kernel in
 Listing~\ref{bmmk} gives an example of this feature.
 
 \subsection{Implementation}
 
-The Bacon system consists of two pieces: the front-end compiler and the
-runtime library. The front-end library parses the Bacon C source and
-outputs a C++ wrapper and an intermediate form of the parsed code. The
-runtime library is called from the generated wrapper to load the
-intermediate form code, generate specialized OpenCL C code when a
-kernel is called, and run that code on the GPU using the OpenCL
-runtime.
+The Bacon system consists of two pieces: the compiler and the runtime
+library. The compiler parses the Bacon C source and outputs a C++
+wrapper and the serialized abstract syntax tree (AST). The runtime
+library is called from the generated wrapper to load the intermediate
+form code, generate specialized OpenCL C code when a kernel is called,
+and run that code on the GPU using the OpenCL runtime.
 
 The system is built using Perl and C++. The front-end compiler parses
 the source code using Parse::Yapp\cite{parse::yapp}, a yacc-compatible
-parser generator for Perl. This constructs abstract syntax tree, which
-is then walked to generate the C++ wrapper. The abstract syntax tree
-(AST) is then serialized for later loading by the runtime library.
+parser generator for Perl. This constructs the abstract syntax tree,
+which is then walked to generate the C++ wrapper.
 
 The generated C++ wrapper provides a C++ function with the kernel's
 type signature that can be called from the user's application. When
@@ -259,12 +272,15 @@ at code generation time without any intermediate pass that transforms
 the representation.
 
 The two optimizations that are performed by the Bacon library are
-constant propagation and loop unrolling. Constant propagation is used
-to determine the exact set and values of the specialized variables,
-building a mapping {\tt const} variables to their values so that
-references to these variables can be replaced with integer literals in
-the generated OpenCL C code. Loop unrolling is then performed on any
-loops that can be statically analized.
+constant propagation and loop unrolling. Constant propagation
+calculates the values of all the variables that have been marked as
+\tt{const} by the programmer. If the value of any of these variables
+cannot be computed from the specialized arguments to the kernel, the
+Bacon runtime will throw an exception.  This information is used to
+construct a symbol table, and references to these variables are
+replaced with their constant integer values in the generated OpenCL
+code. Loop unrolling is then performed on any loops that can be
+statically analyzed.
 
 Loop unrolling is included because neither the AMD nor Nvidia OpenCL
 compilers do it by default, and manually unrolling loops is time
@@ -300,10 +316,10 @@ Bacon - Blocked (Best) & 1.97 & 6.1 \\
 \end{table}
 
 In order to evaluate the performance of the Bacon system, we compare
-the run time of matrix multiplication kernels in both Bacon C and
-OpenCL C. These results are summarized in Table~\ref{mm1}, which shows
-that Bacon is able to provide measurable performance improvements over
-similar programs written directly in OpenCL C. 
+the run time of matrix multiplication kernels written in both Bacon C
+and OpenCL C. These results are summarized in Table~\ref{mm1}, which
+shows that Bacon is able to provide measurable performance
+improvements over similar programs written directly in OpenCL C.
 
 Testing was performed on an ATI Radeon HD 5830 GPU. This is a cut down
 version of AMD's current top of the line GPU, the Radeon HD 6970. The
@@ -318,16 +334,16 @@ Four implementations of matrix multiplication were tested:
 \begin{description}
   \item[Bacon - Naive] Shown in Listing~\ref{mmk}.
   \item[OpenCL - Naive] An equivalent OpenCL C implementation.
-  \item[Bacon - Blocked] Shown in listing~\ref{bmmk}.
+  \item[Bacon - Blocked] Shown in Listing~\ref{bmmk}.
   \item[OpenCL - Hand Vectorized] Hand unrolled using vector types to
     compute 4x4 blocks. Based on a sample from the AMD OpenCL SDK.
 \end{description}
 
-Timings were taken multiplying 4096x4096 matrices. Each test was
-performed five times and the average result was taken. The times were
-very consistent; most tests had a coefficient of variation under one
-percent. The speedups over the naive OpenCL implementation are shown
-in Figure~\ref{unroll}.
+The execution time of these four kernels was tested on randomly
+generated 4096x4096 matrices. Each test was performed five times and
+the average result was taken. The times were very consistent; most
+tests had a coefficient of variation under one percent. The speedups
+over the naive OpenCL implementation are shown in Figure~\ref{unroll}.
 
 \begin{figure}[tbh]
 \begin{center}
@@ -338,9 +354,9 @@ in Figure~\ref{unroll}.
 
 These measurements clearly show that value specialization provides
 significant speedups over a non-specialized OpenCL kernel. This result
-was expected; providing constant values at compile time allows the
-OpenCL C compiler to do extensive and agressive constant
-propagantion-based optimizations.
+can be explained by the fact taht providing constant values at compile
+time allows the OpenCL C compiler to do extensive constant
+propagation-based optimizations.
 
 The results from loop unrolling are more complicated. Unrolling loops
 too much drastically decrease performance, most likely due to the
@@ -348,6 +364,49 @@ exhaustion of registers on the GPU device. Still, when properly tuned,
 loop unrolling provides significant speedups allowing the blocked
 Bacon kernel to beat the hand vectorized OpenCL kernel by nearly 30
 percent.
+
+\section{Stereo Disparity in Bacon}
+
+In order to demonstrate that Bacon is suitable for complex
+applications we consider an implementation of stereo disparity
+matching. This is an application that is well suited to GPU
+implementation due to being computationally expensive and naturally
+parallel. The stereo disparity computation is significantly more
+complex than matrix multiplication, requiring multiple steps such that
+the entire process can not easily be implemented as a single kernel.
+
+The stereo disparity matching problem is to generate a disparity image
+given a pair of images from a stereo camera rig. Each pixel ($y,x$) in
+the disparity image has a value ($v$) specifying a pixel offset that
+matches the pixel at ($y,x$) in the left image to the pixel at
+($y,x+v$) in the right image. These matched pixels correspond to the
+same physical point in scene viewed by the cameras. This disparity
+image can then be used to compute depth information and create a 3D
+point cloud describing the scene, which is useful in a variety of
+practical applications like robotics.
+
+The stereo disparity method implemented used the Census
+transform\cite{zabih:1994} both with simple local window matching and
+with a partial implementation of the semi-global matching (SGM) technique
+described by Hirschmuller\cite{hirschmuller:2005}. Testing during
+development was done on sample image pairs from the Middlebury 2005
+Stereo Dataset\cite{hirschmuller:2005}. Both a CPU implementation and
+a Bacon implementation were written.
+
+Although a complete implementation of the SGM algorithm was not
+completed and neither Bacon implementation has been properly
+optimized, the results are promising. The simple local window matcher
+in Bacon produces the same output as the CPU version. The partial SGM
+implementation produces a more accurate disparity image but takes
+longer to run.
+
+Including specialization time, the Bacon version of the local window
+matcher takes almost as much time as the CPU version, but on
+subsequent calls it takes less than 0.2 seconds which is more than a
+10x speedup. This provides a good example of the practicality of the
+value specialization mechanism; for processing video an extra
+computation cost on the first frame will be quickly amortized over
+subsequent frames.
 
 \section{Future Work}
 

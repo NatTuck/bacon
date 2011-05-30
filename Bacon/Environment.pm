@@ -71,6 +71,7 @@ sub dump_values {
     for my $name (keys %{$self->vars}) {
         my $value = $self->vars->{$name}->value // 'undef';
         say "$name = $value";
+        confess;
     }
 }
 

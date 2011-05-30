@@ -151,13 +151,13 @@ sub exclude_vars {
     for my $vn (@$excl_ref) {
         $vn =~ s/\./__/;
         $excl{$vn} = 1;
-        say $vn;
+        #say $vn;
     }
 
     for my $var (@$vars_ref) {
         next if $excl{$var->name};
         push @vars, $var;
-        say $var->name;
+        #say $var->name;
     }
 
     return @vars;

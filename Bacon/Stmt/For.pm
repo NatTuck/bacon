@@ -84,6 +84,9 @@ sub build_unroll_info {
             && $self->cond->is_const_cond($env, $var)) {
         ($cond, $rN) = $self->cond->normalize_const_cond($env, $var);
     }
+    else {
+        return;
+    }
 
     if ($self->incr->isa('Bacon::Expr')) {
         $incr = $self->incr->normalize_increment($env, $var);
@@ -108,8 +111,13 @@ sub build_unroll_info {
 
 sub unroll_full {
     my ($self, $env, $depth) = @_;
+
     my ($var, $r0, $rN, $range, $incr, $cond) = @{$self->unroll_info};
     my $code = '';
+
+    unless (defined $cond) {
+        die Dumper($self->unroll_info);
+    }
 
     for (my $ii = $r0; eval "$ii $cond $rN"; $ii += $incr) {
         my $env1 = $env->update_with($var => $ii);
