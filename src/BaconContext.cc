@@ -19,6 +19,8 @@ namespace Bacon {
 unsigned long Bacon_Array_random_seed = 65537;
 bool use_opencl_cpu = false;
 
+Context* Context::instance = 0;
+
 void
 context_error_callback(const char* msg, const void* extra_data, 
         std::size_t extra_size, void* context)
@@ -45,6 +47,15 @@ Context::~Context()
     // do nothing
 }
 
+Context*
+Context::get_instance()
+{
+    if (instance == 0) {
+        instance = new Context();
+    }
+    
+    return instance;
+}
 
 
 cl::Device

@@ -38,14 +38,16 @@ template <class NumT>
 class Array {
   public:
     Array()
-        : data_size(0), on_gpu(false), valid_data(false), ctx(0)
+        : data_size(0), on_gpu(false), valid_data(false)
     {
+        ctx = Bacon::Context::get_instance();
         init_random();
     }
 
     Array(cl_uint nn) 
-        : on_gpu(false), valid_data(false), ctx(0)
+        : on_gpu(false), valid_data(false)
     {
+        ctx = Bacon::Context::get_instance();
         init_random();
         reallocate(nn);
     }
@@ -63,20 +65,12 @@ class Array {
 
     void reallocate(int nn)
     {
+        assert(ctx != 0);
         data_size = nn;
         data_ptr = boost::shared_array<NumT>(new NumT[nn]);
         on_gpu = false;
         valid_data = false;
-    }
-
-    void set_context(Bacon::Context* context)
-    {
-        if (ctx != context) {
-            ctx = context;
-
-            cl_mem_flags flags = 0;
-            buffer = cl::Buffer::Buffer(ctx->ctx, flags, byte_size());
-        }
+        buffer = cl::Buffer(ctx->ctx, CL_MEM_USE_HOST_PTR, nn * sizeof(NumT), data_ptr.get());
     }
 
     void fill(NumT vv)

@@ -9,8 +9,13 @@ namespace Bacon {
 extern bool use_opencl_cpu;
 
 class Context {
-  public:
+  private:
     Context();
+
+    static Context* instance;
+
+  public:
+    static Context* get_instance();
     ~Context();
 
     cl::Device best_opencl_device();

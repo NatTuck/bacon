@@ -275,17 +275,6 @@ sub to_setup_cc {
 
     for my $stmt (@{$self->setup->body}) {
         push @lines, $stmt->to_setup_cc($self, 0);
-
-        if ($stmt->isa('Bacon::Stmt::VarDecl') && $stmt->dims) {
-            push @lines, $stmt->name . ".set_context(&ctx);";
-        }
-    }
-
-    # TODO: Move arg context elsewhere?
-    for my $arg (@{$self->args}) {
-        if ($arg->type->isa('Bacon::Type::Array')) {
-            push @lines, $arg->name . ".set_context(&ctx);";
-        }
     }
 
     return join_lines(2, @lines);
@@ -413,8 +402,7 @@ __[ wrapper_cc ]__
     const char* base_name   = "<% $base_name %>";
     cl::Kernel kern;
 
-    //ctx.show_timing = 1;
-    //cout << std::fixed;
+    Bacon::Context* ctx = Bacon::Context::get_instance();
 
     try {
         Bacon::Timer timer;
@@ -428,13 +416,12 @@ __[ wrapper_cc ]__
         kern = spec_kernel(base_name, kernel_name, cargs);
         double spec_took = timer.time();
 
-        if (ctx.show_timing) {
+        if (show_timing) {
             cout << "Kernel " << kernel_name << " spec: " << spec_took << endl; 
         }
 
         Bacon::Array<cl_long> status(3);
         status.fill(0);
-        status.set_context(&ctx);
 
         <% $set_args %>
 
@@ -445,7 +432,7 @@ __[ wrapper_cc ]__
 
         timer.reset();
         Event done;
-        ctx.queue.enqueueNDRangeKernel(
+        ctx->queue.enqueueNDRangeKernel(
             kern, NullRange, range, <% $local_range %>, 0, &done);
         done.wait();
         double kernel_took = timer.time();
@@ -454,7 +441,7 @@ __[ wrapper_cc ]__
             <% $error_cases %>
         }
 
-        if (ctx.show_timing) {
+        if (show_timing) {
             cout << "Kernel " << kernel_name << " time: " << kernel_took << endl; 
         }
 

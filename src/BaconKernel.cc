@@ -6,6 +6,8 @@
 
 namespace Bacon {
 
+bool Kernel::show_timing = false;
+
 static std::string
 join_ints(std::string sep, std::vector<int> is)
 {
@@ -33,6 +35,7 @@ cl::Kernel
 Kernel::spec_kernel(std::string bname, std::string kname, std::vector<int> cargs)
 {
     std::string key = spec_key(kname, cargs);
+    Bacon::Context* ctx = Bacon::Context::get_instance();
 
     if (pgms.find(key) == pgms.end()) {
         std::ostringstream ast_fn;
@@ -55,7 +58,7 @@ Kernel::spec_kernel(std::string bname, std::string kname, std::vector<int> cargs
         
         std::ostringstream ocl_fn;
         ocl_fn << "gen/" << key << ".cl";
-        pgms[key] = ctx.load_opencl_program(strdupa(ocl_fn.str().c_str()));
+        pgms[key] = ctx->load_opencl_program(strdupa(ocl_fn.str().c_str()));
     }
     
     return cl::Kernel(pgms[key], kname.c_str());

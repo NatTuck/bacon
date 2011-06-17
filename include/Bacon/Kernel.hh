@@ -12,8 +12,9 @@ namespace Bacon {
 
 class Kernel {
   public:
-    Bacon::Context ctx;
     Bacon::Runtime* rt;
+
+    static bool show_timing;
 
   protected:
     std::string spec_key(std::string kname, std::vector<int> cargs);
