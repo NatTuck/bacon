@@ -40,7 +40,7 @@ Runtime::Runtime()
     PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
     char **argv = sa_alloc(3, "", "-e", "0");
     perl_parse(my_perl, xs_init, 3, argv, 0);
-    sa_alloc(3);
+    //sa_alloc(3);
     perl_run(my_perl);
     perl_use("Bacon::Generate");
 }
