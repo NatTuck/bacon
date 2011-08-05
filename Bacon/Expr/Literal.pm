@@ -25,12 +25,7 @@ sub mklit {
 
 sub to_ocl {
     my ($self, undef) = @_;
-    if ($self->value->isa('Math::BigFloat')) {
-        return $self->value;
-    }
-    else {
-        return $self->value;
-    }
+    return $self->value;
 }
 
 sub to_cpp {
@@ -39,8 +34,8 @@ sub to_cpp {
 }
 
 sub static_eval {
-    my ($self, undef) = @_;
-    return $self->value;
+    my ($self, $env) = @_;
+    return $self->to_ocl($env);
 }
 
 __PACKAGE__->meta->make_immutable;

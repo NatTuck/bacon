@@ -50,7 +50,7 @@ cv::Mat
 stereo_disparity(cv::Mat matL, cv::Mat matR)
 {
     Stereo ss;
-    ss.ctx.show_timing = true;
+    //ss.ctx.show_timing = true;
 
     Bacon::Timer stereo_timer;
 

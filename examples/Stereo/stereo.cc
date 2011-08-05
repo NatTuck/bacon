@@ -50,7 +50,7 @@ cv::Mat
 stereo_disparity(cv::Mat matL, cv::Mat matR)
 {
     Stereo ss;
-    ss.ctx.show_timing = true;
+    //ss.ctx.show_timing = true;
 
     Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL, 8);
     Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR, 8);

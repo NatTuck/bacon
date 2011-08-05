@@ -75,7 +75,7 @@ sub eval_const_vars {
             for (my $ii = 0; $ii < scalar @dim_ns; ++$ii) {
                 my $nn = $dim_ns[$ii];
                 my $vv = $dim_vs[$ii]->static_eval($env);
-                $env->lookup("$name.$nn")->value($vv);
+                $env->lookup("$name.$nn")->value(embiggen($vv));
             }
         }
         elsif ($var->is_const) {
