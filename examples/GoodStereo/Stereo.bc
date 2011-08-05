@@ -1,0 +1,349 @@
+/* -*- c -*- */
+
+kernel
+Array2D<uchar>
+scale_half(Array2D<uchar> image)
+{
+ SETUP:
+    global Array2D<uchar> half[image.rows / 2, image.cols / 2];
+
+ BODY:
+    @range [half.rows, half.cols];
+
+    uint total = 0;
+
+    for (int ii = 0; ii < 2; ++ii) {
+        int base_ii = 2 * $row;
+
+        for (int jj = 0; jj < 2; ++jj) {
+            int base_jj = 2 * $col;
+
+            total += image[base_ii + ii, base_jj + jj];
+        }
+    }
+
+    half[$row, $col] = (uchar)(total / 4);
+
+    return half;
+}
+
+kernel
+Array2D<ulong>
+sparse_census(Array2D<uchar> image) 
+{
+ SETUP:
+    global Array2D<ulong> census[image.rows, image.cols];
+
+ BODY:
+    @range [image.rows, image.cols];
+
+    ulong bits = 0;
+    uchar ctr = image[$y, $x];
+    
+    for (int by = 0; by < 8; ++by) {
+        int yoff = by + by - 7;
+        int ii   = clamp($y + yoff, 0, (int) image.rows);
+
+        for (int bx = 0; bx < 8; ++bx) {
+            int xoff = bx + bx - 7;
+            int jj   = clamp($x + xoff, 0, (int) image.cols);
+
+            uchar pval = image[ii, jj];
+            
+            if (pval < ctr) {
+                int bit = 8*by + bx;
+                bits |= (1 << bit);
+            }
+        }
+    }
+
+    census[$y, $x] = bits;
+
+    return census;
+}
+
+ushort
+popcount(ulong x) 
+{
+    const ulong m1 = 0x5555555555555555; //binary: 0101...
+    const ulong m2 = 0x3333333333333333; //binary: 00110011..
+    const ulong m4 = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
+    const ulong h1 = 0x0101010101010101; //the sum of 256 to the power of 0,1,2,3...
+    x -= (x >> 1) & m1;             //put count of each 2 bits into those 2 bits
+    x = (x & m2) + ((x >> 2) & m2); //put count of each 4 bits into those 4 bits 
+    x = (x + (x >> 4)) & m4;        //put count of each 8 bits into those 8 bits 
+    return (x * h1) >> 56;  //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ... 
+}
+
+int
+score_offset(Array2D<ulong> aa, Array2D<ulong> bb, int ii, int jj, int kk)
+{
+    const int WINDOW_SIZE = 3;
+    const int rad = WINDOW_SIZE / 2;
+
+    int cost = 0;
+
+    for (int dy = -rad; dy <= rad; ++dy) {
+        for (int dx = -rad; dx <= rad; ++dx) {
+            int yy = clamp(ii + dy, 0, (int) aa.rows);
+            int bx = clamp(jj + dx, 0, (int) aa.cols);
+            int ax = clamp(bx + kk, 0, (int) aa.cols);
+
+            ulong aa_val = aa[yy, ax];
+            ulong bb_val = bb[yy, bx];
+            cost += popcount(aa_val ^ bb_val);
+        }
+    }
+
+    return cost;
+}
+
+int
+subpixel(int disp, int p_sc, int c_sc, int n_sc)
+{
+    float n = n_sc - p_sc;
+    float d = 2 * (2*c_sc - p_sc - n_sc);
+    float e = ((float) disp) + (d > 0.0001f) ? (n / d) : 0.0;
+    return clamp((int) round(e), 0, 255);
+}
+
+int
+sgm_penalty(int aa, int bb)
+{
+    const int P1 = 5;
+    const int P2 = 80;
+    const int C1 = 1;
+    const int C2 = 2;
+
+    int dd  = abs(aa - bb);
+    int pen = 0;
+
+    if (dd > C1) pen += P1;
+    if (dd > C2) pen += P2;
+
+    return pen;
+}
+
+int
+score_row_offset(Array2D<ulong> aa, Array2D<ulong> bb, int base_ii, int base_jj, int kk)
+{
+    int cost = 0;
+    int ii, jj;
+
+    for (int dy = -1; dy <= 1; ++dy) {
+        ii = base_ii + dy;
+
+        for (int dx = -1; dx <= 1; ++dx) {
+            int bx = clamp(base_jj + dx, 0, (int) aa.cols);
+            int ax = clamp(bx + kk, 0, (int) aa.cols);
+
+            ulong aa_val = aa[ii, ax];
+            ulong bb_val = bb[ii, bx];
+            cost += popcount(aa_val ^ bb_val);
+        }
+    }
+
+    return cost;
+}
+
+void
+pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulong> bb, 
+    int dir, int ii0, int ii1, int di, int jj0, int jj1, int dj)
+{
+    int max_disp = pspace.cols / 5;
+    int min_disp = 0;
+
+    int prev_score, curr_score, next_score;
+    int best_score, best_disp;
+
+    int prev_disp = -100;
+    int ii, jj;
+
+    for (ii = ii0, jj = jj0; ii != ii1 && jj != jj1; ii += di, jj += dj) {
+        prev_score = score_row_offset(aa, bb, ii, jj, min_disp * dir);
+        curr_score = prev_score;
+        next_score = prev_score;
+        
+        best_score = 999999;
+        best_disp  = -200;
+        
+        for (int kk = min_disp + 1; kk < max_disp; ++kk) {
+            prev_score = curr_score;
+            curr_score = next_score;
+            
+            next_score = score_row_offset(aa, bb, ii, jj, (kk + 1) * dir)
+                + sgm_penalty(kk, prev_disp);
+            
+            if (curr_score < best_score) {
+                best_disp  = subpixel(kk, prev_score, curr_score, next_score);
+                best_score = curr_score;
+            }
+        }
+        
+        pspace[slice, ii, jj] = ii + jj;
+        //pspace[slice, ii, jj] = best_disp;
+        prev_disp = best_disp;
+    }
+}
+
+// sgm_h and sgm_v construct a disparity image from each of 8 directions:
+// these can each be constructed in one pass
+//   0: left to right
+//   1: right to left
+//   2: top to botton
+//   3: bottom to top
+// these are constructed in two passes each, once starting from a horizontal
+// edge and once starting from a vertical edge
+//   4: top left to bottom right
+//   5: bottom right to top left
+//   6: top right to bottom left
+//   7: bottom left to top right
+
+kernel
+void
+sgm_h(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
+{
+ BODY:
+    @range [disp.rows];
+
+    int ii = $row;
+
+    // 0: left to right
+    //for (int ii = 0; ii < 8; ++ii) 
+    //    pspace_traverse(disp, ii, cA, cB, dir, 0, disp.cols, +1, $row, $row + 1, 0);
+    for (int ss = 0; ss < 8; ++ss) {
+        for (int jj = 0; jj < disp.cols; ++jj) {
+            disp[ss, ii, jj] = ii;
+        }
+    }
+
+
+    // 1: right to left
+
+    // 4: top left to bottom right
+
+    // 5: bottom right to top left
+
+    // 4: top left to bottom right
+
+    // 5: bottom right to top left
+
+    // 6: top right to bottom left
+
+    // 7: bottom left to top right
+}
+
+kernel
+Array2D<uchar>
+half_disparity(Array2D<ulong> cA, Array2D<ulong> cB, Array3D<uchar> pspace, int direction)
+{
+ SETUP:
+    global Array2D<uchar> disp[pspace.rows, pspace.cols];
+
+ BODY:
+    @range [pspace.rows, pspace.cols];
+
+    int max_disp = pspace.rows / 5;
+    int min_disp = 0;
+
+#define PATH_COUNT 4
+    int path[PATH_COUNT];
+
+    int best_cost = 999999;
+    int best_disp = 0;
+
+    for (int ii = 0; ii < PATH_COUNT; ++ii) {
+        path[ii] = pspace[ii, $y, $x];
+    }
+
+
+    for (int kk = min_disp; kk < max_disp; ++kk) {
+        int cost = score_offset(cA, cB, $y, $x, kk * direction);
+
+        for (int pp = 0; pp < PATH_COUNT; ++pp) {
+            cost += 0; //sgm_penalty(kk, path[pp]);
+        }
+
+       if (cost < best_cost) {
+            best_disp = kk;
+            best_cost = cost;
+        }
+    }
+
+    disp[$y, $x] = best_disp;
+
+    return disp;
+}
+
+// Fast median of 9 based on code from N. Devillard,
+// http://ndevilla.free.fr/median/median/index.html
+
+#define PIX_SORT(a,b) temp = (a); (a) = (a)>(b) ? (b) : (a); (b) = (temp)>(b) ? (temp) : (b);
+
+int
+opt_med9(int* p)
+{
+    int temp;
+    PIX_SORT(p[1], p[2])  PIX_SORT(p[4], p[5])  PIX_SORT(p[7], p[8]) 
+    PIX_SORT(p[0], p[1])  PIX_SORT(p[3], p[4])  PIX_SORT(p[6], p[7]) 
+    PIX_SORT(p[1], p[2])  PIX_SORT(p[4], p[5])  PIX_SORT(p[7], p[8]) 
+    PIX_SORT(p[0], p[3])  PIX_SORT(p[5], p[8])  PIX_SORT(p[4], p[7]) 
+    PIX_SORT(p[3], p[6])  PIX_SORT(p[1], p[4])  PIX_SORT(p[2], p[5]) 
+    PIX_SORT(p[4], p[7])  PIX_SORT(p[4], p[2])  PIX_SORT(p[6], p[4]) 
+    PIX_SORT(p[4], p[2])  return(p[4]);
+}
+
+kernel
+Array2D<uchar>
+median_filter(Array2D<uchar> im)
+{
+ SETUP:
+    global Array2D<uchar> im2[im.rows, im.cols];
+
+ BODY:
+    @range [im.rows, im.cols];
+
+    int px[9];
+    
+    for (int ii = 0; ii < 3; ++ii) {
+        int iii = clamp($y + ii - 1, 0, im.rows);
+
+        for (int jj = 0; jj < 3; ++jj) {
+            int jjj = clamp($x + jj - 1, 0, im.cols);
+            int nn = 3 * ii + jj;
+            
+            px[nn] = im[iii, jjj];
+        }
+    }
+    
+    im2[$y, $x] = opt_med9(px);
+
+    return im2;
+}
+
+
+kernel
+Array2D<uchar>
+consistent_pixels(Array2D<uchar> dispL, Array2D<uchar> dispR)
+{
+ SETUP:
+    global Array2D<uchar> disp[dispL.rows, dispL.cols];
+
+ BODY:
+    @range [dispL.rows, dispL.cols];
+
+    const int DV = 3;
+
+    int dL = dispL[$y, $x];
+    int jR = clamp((int) round((float) $x + dL), 0, dispL.cols);
+    int dR = dispR[$y, jR];
+
+    if (abs(dR - dL) <= DV) {
+        disp[$y, $x] = (dR + dL) / 2;
+    }
+    else {
+        disp[$y, $x] = 0;
+    }
+
+    return disp;
+}
