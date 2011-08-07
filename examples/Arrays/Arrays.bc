@@ -35,3 +35,19 @@ show_indexes(const int deep, const int rows, const int cols)
 
     return arry;
 }
+
+kernel
+void
+show_indexes_arg(Array3D<int> aa)
+{
+ BODY:
+    @range [aa.deep, aa.rows, aa.cols];
+
+    int val = 1000000000;
+
+    val += $z * 1000000;
+    val += $y * 1000;
+    val += $x * 1;
+
+    aa[$z, $y, $x] = val;
+}

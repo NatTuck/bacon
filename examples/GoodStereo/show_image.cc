@@ -1,4 +1,6 @@
 
+#include <boost/scoped_array.hpp>
+
 #include "show_image.hh"
 
 inline int
@@ -28,6 +30,12 @@ show_census(const char* title, uint64_t* data, int rows, int cols)
     }
 
     show_image(title, image);
+}
+
+void 
+show_census_a2d(const char* title, Bacon::Array2D<cl_ulong>& aa)
+{
+    show_census(title, aa.ptr(), aa.rows(), aa.cols());
 }
 
 void

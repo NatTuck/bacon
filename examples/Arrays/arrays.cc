@@ -34,7 +34,17 @@ test_array3d(int zz, int yy, int xx)
     Arrays bcn;
 
     Bacon::Array3D<int> aa = bcn.show_indexes(zz, yy, xx);
-    aa.recv_dev();
+    aa.write(&cout);
+}
+
+void
+test_array3d_arg(int zz, int yy, int xx)
+{
+    Arrays bcn;
+
+    Bacon::Array3D<int> aa(zz, yy, xx);
+    aa.fill(0);
+    bcn.show_indexes_arg(aa);
     aa.write(&cout);
 }
 
@@ -58,8 +68,9 @@ main(int argc, char* argv[])
 
     const int FLOOD_MODE = 1;
     const int INDEX_MODE = 2;
+    const int IXARG_MODE = 3;
 
-    while ((opt = getopt(argc, argv, "hf3x:y:z:")) != -1) {
+    while ((opt = getopt(argc, argv, "hf3ax:y:z:")) != -1) {
         switch(opt) {
         case 'x':
             xx = atoi(optarg);
@@ -75,6 +86,9 @@ main(int argc, char* argv[])
             break;
         case '3':
             mode = INDEX_MODE;
+            break;
+        case 'a':
+            mode = IXARG_MODE;
             break;
         case 'h':
             show_usage();
@@ -101,6 +115,14 @@ main(int argc, char* argv[])
         }
 
         test_array3d(zz, yy, xx);
+        break;        
+    case IXARG_MODE:
+        if (mode == 0 || xx == 0 || yy == 0 || zz == 0) {
+            show_usage();
+            return 0;
+        }
+
+        test_array3d_arg(zz, yy, xx);
         break;        
     default:
         show_usage();
