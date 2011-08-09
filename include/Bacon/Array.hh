@@ -181,7 +181,7 @@ class Array {
         for (int jj = 0; jj < cols(); ++jj) {
             *out_file << get(jj) << " ";
         }
-        *out_file << "\n";
+        *out_file << endl;
     }    
 
     cl_uint cols() const
@@ -269,7 +269,7 @@ class Array2D : public Array<NumT> {
             for (int jj = 0; jj < cols(); ++jj) {
                 *out_file << get(ii, jj) << " ";
             }
-            * out_file << "\n";
+            * out_file << endl;
         }
     }
 
@@ -378,7 +378,7 @@ class Array3D : public Array<NumT> {
                 }
                 *out_file << "\n";
             }
-            *out_file << "\n";
+            *out_file << endl;
         }
     }
 

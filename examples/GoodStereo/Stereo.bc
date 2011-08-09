@@ -228,12 +228,16 @@ sgm_h(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
     pspace_traverse(disp, 1, cA, cB, dir, ii, ii + 1, 0, disp.cols, 0, -1);
 
     // 4: top left to bottom right
+    pspace_traverse(disp, 4, cA, cB, dir, ii, disp.rows, +1, 0, disp.cols, +1);
 
     // 5: bottom right to top left
+    pspace_traverse(disp, 5, cA, cB, dir, ii, 0, -1, disp.cols, 0, -1);
 
     // 6: top right to bottom left
+    pspace_traverse(disp, 6, cA, cB, dir, ii, disp.rows, +1, disp.cols, 0, -1);
 
     // 7: bottom left to top right
+    pspace_traverse(disp, 7, cA, cB, dir, ii, 0, -1, 0, disp.cols, +1);
 }
 
 kernel
@@ -251,12 +255,16 @@ sgm_v(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
     pspace_traverse(disp, 3, cA, cB, dir, disp.rows, 0, -1, jj, jj + 1, 0);
 
     // 4: top left to bottom right
+    pspace_traverse(disp, 4, cA, cB, dir, 0, disp.rows, +1, jj, disp.cols, +1);
 
     // 5: bottom right to top left
+    pspace_traverse(disp, 5, cA, cB, dir, disp.rows, 0, -1, jj, 0, -1);
 
     // 6: top right to bottom left
+    pspace_traverse(disp, 6, cA, cB, dir, 0, disp.rows, +1, jj, 0, -1);
 
     // 7: bottom left to top right
+    pspace_traverse(disp, 7, cA, cB, dir, disp.rows, 0, -1, jj, disp.cols, +1);
 }
 
 kernel
