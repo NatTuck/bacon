@@ -19,9 +19,9 @@ using std::string;
 using namespace Bacon;
 
 cv::Mat
-stereo_disparity(cv::Mat matL, cv::Mat matR)
+stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
 {
-    Stereo ss;
+    Bacon::Kernel::show_timing = true;
 
     Bacon::Timer tt_full;
 
@@ -51,12 +51,17 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     cout << "Census Half: " << tt_ch.time() << endl;
 
     Array3D<cl_uchar> pL(8, chL.rows(), chL.cols());
+
+    Bacon::Timer tt_sgm_h;
     ss.sgm_h(pL, chL, chR, +1);
+    cout << "SGM H: " << tt_sgm_h.time() << endl;
 
     //show_pspace_slice("pL[0]", pL, 0);
     //show_pspace_slice("pL[1]", pL, 1);
- 
+
+    Bacon::Timer tt_sgm_v; 
     ss.sgm_v(pL, chL, chR, +1);
+    cout << "SGM V: " << tt_sgm_v.time() << endl;
 
     //show_pspace_slice("pL[2]", pL, 2);
     //show_pspace_slice("pL[3]", pL, 3);
@@ -165,13 +170,14 @@ main(int argc, char* argv[])
     cout.precision(4);
     cout << std::fixed;
 
+    Stereo ss;
     cv::Mat disp;
 
     cout << "First" << endl;
-    disp = stereo_disparity(left, right);
+    disp = stereo_disparity(ss, left, right);
 
     cout << "Again" << endl;
-    disp = stereo_disparity(left, right);
+    disp = stereo_disparity(ss, left, right);
 
     // Scale to match ground truth.
     disp *= 2;

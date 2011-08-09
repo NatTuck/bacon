@@ -200,7 +200,13 @@ main(int argc, char* argv[])
     cout.precision(4);
     cout << std::fixed;
 
-    cv::Mat disp  = stereo_disparity(left, right);
+    cv::Mat disp;
+
+    cout << "Once" << endl;
+    disp = stereo_disparity(left, right);
+
+    cout << "Again" << endl;
+    disp = stereo_disparity(left, right);
 
     // Scale to match ground truth.
     disp *= 2;

@@ -28,10 +28,13 @@ $(CCOS): %.o: %.cc Makefile $(BCOS)
 test: $(BINARY)
 	./$(BINARY) -c t/disp5.png t/view1.png t/view5.png
 
+profile: $(BINARY)
+	sprofile -o prof.csv ./$(BINARY) -c t/disp5.png t/view1.png t/view5.png
+
 cputest: $(BINARY)
 	./$(BINARY) -c t/disp5.png -n t/view1.png t/view5.png
 
 clean:
-	rm -rf $(BINARY) *.o *~ gen
+	rm -rf $(BINARY) *.o *~ gen prof.csv
 
 .PHONY: clean test
