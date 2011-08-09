@@ -54,9 +54,12 @@ stereo_disparity(cv::Mat matL, cv::Mat matR)
     ss.sgm_h(pL, chL, chR, +1);
 
     show_pspace_slice("pL[0]", pL, 0);
+    show_pspace_slice("pL[1]", pL, 1);
+ 
+    ss.sgm_v(pL, chL, chR, +1);
 
-    //ss.sgm_v(pL, chL, chR, +1);
-
+    show_pspace_slice("pL[2]", pL, 2);
+    show_pspace_slice("pL[3]", pL, 3);
 
     Array3D<cl_ulong> pR(8, chR.rows(), chR.cols());
 

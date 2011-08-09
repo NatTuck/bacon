@@ -76,29 +76,6 @@ popcount(ulong x)
 }
 
 int
-score_offset(Array2D<ulong> aa, Array2D<ulong> bb, int ii, int jj, int kk)
-{
-    const int WINDOW_SIZE = 3;
-    const int rad = WINDOW_SIZE / 2;
-
-    int cost = 0;
-
-    for (int dy = -rad; dy <= rad; ++dy) {
-        for (int dx = -rad; dx <= rad; ++dx) {
-            int yy = clamp(ii + dy, 0, (int) aa.rows);
-            int bx = clamp(jj + dx, 0, (int) aa.cols);
-            int ax = clamp(bx + kk, 0, (int) aa.cols);
-
-            ulong aa_val = aa[yy, ax];
-            ulong bb_val = bb[yy, bx];
-            cost += popcount(aa_val ^ bb_val);
-        }
-    }
-
-    return cost;
-}
-
-int
 subpixel(int disp, int p_sc, int c_sc, int n_sc)
 {
     float n = n_sc - p_sc;
@@ -125,20 +102,21 @@ sgm_penalty(int aa, int bb)
 }
 
 int
-score_row_offset(Array2D<ulong> aa, Array2D<ulong> bb, int base_ii, int base_jj, int kk)
+score_row_offset_window(Array2D<ulong> aa, Array2D<ulong> bb, int ii, int jj, int kk)
 {
+    const int WINDOW_SIZE = 3;
+    const int rad = WINDOW_SIZE / 2;
+
     int cost = 0;
-    int ii, jj;
 
-    for (int dy = -1; dy <= 1; ++dy) {
-        ii = base_ii + dy;
-
-        for (int dx = -1; dx <= 1; ++dx) {
-            int bx = clamp(base_jj + dx, 0, (int) aa.cols);
+    for (int dy = -rad; dy <= rad; ++dy) {
+        for (int dx = -rad; dx <= rad; ++dx) {
+            int yy = clamp(ii + dy, 0, (int) aa.rows);
+            int bx = clamp(jj + dx, 0, (int) aa.cols);
             int ax = clamp(bx + kk, 0, (int) aa.cols);
 
-            ulong aa_val = aa[ii, ax];
-            ulong bb_val = bb[ii, bx];
+            ulong aa_val = aa[yy, ax];
+            ulong bb_val = bb[yy, bx];
             cost += popcount(aa_val ^ bb_val);
         }
     }
@@ -147,7 +125,7 @@ score_row_offset(Array2D<ulong> aa, Array2D<ulong> bb, int base_ii, int base_jj,
 }
 
 void
-pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulong> bb, 
+pspace_traverse0(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulong> bb, 
     int dir, int ii0, int ii1, int di, int jj0, int jj1, int dj)
 {
     int max_disp = pspace.cols / 5;
@@ -160,28 +138,64 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulo
     int ii, jj;
 
     for (ii = ii0, jj = jj0; ii != ii1 && jj != jj1; ii += di, jj += dj) {
-        prev_score = score_row_offset(aa, bb, ii, jj, min_disp * dir);
+        prev_score = score_row_offset_window(aa, bb, ii, jj, min_disp * dir);
         curr_score = prev_score;
         next_score = prev_score;
         
         best_score = 999999;
         best_disp  = -200;
-        
+
         for (int kk = min_disp + 1; kk < max_disp; ++kk) {
             prev_score = curr_score;
             curr_score = next_score;
             
-            next_score = score_row_offset(aa, bb, ii, jj, (kk + 1) * dir)
+            next_score = score_row_offset_window(aa, bb, ii, jj, (kk + 1) * dir)
                 + sgm_penalty(kk, prev_disp);
             
             if (curr_score < best_score) {
-                best_disp  = subpixel(kk, prev_score, curr_score, next_score);
+                best_disp  = kk; // subpixel(kk, prev_score, curr_score, next_score);
                 best_score = curr_score;
             }
         }
         
-        pspace[slice, ii, jj] = ii + jj;
-        //pspace[slice, ii, jj] = best_disp;
+        pspace[slice, ii, jj] = best_disp;
+        prev_disp = best_disp;
+    }
+}
+
+void
+pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulong> bb, 
+    int dir, int ii0, int ii1, int di, int jj0, int jj1, int dj)
+{
+    int max_disp = pspace.cols / 5;
+    int min_disp = 0;
+    int ii, jj, kk;
+
+    int best_score, best_disp;
+    int prev_score, curr_score, next_score;
+    int prev_disp = -100;
+
+    for (ii = ii0, jj = jj0; ii != ii1 && jj != jj1; ii += di, jj += dj) {
+        kk = min_disp;
+        curr_score = score_row_offset_window(aa, bb, ii, jj, kk * dir);
+        next_score = score_row_offset_window(aa, bb, ii, jj, (kk + 1) * dir);
+        
+        best_score = 999999;
+        best_disp  = -200;
+
+        for (kk = kk + 1; kk < max_disp; ++kk) {
+            prev_score = curr_score;
+            curr_score = next_score;
+            next_score = score_row_offset_window(aa, bb, ii, jj, (kk + 1) * dir)
+                + sgm_penalty(kk, prev_disp);
+            
+            if (curr_score < best_score) {
+                best_disp  = kk; // subpixel(kk, prev_score, curr_score, next_score);
+                best_score = curr_score;
+            }
+        }
+
+        pspace[slice, ii, jj] = 5 * best_disp;
         prev_disp = best_disp;
     }
 }
@@ -205,24 +219,36 @@ sgm_h(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
 {
  BODY:
     @range [disp.rows];
-
-    int ii = $row;
+    int ii = $x;
 
     // 0: left to right
-    //for (int ii = 0; ii < 8; ++ii) 
-    //    pspace_traverse(disp, ii, cA, cB, dir, 0, disp.cols, +1, $row, $row + 1, 0);
-    for (int ss = 0; ss < 8; ++ss) {
-        for (int jj = 0; jj < disp.cols; ++jj) {
-            disp[ss, ii, jj] = ii;
-        }
-    }
-
+    pspace_traverse(disp, 0, cA, cB, dir, ii, ii + 1, 0, 0, disp.cols, +1);
 
     // 1: right to left
+    pspace_traverse(disp, 1, cA, cB, dir, ii, ii + 1, 0, disp.cols, 0, -1);
 
     // 4: top left to bottom right
 
     // 5: bottom right to top left
+
+    // 6: top right to bottom left
+
+    // 7: bottom left to top right
+}
+
+kernel
+void
+sgm_v(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
+{
+ BODY:
+    @range [disp.cols];
+    int jj = $x;
+
+    // 2: top to botton
+    pspace_traverse(disp, 2, cA, cB, dir, 0, disp.rows, +1, jj, jj + 1, 0);
+
+    // 3: bottom to top
+    pspace_traverse(disp, 3, cA, cB, dir, disp.rows, 0, -1, jj, jj + 1, 0);
 
     // 4: top left to bottom right
 

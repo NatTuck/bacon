@@ -49,6 +49,18 @@ sub cost {
     return $range * $self->body->cost($env);
 }
 
+around body => sub {
+    my ($orig, $self, @args) = @_;
+    my $body = $self->$orig(@args);
+
+    if ($body->isa('Bacon::Stmt::Block')) {
+        return $body;
+    }
+    else {
+        return Bacon::Stmt::Block->new(body => [$body], source => $body->source);
+    }
+};
+
 sub build_unroll_info {
     my ($self, $env) = @_;
     return if (defined $self->can_unroll);
