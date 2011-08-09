@@ -1,0 +1,22 @@
+/* -*- c -*- */
+
+kernel
+Image2D<int>
+show_indexes(const int rows, const int cols)
+{
+ SETUP:
+    global Image2D<int> image[rows, cols];
+
+ BODY:
+    @range [rows, cols];
+
+    int val = 1000000000;
+
+    val += $z * 1000000;
+    val += $y * 1000;
+    val += $x * 1;
+
+    image[$z, $y, $x] = val;
+
+    return image;
+}

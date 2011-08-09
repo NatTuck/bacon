@@ -9,4 +9,6 @@ use Bacon::Type::Array;
 use Bacon::Type::Array2D;
 use Bacon::Type::Array3D;
 
+use Bacon::Type::Image2D;
+
 1;

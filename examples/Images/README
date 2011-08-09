@@ -1,0 +1,8 @@
+
+== Images.bc ==
+
+Some test cases to make sure the Image2D types work as expected.
+
+Image2D special cases are implemented for:
+ - uchar (CL_LUMINANCE, CL_UNORM_INT8)
+ - ulong (CL_RGBA, CL_UNSIGNED_INT16)

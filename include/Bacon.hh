@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "Bacon/Array.hh"
+#include "Bacon/Image.hh"
 #include "Bacon/Context.hh"
 #include "Bacon/Error.hh"
 #include "Bacon/Timer.hh"
