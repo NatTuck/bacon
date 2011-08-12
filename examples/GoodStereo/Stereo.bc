@@ -1,11 +1,11 @@
 /* -*- c -*- */
 
 kernel
-Array2D<uchar>
-scale_half(Array2D<uchar> image)
+Image2D<uchar>
+scale_half(Image2D<uchar> image)
 {
  SETUP:
-    global Array2D<uchar> half[image.rows / 2, image.cols / 2];
+    Image2D<uchar> half[image.rows / 2, image.cols / 2];
 
  BODY:
     @range [half.rows, half.cols];
@@ -28,11 +28,11 @@ scale_half(Array2D<uchar> image)
 }
 
 kernel
-Array2D<ulong>
-sparse_census(Array2D<uchar> image) 
+Image2D<ulong>
+sparse_census(Image2D<uchar> image) 
 {
  SETUP:
-    global Array2D<ulong> census[image.rows, image.cols];
+    Image2D<ulong> census[image.rows, image.cols];
 
  BODY:
     @range [image.rows, image.cols];
@@ -102,7 +102,7 @@ sgm_penalty(int aa, int bb)
 }
 
 int
-score_row_offset_window(Array2D<ulong> aa, Array2D<ulong> bb, int ii, int jj, int kk)
+score_row_offset_window_A2D(Array2D<ulong> aa, Array2D<ulong> bb, int ii, int jj, int kk)
 {
     const int WINDOW_SIZE = 1;
     const int rad = WINDOW_SIZE / 2;
@@ -124,8 +124,31 @@ score_row_offset_window(Array2D<ulong> aa, Array2D<ulong> bb, int ii, int jj, in
     return 8 * cost;
 }
 
+int
+score_row_offset_window(Image2D<ulong> aa, Image2D<ulong> bb, int ii, int jj, int kk)
+{
+    const int WINDOW_SIZE = 1;
+    const int rad = WINDOW_SIZE / 2;
+
+    int cost = 0;
+
+    for (int dy = -rad; dy <= rad; ++dy) {
+        for (int dx = -rad; dx <= rad; ++dx) {
+            int yy = ii + dy;
+            int bx = jj + dx;
+            int ax = bx + kk;
+            ulong aa_val = aa[yy, ax];
+            ulong bb_val = bb[yy, bx];
+            cost += popcount(aa_val ^ bb_val);
+        }
+    }
+
+    return 8 * cost;
+}
+
+
 void
-pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulong> bb, 
+pspace_traverse(Array3D<uchar> pspace, int slice, Image2D<ulong> aa, Image2D<ulong> bb, 
     int dir, int ii0, int ii1, int di, int jj0, int jj1, int dj)
 {
     int max_disp = pspace.cols / 5;
@@ -176,7 +199,7 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Array2D<ulong> aa, Array2D<ulo
 
 kernel
 void
-sgm_h(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
+sgm_h(Array3D<uchar> disp, Image2D<ulong> cA, Image2D<ulong> cB, int dir)
 {
  BODY:
     @range [disp.rows];
@@ -203,7 +226,7 @@ sgm_h(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
 
 kernel
 void
-sgm_v(Array3D<uchar> disp, Array2D<ulong> cA, Array2D<ulong> cB, int dir)
+sgm_v(Array3D<uchar> disp, Image2D<ulong> cA, Image2D<ulong> cB, int dir)
 {
  BODY:
     @range [disp.cols];

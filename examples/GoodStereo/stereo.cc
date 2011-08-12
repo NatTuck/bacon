@@ -36,18 +36,18 @@ stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
     // consistency check
 
     Bacon::Timer tt_conv;
-    Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL, 8);
-    Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR, 8);
+    Image2D<cl_uchar> aL = mat_to_image2d<cl_uchar>(matL, 8);
+    Image2D<cl_uchar> aR = mat_to_image2d<cl_uchar>(matR, 8);
     cout << "Conversion: " << tt_conv.time() << endl;
 
     Bacon::Timer tt_scale;
-    Array2D<cl_uchar> hL = ss.scale_half(aL);
-    Array2D<cl_uchar> hR = ss.scale_half(aR);
+    Image2D<cl_uchar> hL = ss.scale_half(aL);
+    Image2D<cl_uchar> hR = ss.scale_half(aR);
     cout << "Scale: " << tt_conv.time() << endl;    
 
     Bacon::Timer tt_ch;
-    Array2D<cl_ulong> chL = ss.sparse_census(hL);
-    Array2D<cl_ulong> chR = ss.sparse_census(hR);
+    Image2D<cl_ulong> chL = ss.sparse_census(hL);
+    Image2D<cl_ulong> chR = ss.sparse_census(hR);
     cout << "Census Half: " << tt_ch.time() << endl;
 
     Array3D<cl_uchar> pL(8, chL.rows(), chL.cols());
