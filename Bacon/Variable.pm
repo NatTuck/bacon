@@ -6,6 +6,7 @@ use feature 'switch';
 use Moose;
 
 use Carp;
+use Data::Dumper;
 use Bacon::BigNum;
 
 has name  => (is => 'ro', isa => 'Str', required => 1);
@@ -39,7 +40,8 @@ sub to_fun_arg {
 
 sub has_struct {
     my ($self) = @_;
-    return $self->type->isa("Bacon::Type::Array");
+    return $self->type_isa("Bacon::Type::Array")
+       && !$self->type_isa("Bacon::Type::Image");
 }
 
 sub is_const {
@@ -49,7 +51,12 @@ sub is_const {
 
 sub has_dims {
     my ($self) = @_;
-    return $self->has_struct;
+    return $self->type_isa("Bacon::Type::Array");
+}
+
+sub type_isa {
+    my ($self, $type) = @_;
+    return defined($self->type) && $self->type->isa($type);
 }
 
 sub dim_vars {
@@ -105,7 +112,7 @@ sub cc_name {
         return "cl::__local($name.byte_size())";
     }
 
-    if ($self->has_struct) {
+    if ($self->has_dims) {
         return name_to_cc($self->name) . '.data()';
     }
 

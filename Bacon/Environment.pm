@@ -13,8 +13,20 @@ has in_kernel => (is => 'ro', isa => 'Bool', required => 1);
 
 use Clone qw(clone);
 use Try::Tiny;
+use List::MoreUtils qw(uniq);
 
 use Bacon::Utils qw(embiggen);
+
+sub list {
+    my ($self) = @_;
+    my @names = keys %{$self->vars};
+
+    if (defined $self->parent) {
+        push @names, $self->parent->list;
+    }
+
+    return uniq(@names);
+}
 
 sub lookup {
     my ($self, $name) = @_;

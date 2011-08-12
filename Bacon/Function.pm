@@ -19,6 +19,8 @@ has rets => (is => 'ro', isa => 'Bacon::Type', required => 1);
 
 has env =>  (is => 'ro', isa => 'Bacon::Environment', lazy_build => 1);
 
+use List::MoreUtils qw(any);
+
 use Bacon::Utils;
 use Bacon::Environment;
 
@@ -58,6 +60,24 @@ sub local_decls {
     return grep { $_->isa('Bacon::Stmt::VarDecl') } $self->subnodes;
 }
 
+sub deduce_image_modes {
+    my ($self, $env) = @_;
+
+    for my $name ($env->list) {
+        my $var = $env->lookup($name);
+        next unless $var->type_isa("Bacon::Type::Image");
+
+        my @nodes = $self->subnodes;
+        if (any { $_->isa("Bacon::Expr::BinaryOp") && $_->writes_to_array($name) } @nodes) {
+            $var->type->mode("wo");
+        }
+        else {
+            $var->type->mode("ro");
+        }
+    }
+
+}
+
 sub eval_const_vars {
     my ($self, $env) = @_;
     
@@ -89,6 +109,7 @@ sub to_opencl {
     my ($self, $pgm) = @_;
     assert_type($pgm, "Bacon::Program");
 
+    $self->deduce_image_modes($self->env);
     $self->eval_const_vars($self->env);
 
     my $code = "/* Function: " . $self->name . 

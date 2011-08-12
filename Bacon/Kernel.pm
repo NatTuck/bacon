@@ -178,6 +178,8 @@ sub to_spec_opencl {
     assert_type($self->rets, "Bacon::Type");
     $self->etab or die;
 
+    $self->deduce_image_modes($self->env);
+
     my @const_args = $self->const_args;
     my $spec_text  = "";
 
@@ -348,6 +350,7 @@ sub return_stmt_switch {
 sub to_wrapper_cc {
     my ($self) = @_;
     my ($last_argn, $set_args) = $self->set_args;
+    
 
     my $code = $self->fill_section(
         wrapper_cc  => 0,

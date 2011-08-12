@@ -125,6 +125,12 @@ sub normalize_increment {
     return undef;
 }
 
+sub writes_to_array {
+    my ($self, $name) = @_;
+    return $self->arg0->isa('Bacon::Expr::ArrayIndex')
+        && $self->arg0->name eq $name;
+}
+
 sub static_eval {
     my ($self, $env) = @_;
     my $op = $self->name;
@@ -135,6 +141,15 @@ sub static_eval {
 
 sub to_ocl {
     my ($self, $env) = @_;
+
+    if ($self->arg0->isa('Bacon::Expr::ArrayIndex')) {
+        my $var = $env->lookup($self->arg0->name);
+        if ($var->type_isa("Bacon::Type::Image")) {
+            return $var->type->image_write_to_ocl(
+                $var, $env, @{$self->arg0->dims}, $self->arg1);
+        }
+    }
+
     return "("
         . $self->arg0->to_ocl($env)
         . $self->name 

@@ -30,12 +30,23 @@ sub kids {
 }
 
 sub to_ocl {
-    my ($self, $env) = @_;
+    my ($self, $env, $write) = @_;
+
     try {
         my $var  = $env->lookup($self->name);
         my $type = $var->type;
-        my $code = $type->index_to_ocl($self, $env, @{$self->dims});
-        return $code;
+
+        if ($type->isa("Bacon::Type::Image")) {
+            if ($write) {
+                confess "Shouldn't be outputting an image write from here";
+            }
+            else {
+                return $type->image_read_to_ocl($self, $env, @{$self->dims});
+            }
+        }
+        else {
+            return $type->index_to_ocl($self, $env, @{$self->dims});
+        }
     } catch {
         my $source = $self->source;
         warn "At $source, in an array index:\n";

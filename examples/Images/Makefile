@@ -23,7 +23,8 @@ $(BCOS): %.o: %.bc Makefile
 $(CCOS): %.o: %.cc Makefile $(BCOS)
 
 test: $(BINARY)
-	(cd ../.. && prove examples/Arrays/t/arrays.t)
+	./$(BINARY) -i -y 4 -x 4
+	#(cd ../.. && prove examples/Arrays/t/arrays.t)
 
 clean:
 	rm -rf $(BINARY) *.o *~ gen

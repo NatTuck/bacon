@@ -115,6 +115,7 @@ __[ spec_opencl ]__
 /* specialized <% $kern_name %> on <% $show_args %> */
 
 #include <Bacon/Array.cl>
+#include <Bacon/Image.cl>
 
 <% $contents %>
 

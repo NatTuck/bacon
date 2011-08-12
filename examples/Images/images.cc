@@ -17,8 +17,9 @@ test_show_indexes(int yy, int xx)
 {
     Images bcn;
 
-    Bacon::Image2D<int> image = bcn.show_indexes(zz, yy, xx);
-    aa.write(&cout);
+    Bacon::Image2D<cl_uchar> image = bcn.show_indexes(yy, xx);
+    cout << "After compute" << endl;
+    image.write(&cout);
 }
 
 void

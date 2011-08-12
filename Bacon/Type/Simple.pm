@@ -23,6 +23,11 @@ sub scope {
     return "+none=;";
 }
 
+sub dims {
+    my ($self) = @_;
+    confess "Shouldn't be querying dims on a simple variable";
+}
+
 # Indexing a simple type means the user is
 # interacting with a local / private array.
 

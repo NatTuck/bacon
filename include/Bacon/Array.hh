@@ -70,7 +70,8 @@ class Array {
         data_ptr = boost::shared_array<NumT>(new NumT[nn]);
         on_gpu = false;
         valid_data = false;
-        buffer = cl::Buffer(ctx->ctx, CL_MEM_USE_HOST_PTR, nn * sizeof(NumT), data_ptr.get());
+        buffer = cl::Buffer(ctx->ctx, CL_MEM_USE_HOST_PTR, 
+            nn * sizeof(NumT), data_ptr.get());
     }
 
     void fill(NumT vv)
@@ -118,14 +119,16 @@ class Array {
         valid_data =true;
     }
 
-    void send_dev()
+    virtual void 
+    send_dev()
     {
         assert(ctx != 0);
         ctx->queue.enqueueWriteBuffer(buffer, true, 0, byte_size(), data_ptr.get());
         on_gpu = true;
     }
 
-    void recv_dev()
+    virtual void 
+    recv_dev()
     {
         assert(ctx != 0);
         ctx->queue.enqueueReadBuffer(buffer, true, 0, byte_size(), data_ptr.get());
@@ -138,27 +141,8 @@ class Array {
         return size() * sizeof(NumT);
     }
 
-    void read_items(std::istream* in_file)
-    {
-        for (int ii = 0; ii < size(); ++ii) {
-            *in_file >> data_ptr[ii];
-        }
-        
-        on_gpu = false;
-        valid_data = true;
-    }
-
-    void write_items(std::ostream* out_file)
-    {
-        if (on_gpu)
-            recv_dev();
-
-        for (int ii = 0; ii < size(); ++ii) {
-            *out_file << data_ptr[ii] << " ";
-        }
-
-        *out_file << std::endl;
-    }
+    virtual void read_items(std::istream* in_file);
+    virtual void write_items(std::ostream* out_file);
 
     cl_uint size() const
     {
@@ -178,10 +162,7 @@ class Array {
     {
         *out_file << cols() << "\n";
 
-        for (int jj = 0; jj < cols(); ++jj) {
-            *out_file << get(jj) << " ";
-        }
-        *out_file << endl;
+        write_items(out_file);
     }    
 
     cl_uint cols() const
@@ -201,6 +182,64 @@ class Array {
     boost::shared_array<NumT> data_ptr;
 
 };
+
+template<class NumT>
+inline
+void 
+Array<NumT>::read_items(std::istream* in_file)
+{
+    for (int ii = 0; ii < size(); ++ii) {
+        *in_file >> data_ptr[ii];
+    }
+    
+    on_gpu = false;
+    valid_data = true;
+}
+
+template<class NumT>
+inline
+void 
+Array<NumT>::write_items(std::ostream* out_file)
+{
+    if (on_gpu)
+        this->recv_dev();
+    
+    for (int ii = 0; ii < size(); ++ii) {
+        *out_file << data_ptr[ii] << " ";
+    }
+    
+    *out_file << std::endl;
+}
+
+template<>
+inline
+void 
+Array<cl_uchar>::read_items(std::istream* in_file)
+{
+    for (int ii = 0; ii < size(); ++ii) {
+        int tmp;
+        *in_file >> tmp;
+        data_ptr[ii] = (cl_uchar) tmp;
+    }
+    
+    on_gpu = false;
+    valid_data = true;
+}
+
+template<>
+inline
+void 
+Array<cl_uchar>::write_items(std::ostream* out_file)
+{
+    if (on_gpu)
+        this->recv_dev();
+
+    for (int ii = 0; ii < size(); ++ii) {
+        *out_file << (cl_uint) data_ptr[ii] << " ";
+    }
+    
+    *out_file << std::endl;
+}
 
 template <class NumT>
 bool 
@@ -260,18 +299,7 @@ class Array2D : public Array<NumT> {
         Array<NumT>::read_items(in_file);
     }
 
-    void write(std::ostream* out_file)
-    {
-        *out_file << rows() << " ";
-        *out_file << cols() << "\n";
-
-        for (int ii = 0; ii < rows(); ++ii) {
-            for (int jj = 0; jj < cols(); ++jj) {
-                *out_file << get(ii, jj) << " ";
-            }
-            * out_file << endl;
-        }
-    }
+    void write(std::ostream* out_file);
 
     cl_uint rows() const
     {
@@ -283,10 +311,48 @@ class Array2D : public Array<NumT> {
         return data_cols;
     }
 
-  private:
+  protected:
     cl_uint data_rows;
     cl_uint data_cols;
 };
+
+template <class NumT>
+inline
+void
+Array2D<NumT>::write(std::ostream* out_file)
+{
+    if (this->on_gpu)
+        this->recv_dev();
+
+    *out_file << rows() << " ";
+    *out_file << cols() << "\n";
+    
+    for (int ii = 0; ii < rows(); ++ii) {
+        for (int jj = 0; jj < cols(); ++jj) {
+            *out_file << get(ii, jj) << " ";
+        }
+        * out_file << endl;
+    }
+}
+
+template<>
+inline
+void
+Array2D<cl_uchar>::write(std::ostream* out_file)
+{
+    if (this->on_gpu)
+        this->recv_dev();
+
+    *out_file << rows() << " ";
+    *out_file << cols() << "\n";
+    
+    for (int ii = 0; ii < rows(); ++ii) {
+        for (int jj = 0; jj < cols(); ++jj) {
+            *out_file << (cl_uint) get(ii, jj) << " ";
+        }
+        *out_file << endl;
+    }
+}
 
 template <class NumT>
 bool 
