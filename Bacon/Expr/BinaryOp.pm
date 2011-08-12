@@ -87,9 +87,17 @@ sub normalize_const_cond {
     return ($op, $num);
 }
 
+sub op_mutates {
+    my ($self) = @_;
+    my @mutating_ops = qw(= += -= *= /= %= &= ^= |= >>= <<=);
+    for my $op (@mutating_ops) {
+        return 1 if ($op eq $self->name);
+    }
+    return 0;
+}
+
 sub mutates_variable {
     my ($self, $var) = @_;
-    my @mutating_ops = qw(= += -= *= /= %= &= ^= |= >>= <<=);
 
     if (any { $_->mutates_variable($var) } $self->kids) {
         return 1;
@@ -100,11 +108,7 @@ sub mutates_variable {
         return 0;
     }
 
-    for my $op (@mutating_ops) {
-        return 1 if ($op eq $self->name);
-    }
-
-    return 0;
+    return $self->op_mutates;
 }
 
 sub normalize_increment {
@@ -127,7 +131,8 @@ sub normalize_increment {
 
 sub writes_to_array {
     my ($self, $name) = @_;
-    return $self->arg0->isa('Bacon::Expr::ArrayIndex')
+    return $self->op_mutates
+        && $self->arg0->isa('Bacon::Expr::ArrayIndex')
         && $self->arg0->name eq $name;
 }
 
@@ -142,7 +147,8 @@ sub static_eval {
 sub to_ocl {
     my ($self, $env) = @_;
 
-    if ($self->arg0->isa('Bacon::Expr::ArrayIndex')) {
+    if ($self->op_mutates && 
+            $self->arg0->isa('Bacon::Expr::ArrayIndex')) {
         my $var = $env->lookup($self->arg0->name);
         if ($var->type_isa("Bacon::Type::Image")) {
             return $var->type->image_write_to_ocl(

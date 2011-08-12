@@ -20,8 +20,8 @@ class Image2D : public Array2D<NumT> {
 
     Image2D(int yy, int xx)
     {
-        this->data_cols = yy;
-        this->data_rows = xx;
+        this->data_rows = yy;
+        this->data_cols = xx;
         reallocate(yy * xx);
     }
 

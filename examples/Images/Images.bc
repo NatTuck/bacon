@@ -34,3 +34,18 @@ copy_to_array(Image2D<uchar> image)
     
     return arry;
 }
+
+kernel
+Image2D<ulong>
+add_ten_long(Image2D<ulong> aa)
+{
+ SETUP:
+    Image2D<ulong> bb[aa.rows, aa.cols];
+
+ BODY:
+    @range [aa.rows, aa.cols];
+
+    bb[$y, $x] = aa[$y, $x] + 10;
+ 
+    return bb;
+}

@@ -13,7 +13,7 @@ if (defined $ENV{LD_LIBRARY_PATH}) {
 
 $ENV{LD_LIBRARY_PATH} = "../../lib" . $ldpath;
 
-use Test::Simple tests => 2;
+use Test::Simple tests => 3;
 use Bacon::Test;
 
 my $tmp = "t/out-$$.dat";
@@ -24,4 +24,8 @@ unlink($tmp);
 
 system("./images -t < t/rect2x4.dat > $tmp");
 files_eq($tmp, "t/rect2x4.dat", "Read Image2D into Array2D.");
+unlink($tmp);
+
+system("./images -a < t/long3x7.dat > $tmp");
+files_eq($tmp, "t/long3x7out.dat", "Long int in Image2D.");
 unlink($tmp);

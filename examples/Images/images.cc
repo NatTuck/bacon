@@ -35,6 +35,18 @@ test_copy_to_array()
 }
 
 void
+test_add_ten_long()
+{
+    Images bcn;
+
+    Bacon::Image2D<cl_ulong> aa;
+    aa.read(&cin);
+
+    Bacon::Image2D<cl_ulong> bb = bcn.add_ten_long(aa);
+    bb.write(&cout);
+}
+
+void
 show_usage()
 {
     cout << "Usage: ./arrays [ -i -y N -x N | -t ]" << endl;
@@ -53,8 +65,9 @@ main(int argc, char* argv[])
 
     const int INDEX_MODE = 1;
     const int COPYA_MODE = 2;
+    const int ADD10_MODE = 3;
 
-    while ((opt = getopt(argc, argv, "itx:y:")) != -1) {
+    while ((opt = getopt(argc, argv, "itax:y:")) != -1) {
         switch(opt) {
         case 'x':
             xx = atoi(optarg);
@@ -67,6 +80,9 @@ main(int argc, char* argv[])
             break;
         case 't':
             mode = COPYA_MODE;
+            break;
+        case 'a':
+            mode = ADD10_MODE;
             break;
         case 'h':
             show_usage();
@@ -88,6 +104,9 @@ main(int argc, char* argv[])
         break;
     case COPYA_MODE:
         test_copy_to_array();
+        break;
+    case ADD10_MODE:
+        test_add_ten_long();
         break;
     default:
         show_usage();
