@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 using std::cout;
+using std::cin;
 using std::endl;
 
 #include <string>
@@ -18,14 +19,25 @@ test_show_indexes(int yy, int xx)
     Images bcn;
 
     Bacon::Image2D<cl_uchar> image = bcn.show_indexes(yy, xx);
-    cout << "After compute" << endl;
     image.write(&cout);
+}
+
+void
+test_copy_to_array()
+{
+    Images bcn;
+    
+    Bacon::Image2D<cl_uchar> image;
+    image.read(&cin);
+
+    Bacon::Array2D<cl_uchar> arry = bcn.copy_to_array(image);
+    arry.write(&cout);
 }
 
 void
 show_usage()
 {
-    cout << "Usage: ./arrays -i -y N -x N" << endl;
+    cout << "Usage: ./arrays [ -i -y N -x N | -t ]" << endl;
     exit(1);
 }
 
@@ -40,8 +52,9 @@ main(int argc, char* argv[])
     int mode = 0;
 
     const int INDEX_MODE = 1;
+    const int COPYA_MODE = 2;
 
-    while ((opt = getopt(argc, argv, "ix:y:")) != -1) {
+    while ((opt = getopt(argc, argv, "itx:y:")) != -1) {
         switch(opt) {
         case 'x':
             xx = atoi(optarg);
@@ -51,6 +64,9 @@ main(int argc, char* argv[])
             break;
         case 'i':
             mode = INDEX_MODE;
+            break;
+        case 't':
+            mode = COPYA_MODE;
             break;
         case 'h':
             show_usage();
@@ -69,7 +85,10 @@ main(int argc, char* argv[])
         }
 
         test_show_indexes(yy, xx);
-        break;        
+        break;
+    case COPYA_MODE:
+        test_copy_to_array();
+        break;
     default:
         show_usage();
         return 0;

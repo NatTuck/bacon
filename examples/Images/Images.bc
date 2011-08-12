@@ -19,3 +19,18 @@ show_indexes(const int rows, const int cols)
 
     return image;
 }
+
+kernel
+Array2D<uchar>
+copy_to_array(Image2D<uchar> image)
+{
+ SETUP:
+    global Array2D<uchar> arry[image.rows, image.cols];
+
+ BODY:
+    @range [image.rows, image.cols];
+
+    arry[$y, $x] = image[$y, $x];
+    
+    return arry;
+}

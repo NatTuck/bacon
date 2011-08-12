@@ -63,7 +63,8 @@ class Array {
         Bacon_Array_random_seed *= random();
     }
 
-    void reallocate(int nn)
+    virtual void 
+    reallocate(int nn)
     {
         assert(ctx != 0);
         data_size = nn;
@@ -295,8 +296,8 @@ class Array2D : public Array<NumT> {
         *in_file >> data_rows;
         *in_file >> data_cols;
 
-        Array<NumT>::reallocate(data_rows * data_cols);
-        Array<NumT>::read_items(in_file);
+        this->reallocate(data_rows * data_cols);
+        this->read_items(in_file);
     }
 
     void write(std::ostream* out_file);

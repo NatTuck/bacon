@@ -20,15 +20,16 @@ class Image2D : public Array2D<NumT> {
 
     Image2D(int yy, int xx)
     {
-        reallocate(yy, xx);
-    }
-
-    void reallocate(int yy, int xx)
-    {
-        assert(this->ctx != 0);
         this->data_cols = yy;
         this->data_rows = xx;
-        this->data_size = yy * xx;
+        reallocate(yy * xx);
+    }
+
+    virtual void 
+    reallocate(int size)
+    {
+        assert(this->ctx != 0);
+        this->data_size = size;
         this->data_ptr = boost::shared_array<NumT>(new NumT[this->data_size]);
         this->on_gpu = false;
         this->valid_data = false;
@@ -50,8 +51,6 @@ class Image2D : public Array2D<NumT> {
         assert(this->ctx != 0);
         this->on_gpu = true;
 
-        cout << "Image2D::send_dev" << endl;
-
         cl::size_t<3> origin;
         origin[0] = 0;
         origin[1] = 0;
@@ -69,8 +68,6 @@ class Image2D : public Array2D<NumT> {
     {
         assert(this->ctx != 0);
         this->on_gpu = false;
-
-        cout << "Image2D::recv_dev" << endl;
 
         cl::size_t<3> origin;
         origin[0] = 0;
