@@ -26,25 +26,20 @@ stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
     Bacon::Timer tt_full;
 
     // convert inputs to Array2D
-    // scale
-    // census 1/2
-    // SGM 1/2
-    // consistency 1/2
-    // fill unknown pixels magically
-    // census full
-    // restricted range matching
-    // consistency check
-
     Bacon::Timer tt_conv;
     Image2D<cl_uchar> aL = mat_to_image2d<cl_uchar>(matL, 8);
     Image2D<cl_uchar> aR = mat_to_image2d<cl_uchar>(matR, 8);
     cout << "Conversion: " << tt_conv.time() << endl;
 
+    // scale
     Bacon::Timer tt_scale;
     Image2D<cl_uchar> hL = ss.scale_half(aL);
     Image2D<cl_uchar> hR = ss.scale_half(aR);
     cout << "Scale: " << tt_conv.time() << endl;    
 
+    // census 1/2
+    // SGM 1/2
+    // consistency 1/2
     Bacon::Timer tt_ch;
     Image2D<cl_ulong> chL = ss.sparse_census(hL);
     Image2D<cl_ulong> chR = ss.sparse_census(hR);
@@ -52,16 +47,16 @@ stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
 
     Array3D<cl_uchar> pL(8, chL.rows(), chL.cols());
 
-    Bacon::Timer tt_sgm_h;
+    Bacon::Timer tt_sgm_hL;
     ss.sgm_h(pL, chL, chR, +1);
-    cout << "SGM H: " << tt_sgm_h.time() << endl;
+    cout << "SGM HL: " << tt_sgm_hL.time() << endl;
 
     //show_pspace_slice("pL[0]", pL, 0);
     //show_pspace_slice("pL[1]", pL, 1);
 
-    Bacon::Timer tt_sgm_v; 
+    Bacon::Timer tt_sgm_vL; 
     ss.sgm_v(pL, chL, chR, +1);
-    cout << "SGM V: " << tt_sgm_v.time() << endl;
+    cout << "SGM VL: " << tt_sgm_vL.time() << endl;
 
     //show_pspace_slice("pL[2]", pL, 2);
     //show_pspace_slice("pL[3]", pL, 3);
@@ -70,10 +65,28 @@ stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
     //show_pspace_slice("pl[6]", pL, 6);
     //show_pspace_slice("pl[7]", pL, 7);
 
-    Array3D<cl_ulong> pR(8, chR.rows(), chR.cols());
+    Array3D<cl_uchar> pR(8, chR.rows(), chR.cols());
 
+    Bacon::Timer tt_sgm_hR;
+    ss.sgm_h(pR, chR, chL, -1);
+    cout << "SGM HR: " << tt_sgm_hR.time() << endl;
+
+    //show_pspace_slice("pR[0]", pR, 0);
+    //show_pspace_slice("pR[1]", pR, 1);
+
+    Bacon::Timer tt_sgm_vR; 
+    ss.sgm_v(pR, chR, chL, -1);
+    cout << "SGM VR: " << tt_sgm_vR.time() << endl;
+
+    //show_pspace_slice("pR[2]", pR, 2);
+    //show_pspace_slice("pR[3]", pR, 3);
     
 
+
+    // fill unknown pixels magically
+    // census full
+    // restricted range matching
+    // consistency check
     cv::Mat dispM = array2d_to_mat(hL);
 
     cout << "One frame disparity took: " << tt_full.time() << endl;
@@ -176,8 +189,8 @@ main(int argc, char* argv[])
     cout << "First" << endl;
     disp = stereo_disparity(ss, left, right);
 
-    cout << "Again" << endl;
-    disp = stereo_disparity(ss, left, right);
+    //cout << "Again" << endl;
+    //disp = stereo_disparity(ss, left, right);
 
     // Scale to match ground truth.
     disp *= 2;
@@ -191,9 +204,11 @@ main(int argc, char* argv[])
         printf("%.03f of pixels are unknown over ground truth.\n", missing);
     }
 
+#if 0
     cv::namedWindow("Disparity Map", CV_WINDOW_AUTOSIZE);
     cv::imshow("Disparity Map", disp);
     cv::waitKey(0);
+#endif
 
     if (out_file != "")
         imwrite(out_file, disp);

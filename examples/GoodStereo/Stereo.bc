@@ -80,7 +80,7 @@ subpixel(int disp, int p_sc, int c_sc, int n_sc)
 {
     float n = n_sc - p_sc;
     float d = 2 * (2*c_sc - p_sc - n_sc);
-    float e = ((float) disp) + (d > 0.0001f) ? (n / d) : 0.0;
+    float e = ((float) disp) + ((d > 0.0001f) ? (n / d) : 0.0);
     return clamp((int) round(e), 0, 255);
 }
 
@@ -174,7 +174,8 @@ pspace_traverse(Array3D<uchar> pspace, int slice, Image2D<ulong> aa, Image2D<ulo
                 + sgm_penalty(kk, prev_disp);
             
             if (curr_score < best_score) {
-                best_disp  = kk; // subpixel(kk, prev_score, curr_score, next_score);
+                //best_disp  = kk;
+                best_disp  = subpixel(kk, prev_score, curr_score, next_score);
                 best_score = curr_score;
             }
         }
@@ -202,26 +203,28 @@ void
 sgm_h(Array3D<uchar> disp, Image2D<ulong> cA, Image2D<ulong> cB, int dir)
 {
  BODY:
-    @range [disp.rows];
+    @range [2, disp.rows];
     int ii = $x;
 
     // 0: left to right
-    pspace_traverse(disp, 0, cA, cB, dir, ii, ii + 1, 0, 0, disp.cols, +1);
+    if ($y == 0)
+        pspace_traverse(disp, 0, cA, cB, dir, ii, ii + 1, 0, 0, disp.cols, +1);
 
     // 1: right to left
-    pspace_traverse(disp, 1, cA, cB, dir, ii, ii + 1, 0, disp.cols, 0, -1);
+    if ($y == 1)
+        pspace_traverse(disp, 1, cA, cB, dir, ii, ii + 1, 0, disp.cols, 0, -1);
 
     // 4: top left to bottom right
-    pspace_traverse(disp, 4, cA, cB, dir, ii, disp.rows, +1, 0, disp.cols, +1);
+    //pspace_traverse(disp, 4, cA, cB, dir, ii, disp.rows, +1, 0, disp.cols, +1);
 
     // 5: bottom right to top left
-    pspace_traverse(disp, 5, cA, cB, dir, ii, 0, -1, disp.cols, 0, -1);
+    //pspace_traverse(disp, 5, cA, cB, dir, ii, 0, -1, disp.cols, 0, -1);
 
     // 6: top right to bottom left
-    pspace_traverse(disp, 6, cA, cB, dir, ii, disp.rows, +1, disp.cols, 0, -1);
+    //pspace_traverse(disp, 6, cA, cB, dir, ii, disp.rows, +1, disp.cols, 0, -1);
 
     // 7: bottom left to top right
-    pspace_traverse(disp, 7, cA, cB, dir, ii, 0, -1, 0, disp.cols, +1);
+    //pspace_traverse(disp, 7, cA, cB, dir, ii, 0, -1, 0, disp.cols, +1);
 }
 
 kernel
@@ -229,26 +232,28 @@ void
 sgm_v(Array3D<uchar> disp, Image2D<ulong> cA, Image2D<ulong> cB, int dir)
 {
  BODY:
-    @range [disp.cols];
+    @range [2, disp.cols];
     int jj = $x;
 
     // 2: top to botton
-    pspace_traverse(disp, 2, cA, cB, dir, 0, disp.rows, +1, jj, jj + 1, 0);
+    if ($y == 0)
+        pspace_traverse(disp, 2, cA, cB, dir, 0, disp.rows, +1, jj, jj + 1, 0);
 
     // 3: bottom to top
-    pspace_traverse(disp, 3, cA, cB, dir, disp.rows, 0, -1, jj, jj + 1, 0);
+    if ($y == 1)
+        pspace_traverse(disp, 3, cA, cB, dir, disp.rows, 0, -1, jj, jj + 1, 0);
 
     // 4: top left to bottom right
-    pspace_traverse(disp, 4, cA, cB, dir, 0, disp.rows, +1, jj, disp.cols, +1);
+    //pspace_traverse(disp, 4, cA, cB, dir, 0, disp.rows, +1, jj, disp.cols, +1);
 
     // 5: bottom right to top left
-    pspace_traverse(disp, 5, cA, cB, dir, disp.rows, 0, -1, jj, 0, -1);
+    //pspace_traverse(disp, 5, cA, cB, dir, disp.rows, 0, -1, jj, 0, -1);
 
     // 6: top right to bottom left
-    pspace_traverse(disp, 6, cA, cB, dir, 0, disp.rows, +1, jj, 0, -1);
+    //pspace_traverse(disp, 6, cA, cB, dir, 0, disp.rows, +1, jj, 0, -1);
 
     // 7: bottom left to top right
-    pspace_traverse(disp, 7, cA, cB, dir, disp.rows, 0, -1, jj, disp.cols, +1);
+    //pspace_traverse(disp, 7, cA, cB, dir, disp.rows, 0, -1, jj, disp.cols, +1);
 }
 
 kernel
