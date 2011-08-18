@@ -96,7 +96,7 @@ that are allowed by OpenCL.
 These improvements are evaluated using matrix multiplication as a test
 case. Both simpler code and improved performance are demonstrated.
 
-\section{Previous and Similar Work}
+\section{Previous Work}
 
 \subsection{Partial Evaluation}
 
@@ -274,7 +274,7 @@ the representation.
 The two optimizations that are performed by the Bacon library are
 constant propagation and loop unrolling. Constant propagation
 calculates the values of all the variables that have been marked as
-\tt{const} by the programmer. If the value of any of these variables
+{\tt const} by the programmer. If the value of any of these variables
 cannot be computed from the specialized arguments to the kernel, the
 Bacon runtime will throw an exception.  This information is used to
 construct a symbol table, and references to these variables are
@@ -283,7 +283,7 @@ code. Loop unrolling is then performed on any loops that can be
 statically analyzed.
 
 Loop unrolling is included because neither the AMD nor Nvidia OpenCL
-compilers do it by default, and manually unrolling loops is time
+compilers do it by default and manually unrolling loops is time
 consuming and error prone. Loop unrolling in Bacon is an even more
 powerful optimization than usual due to the ability to either fully
 unroll loops or to unroll them by a factor that is guaranteed to
