@@ -1,0 +1,262 @@
+/* -*- c -*- */
+
+kernel
+Image2D<uchar>
+scale_half(Image2D<uchar> image)
+{
+ SETUP:
+    Image2D<uchar> half[image.rows / 2, image.cols / 2];
+
+ BODY:
+    @range [half.rows, half.cols];
+
+    uint total = 0;
+
+    for (int ii = 0; ii < 2; ++ii) {
+        int base_ii = 2 * $row;
+
+        for (int jj = 0; jj < 2; ++jj) {
+            int base_jj = 2 * $col;
+
+            total += image[base_ii + ii, base_jj + jj];
+        }
+    }
+
+    half[$row, $col] = (uchar)(total / 4);
+
+    return half;
+}
+
+kernel
+Image2D<ulong>
+sparse_census(Image2D<uchar> image) 
+{
+ SETUP:
+    Image2D<ulong> census[image.rows, image.cols];
+
+ BODY:
+    @range [image.rows, image.cols];
+
+    ulong bits = 0;
+    uchar ctr = image[$y, $x];
+    
+    for (int by = 0; by < 8; ++by) {
+        int yoff = by + by - 7;
+        int ii   = clamp($y + yoff, 0, (int) image.rows);
+
+        for (int bx = 0; bx < 8; ++bx) {
+            int xoff = bx + bx - 7;
+            int jj   = clamp($x + xoff, 0, (int) image.cols);
+
+            uchar pval = image[ii, jj];
+            
+            if (pval < ctr) {
+                int bit = 8*by + bx;
+                bits |= (1 << bit);
+            }
+        }
+    }
+
+    census[$y, $x] = bits;
+
+    return census;
+}
+
+ushort
+popcount(ulong x) 
+{
+    const ulong m1 = 0x5555555555555555; //binary: 0101...
+    const ulong m2 = 0x3333333333333333; //binary: 00110011..
+    const ulong m4 = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
+    const ulong h1 = 0x0101010101010101; //the sum of 256 to the power of 0,1,2,3...
+    x -= (x >> 1) & m1;             //put count of each 2 bits into those 2 bits
+    x = (x & m2) + ((x >> 2) & m2); //put count of each 4 bits into those 4 bits 
+    x = (x + (x >> 4)) & m4;        //put count of each 8 bits into those 8 bits 
+    return (x * h1) >> 56;  //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ... 
+}
+
+int
+subpixel(int disp, int p_sc, int c_sc, int n_sc)
+{
+    float n = n_sc - p_sc;
+    float d = 2 * (2*c_sc - p_sc - n_sc);
+    float e = ((float) disp) + ((d > 0.0001f) ? (n / d) : 0.0);
+    return clamp((int) round(e), 0, 255);
+}
+
+int
+sgm_penalty(int aa, int bb)
+{
+    const int P1 = 3;
+    const int P2 = 40;
+    const int C1 = 1;
+    const int C2 = 2;
+
+    int dd  = abs(aa - bb);
+    int pen = 0;
+
+    if (dd > C1) pen += P1;
+    if (dd > C2) pen += P2;
+
+    return pen;
+}
+
+int
+score_row_offset_window(Image2D<ulong> aa, Image2D<ulong> bb, 
+    int ii, int jj, int kk, int window_size)
+{
+    //const int WINDOW_SIZE = 1;
+    int rad = window_size / 2;
+
+    int cost = 0;
+
+    for (int dy = -rad; dy <= rad; ++dy) {
+        for (int dx = -rad; dx <= rad; ++dx) {
+            int yy = ii + dy;
+            int bx = jj + dx;
+            int ax = bx + kk;
+            ulong aa_val = aa[yy, ax];
+            ulong bb_val = bb[yy, bx];
+            cost += popcount(aa_val ^ bb_val);
+        }
+    }
+
+    return 8 * cost;
+}
+
+kernel
+Image2D<uchar>
+wide_disparity(Image2D<ulong> cA, Image2D<ulong> cB, int dir)
+{
+ SETUP:
+    Image2D<uchar> disp[cA.rows, cA.cols];
+
+ BODY:
+    @range [cA.rows, cA.cols];
+
+    const int max_disp = cA.cols / 5;
+    const int min_disp = 0;
+
+    int best_score = 99999;
+    int best_disp  = 0;
+
+    for (int kk = min_disp; kk < max_disp; ++kk) {
+        int curr_score = score_row_offset_window(cA, cB, $row, $col, kk * dir, 3);
+
+        if (curr_score < best_score) {
+            best_score = curr_score;
+            best_disp  = kk;
+        }
+    }
+
+    disp[$row, $col] = best_disp;
+
+    return disp;
+}
+
+kernel
+Image2D<uchar>
+narrow_disparity(Image2D<ulong> cA, Image2D<ulong> cB, int dir, Image2D<uchar> half)
+{
+ SETUP:
+    Image2D<uchar> disp[cA.rows, cA.cols];
+
+ BODY:
+    @range [cA.rows, cA.cols];
+
+    int dx = 4; // cA.cols / 80;
+    int hv = 2 * half[$row / 2, $col / 2];
+
+    if (hv == 0) {
+        hv = 0;
+    }
+
+    int best_score = 99999;
+    int best_disp  = hv;
+
+    for (int kk = (hv - dx); kk < (hv + dx); ++kk) {
+        int curr_score = score_row_offset_window(cA, cB, $row, $col, kk * dir, 1);
+
+        if (curr_score < best_score) {
+            best_score = curr_score;
+            best_disp  = kk;
+        }
+    }
+
+    disp[$row, $col] = best_disp;
+
+    return disp;
+}
+
+// Fast median of 9 based on code from N. Devillard,
+// http://ndevilla.free.fr/median/median/index.html
+
+#define PIX_SORT(a,b) temp = (a); (a) = (a)>(b) ? (b) : (a); (b) = (temp)>(b) ? (temp) : (b);
+
+int
+opt_med9(int* p)
+{
+    int temp;
+    PIX_SORT(p[1], p[2])  PIX_SORT(p[4], p[5])  PIX_SORT(p[7], p[8]) 
+    PIX_SORT(p[0], p[1])  PIX_SORT(p[3], p[4])  PIX_SORT(p[6], p[7]) 
+    PIX_SORT(p[1], p[2])  PIX_SORT(p[4], p[5])  PIX_SORT(p[7], p[8]) 
+    PIX_SORT(p[0], p[3])  PIX_SORT(p[5], p[8])  PIX_SORT(p[4], p[7]) 
+    PIX_SORT(p[3], p[6])  PIX_SORT(p[1], p[4])  PIX_SORT(p[2], p[5]) 
+    PIX_SORT(p[4], p[7])  PIX_SORT(p[4], p[2])  PIX_SORT(p[6], p[4]) 
+    PIX_SORT(p[4], p[2])  return(p[4]);
+}
+
+kernel
+Image2D<uchar>
+median_filter(Image2D<uchar> im)
+{
+ SETUP:
+    Image2D<uchar> im2[im.rows, im.cols];
+
+ BODY:
+    @range [im.rows, im.cols];
+
+    int px[9];
+    
+    for (int ii = 0; ii < 3; ++ii) {
+        int iii = clamp($y + ii - 1, 0, im.rows);
+
+        for (int jj = 0; jj < 3; ++jj) {
+            int jjj = clamp($x + jj - 1, 0, im.cols);
+            int nn = 3 * ii + jj;
+            
+            px[nn] = im[iii, jjj];
+        }
+    }
+    
+    im2[$y, $x] = opt_med9(px);
+
+    return im2;
+}
+
+
+kernel
+Image2D<uchar>
+consistent_pixels(Image2D<uchar> dispA, Image2D<uchar> dispB, int dir)
+{
+ SETUP:
+    Image2D<uchar> disp[dispA.rows, dispA.cols];
+
+ BODY:
+    @range [dispA.rows, dispA.cols];
+
+    const int MAX_DISP = dispA.cols / 6;
+    const int DV = 5;
+
+    int dA = dispA[$row, $col];
+    int dB = dispB[$row, $col + (dA * dir)];
+
+    if (abs(dA - dB) <= DV && dA < MAX_DISP) {
+        disp[$y, $x] = dA;
+    }
+    else {
+        disp[$y, $x] = 0;
+    }
+
+    return disp;
+}

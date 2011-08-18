@@ -18,81 +18,66 @@ using std::string;
 
 using namespace Bacon;
 
-void
-show_pspace_slice(const char* title, Array3D<cl_uchar>& pspace, int slice)
-{
-    cv::Mat image(pspace.rows(), pspace.cols(), CV_8UC1);
-
-    for (int ii = 0; ii < pspace.rows(); ++ii) {
-        for (int jj = 0; jj < pspace.cols(); ++jj) {
-            image.at<uint8_t>(ii, jj) = pspace.get(slice, ii, jj);
-        }
-    }
-
-    show_image(title, image);
-}
-
-void
-show_array2d(const char* title, Array2D<cl_uchar>& aa)
-{
-    cv::Mat image(aa.rows(), aa.cols(), CV_8UC1);
-
-    for (int ii = 0; ii < aa.rows(); ++ii) {
-        for (int jj = 0; jj < aa.cols(); ++jj) {
-            image.at<uint8_t>(ii, jj) = aa.get(ii, jj);
-        }
-    }
-
-    show_image(title, image);    
-}
-
 cv::Mat
-stereo_disparity(cv::Mat matL, cv::Mat matR)
+stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
 {
-    Stereo ss;
-    //ss.ctx.show_timing = true;
+    Bacon::Kernel::show_timing = false;
+    Bacon::Timer tt_full;
 
-    Array2D<cl_uchar> aL = mat_to_array2d<cl_uchar>(matL, 8);
-    Array2D<cl_uchar> aR = mat_to_array2d<cl_uchar>(matR, 8);
+    // convert inputs to Array2D
+    //Bacon::Timer tt_conv;
+    Image2D<cl_uchar> aL = mat_to_image2d<cl_uchar>(matL, 8);
+    Image2D<cl_uchar> aR = mat_to_image2d<cl_uchar>(matR, 8);
+    //cout << "Conversion: " << tt_conv.time() << endl;
 
-    Array2D<cl_ulong> cL = ss.sparse_census(aL);
-    Array2D<cl_ulong> cR = ss.sparse_census(aR);
+    // scale
+    //Bacon::Timer tt_scale;
+    Image2D<cl_uchar> hL = ss.scale_half(aL);
+    Image2D<cl_uchar> hR = ss.scale_half(aR);
+    //cout << "Scale: " << tt_conv.time() << endl;
 
-#if 0
-    show_census("Census Left", cL.ptr(), cL.rows(), cL.cols());
-    show_census("Census Right", cR.ptr(), cR.rows(), cR.cols());
-    exit(0);
-#endif
+    // census 1/2
+    //Bacon::Timer tt_ch;
+    Image2D<cl_ulong> chL = ss.sparse_census(hL);
+    Image2D<cl_ulong> chR = ss.sparse_census(hR);
+    //cout << "Census Half: " << tt_ch.time() << endl;
 
-    Array3D<cl_uchar> pspace(4, cL.rows(), cL.cols());
+    // half resolution wide matching
+    Image2D<cl_uchar> dhL = ss.wide_disparity(chL, chR, +1);
+    Image2D<cl_uchar> dhL1 = ss.median_filter(dhL);
 
-    ss.pspace_h(pspace, cL, cR, +1);
-    ss.pspace_v(pspace, cL, cR, +1);
+    Image2D<cl_uchar> dhR = ss.wide_disparity(chR, chL, -1);
+    Image2D<cl_uchar> dhR1 = ss.median_filter(dhR);    
 
-    Array2D<cl_uchar> arL = ss.half_disparity(cL, cR, pspace, +1);
-    Array2D<cl_uchar> dsL = ss.median_filter(arL);
+    // consistency 1/2
+    Image2D<cl_uchar> dhL2 = ss.consistent_pixels(dhL1, dhR1, +1);
+    Image2D<cl_uchar> dhR2 = ss.consistent_pixels(dhR1, dhL1, -1);
+    
+    // census full
+    Image2D<cl_ulong> cL = ss.sparse_census(aL);
+    Image2D<cl_ulong> cR = ss.sparse_census(aR);
 
-    ss.pspace_h(pspace, cR, cL, -1);
-    ss.pspace_v(pspace, cR, cL, -1);
+    // full resolution narrow matching
+    Image2D<cl_uchar> dL = ss.narrow_disparity(cL, cR, +1, dhL2);
+    dL = ss.median_filter(dL);
 
-    Array2D<cl_uchar> arR = ss.half_disparity(cR, cL, pspace, -1);
-    Array2D<cl_uchar> dsR = ss.median_filter(arR);
+    Image2D<cl_uchar> dR = ss.narrow_disparity(cR, cL, -1, dhR2);
+    dR = ss.median_filter(dR);
 
-#if 0
-    show_array2d("Left", dsL);
-    show_array2d("Right", dsR);
-#endif    
+    // consistency check
+    Image2D<cl_uchar> dF = ss.consistent_pixels(dL, dR, +1);
 
-    Array2D<cl_uchar> arD = ss.consistent_pixels(dsL, dsR);
+    cv::Mat dispM = array2d_to_mat(dF);
+    cout << "One frame disparity time: " << tt_full.time() << endl;
 
-    return array2d_to_mat(arD);
+    return dispM;
 }
 
 float
 avg_diff(cv::Mat& imA, cv::Mat& imB)
 {
     const int FUDGE = 7;
-    cv::Size  sz    = imA.size();
+    cv::Size  sz = imB.size();
 
     int count = 0;
 
@@ -116,7 +101,7 @@ avg_diff(cv::Mat& imA, cv::Mat& imB)
 float
 count_unknown(cv::Mat& imA, cv::Mat& imB)
 {
-    cv::Size  sz    = imA.size();
+    cv::Size  sz = imB.size();
 
     int count = 0;
 
@@ -137,7 +122,7 @@ count_unknown(cv::Mat& imA, cv::Mat& imB)
 void
 show_usage()
 {
-    cout << "Usage: ./stereo [-c ground.png] [-o disp.png] left.png right.png" << endl;
+    cout << "Usage: ./stereo [-n] [-c ground.png] [-o disp.png] left.png right.png" << endl;
     exit(1);
 }
 
@@ -149,13 +134,16 @@ main(int argc, char* argv[])
     string out_file("");
     string ground_truth("");
 
-    while ((opt = getopt(argc, argv, "ho:c:")) != -1) {
+    while ((opt = getopt(argc, argv, "hno:c:")) != -1) {
         switch(opt) {
         case 'o':
             out_file = string(optarg);
             break;
         case 'c':
             ground_truth = string(optarg);
+            break;
+        case 'n':
+            Bacon::use_opencl_cpu = true;
             break;
         case 'h':
         default:
@@ -175,10 +163,14 @@ main(int argc, char* argv[])
     cout.precision(4);
     cout << std::fixed;
 
-    Bacon::Timer timer;
-    cv::Mat disp  = stereo_disparity(left, right);
-    double total_time = timer.time();
-    cout << "One frame disparity took: " << total_time << endl;
+    Stereo ss;
+    cv::Mat disp;
+
+    cout << "Warmup" << endl;
+    disp = stereo_disparity(ss, left, right);
+
+    cout << "Steady State" << endl;
+    disp = stereo_disparity(ss, left, right);
 
     // Scale to match ground truth.
     disp *= 2;
@@ -192,9 +184,11 @@ main(int argc, char* argv[])
         printf("%.03f of pixels are unknown over ground truth.\n", missing);
     }
 
+#if 1
     cv::namedWindow("Disparity Map", CV_WINDOW_AUTOSIZE);
     cv::imshow("Disparity Map", disp);
     cv::waitKey(0);
+#endif
 
     if (out_file != "")
         imwrite(out_file, disp);
