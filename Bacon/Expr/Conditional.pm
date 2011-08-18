@@ -27,6 +27,18 @@ sub kids {
     return ($self->cond, $self->case0, $self->case1);
 }
 
+sub static_eval {
+    my ($self, $env) = @_;
+    my $cond = $self->cond->static_eval($env);
+
+    if ($cond) {
+        return $self->case0->static_eval($env);
+    }
+    else {
+        return $self->case1->static_eval($env);
+    }
+}
+
 sub to_ocl {
     my ($self, $env) = @_;
     return "("

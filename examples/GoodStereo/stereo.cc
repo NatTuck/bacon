@@ -22,6 +22,8 @@ cv::Mat
 stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
 {
     Bacon::Kernel::show_timing = true;
+    const int SGM_N   = 8;
+    const int SHOW_SC = 4;
 
     Bacon::Timer tt_full;
 
@@ -35,61 +37,84 @@ stereo_disparity(Stereo& ss, cv::Mat matL, cv::Mat matR)
     Bacon::Timer tt_scale;
     Image2D<cl_uchar> hL = ss.scale_half(aL);
     Image2D<cl_uchar> hR = ss.scale_half(aR);
-    cout << "Scale: " << tt_conv.time() << endl;    
+    cout << "Scale: " << tt_conv.time() << endl;
 
     // census 1/2
-    // SGM 1/2
-    // consistency 1/2
     Bacon::Timer tt_ch;
     Image2D<cl_ulong> chL = ss.sparse_census(hL);
     Image2D<cl_ulong> chR = ss.sparse_census(hR);
     cout << "Census Half: " << tt_ch.time() << endl;
 
+    // SGM 1/2 L
     Array3D<cl_uchar> pL(8, chL.rows(), chL.cols());
 
     Bacon::Timer tt_sgm_hL;
-    ss.sgm_h(pL, chL, chR, +1);
+    ss.sgm_h(pL, chL, chR, +1, SGM_N);
     cout << "SGM HL: " << tt_sgm_hL.time() << endl;
-
-    //show_pspace_slice("pL[0]", pL, 0);
-    //show_pspace_slice("pL[1]", pL, 1);
+    //show_pspace_slice("pL[0]", pL, 0, SHOW_SC);
+    //show_pspace_slice("pL[1]", pL, 1, SHOW_SC);
 
     Bacon::Timer tt_sgm_vL; 
-    ss.sgm_v(pL, chL, chR, +1);
+    ss.sgm_v(pL, chL, chR, +1, SGM_N);
     cout << "SGM VL: " << tt_sgm_vL.time() << endl;
+    //show_pspace_slice("pL[2]", pL, 2, SHOW_SC);
+    //show_pspace_slice("pL[3]", pL, 3, SHOW_SC);
+    
+    //show_pspace_slice("pl[6]", pL, 6, SHOW_SC);
+    //show_pspace_slice("pl[7]", pL, 7, SHOW_SC);
 
-    //show_pspace_slice("pL[2]", pL, 2);
-    //show_pspace_slice("pL[3]", pL, 3);
+    // merge 1/2 L
+    Bacon::Timer tt_dhL; 
+    Image2D<cl_uchar> dhL = ss.merge_pspace(pL, SGM_N);
+    cout << "Merge L: " << tt_dhL.time() << endl;
 
-
-    //show_pspace_slice("pl[6]", pL, 6);
-    //show_pspace_slice("pl[7]", pL, 7);
-
+    //show_image2d("merge L", dhL, SHOW_SC);
+    
+    // SGM 1/2 R
     Array3D<cl_uchar> pR(8, chR.rows(), chR.cols());
 
     Bacon::Timer tt_sgm_hR;
-    ss.sgm_h(pR, chR, chL, -1);
+    ss.sgm_h(pR, chR, chL, -1, SGM_N);
     cout << "SGM HR: " << tt_sgm_hR.time() << endl;
-
-    //show_pspace_slice("pR[0]", pR, 0);
-    //show_pspace_slice("pR[1]", pR, 1);
+    //show_pspace_slice("pR[0]", pR, 0, SHOW_SC);
+    //show_pspace_slice("pR[1]", pR, 1, SHOW_SC);
 
     Bacon::Timer tt_sgm_vR; 
-    ss.sgm_v(pR, chR, chL, -1);
+    ss.sgm_v(pR, chR, chL, -1, SGM_N);
     cout << "SGM VR: " << tt_sgm_vR.time() << endl;
-
     //show_pspace_slice("pR[2]", pR, 2);
     //show_pspace_slice("pR[3]", pR, 3);
+
+    // merge 1/2 R
+    Bacon::Timer tt_dhR;
+    Image2D<cl_uchar> dhR = ss.merge_pspace(pR, SGM_N);
+    cout << "Merge R: " << tt_dhR.time() << endl;
+    //show_image2d("merge R", dhR, SHOW_SC);
+
+    dhL = ss.median_filter(dhL);
+    dhR = ss.median_filter(dhR);
+
+    // consistency 1/2
+    Image2D<cl_uchar> dhL1 = ss.consistent_pixels(dhL, dhR, +1);
+    Image2D<cl_uchar> dhR1 = ss.consistent_pixels(dhR, dhL, -1);
     
-
-
-    // fill unknown pixels magically
     // census full
-    // restricted range matching
-    // consistency check
-    cv::Mat dispM = array2d_to_mat(hL);
+    Image2D<cl_ulong> cL = ss.sparse_census(aL);
+    Image2D<cl_ulong> cR = ss.sparse_census(aR);
 
+    // restricted range matching
+    Image2D<cl_uchar> dL = ss.narrow_disparity(cL, cR, +1, dhL1);
+    dL = ss.median_filter(dL);
+
+    Image2D<cl_uchar> dR = ss.narrow_disparity(cR, cL, -1, dhR1);
+    dR = ss.median_filter(dR);
+
+    // consistency check
+    Image2D<cl_uchar> dF = ss.consistent_pixels(dL, dR, +1);
+
+    cv::Mat dispM = array2d_to_mat(dF);
     cout << "One frame disparity took: " << tt_full.time() << endl;
+
     return dispM;
 }
 
@@ -190,7 +215,7 @@ main(int argc, char* argv[])
     disp = stereo_disparity(ss, left, right);
 
     //cout << "Again" << endl;
-    //disp = stereo_disparity(ss, left, right);
+    disp = stereo_disparity(ss, left, right);
 
     // Scale to match ground truth.
     disp *= 2;
@@ -204,7 +229,7 @@ main(int argc, char* argv[])
         printf("%.03f of pixels are unknown over ground truth.\n", missing);
     }
 
-#if 0
+#if 1
     cv::namedWindow("Disparity Map", CV_WINDOW_AUTOSIZE);
     cv::imshow("Disparity Map", disp);
     cv::waitKey(0);
