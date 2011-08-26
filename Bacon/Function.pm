@@ -66,6 +66,12 @@ sub const_args {
     return @cargs;
 }
 
+sub expanded_args {
+    my ($self) = @_;
+    my @args = @{$self->args};
+    return grep { !$_->is_const } @args;
+}
+
 sub kids {
     my ($self) = @_;
     return (@{$self->args}, $self->body);
@@ -127,12 +133,30 @@ sub eval_const_vars {
     }
 }
 
-sub to_spec_opencl {
-    my ($self, $pgm) = @_;
-    assert_type($pgm, "Bacon::Program");
+sub spec_name {
+    my ($self, @const_vals) = @_;
+    return $self->name . "__spec__" . join("_", @const_vals);
+}
 
-    $self->deduce_image_modes($self->env);
-    $self->eval_const_vars($self->env);
+sub to_spec_opencl {
+    my ($self, $env, @const_vals) = @_;
+    assert_type($env, "Bacon::Environment");
+
+    my @const_vars = $self->const_vars;
+
+    $self->deduce_image_modes($env);
+    $self->eval_const_vars($env);
+
+    my $code = $self->fill_section(
+        spec_function => 0,
+        name          => $self->name,
+        source        => $self->source,
+        spec_text     => join(', ', $self->const_args) . ' = ' . join(', ', @const_vals),
+        ret_type      => $self->rets->to_ocl,
+        spec_name     => $self->spec_name(@const_vals),
+        
+        );
+    return $code;
 }
 
 sub to_opencl {
@@ -180,3 +204,24 @@ sub to_wrapper_cc {
 
 __PACKAGE__->meta->make_immutable;
 1;
+
+__DATA__
+<<"END_OF_DATA";
+
+__[ spec_function ]__
+
+/* function:       <% $name %>
+ * from:           <% $source %>
+ * specialized on: [ <% $spec_text %> ]
+ */
+
+<% $ret_type %>
+<% $spec_name %>(<% fun_args %>)
+{
+    <% fun_body %>
+}
+
+__[ EOF ]__
+END_OF_DATA
+
+

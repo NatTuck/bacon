@@ -25,8 +25,6 @@ has body => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
 has can_unroll  => (is => 'rw', isa => 'Maybe[Bool]');
 has unroll_info => (is => 'rw', isa => 'Maybe[Item]');
 
-use Clone qw(clone);
-
 use Bacon::Utils;
 use Bacon::Expr::BinaryOp qw(mkop);
 use Bacon::Expr::Literal qw(mklit);

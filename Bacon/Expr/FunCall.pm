@@ -10,10 +10,12 @@ use Bacon::Expr;
 extends 'Bacon::Expr';
 
 use Bacon::Utils;
-use Data::Dumper;
 
 has name => (is => 'ro', isa => 'Str', required => 1);
 has args => (is => 'ro', isa => 'ArrayRef[Bacon::Expr]', required => 1);
+
+use Data::Dumper;
+use Clone qw(clone);
 
 sub new_args {
     my ($class, $op, @args) = @_;
@@ -51,6 +53,8 @@ sub to_ocl {
     my @const_vals = ();
     my %cv_by_name = ();
 
+    my @non_consts = ();
+
     for (my $ii = 0; $ii < $NN; ++$ii) {
         my $slot = $fun->args->[$ii];
         my $expr = $self->args->[$ii];
@@ -58,10 +62,13 @@ sub to_ocl {
         if ($slot->is_const) {
             my $nn = $slot->name;
             my $vv = $expr->static_eval($env);
+
             say "$nn = vv";
 
             push @const_vals, $vv;
             $cv_by_name{$nn} = $vv;
+
+            # It's a simple const, we're done.
             next;
         }
 
@@ -87,12 +94,28 @@ sub to_ocl {
                 $cv_by_name{$nn} = $vv;
                 next;
             }
+
+            # Fall through - we still want to pass the
+            # array variable itself.
         }
+
+        # Otherwise, this argument is non-const and gets passed
+        # to the specialized function normally.
+
+        push @non_consts, $expr->to_ocl($env);
     }
 
     # FIXME: Finish specializations here.
+    my $spec_name = $fun->spec_name(@const_vals);
+    unless (defined $env->specs->{$spec_name}) {
+        my $fenv = $fun->env->update_with(%cv_by_name);
+        $env->specs->{$spec_name} = $fun->to_spec_opencl($fenv, @const_vals);
+    }
 
-    croak("All done");
+    return $spec_name
+        . '(' 
+        . join(', ', @non_consts) 
+        . ')';
 }
 
 sub to_cpp {
