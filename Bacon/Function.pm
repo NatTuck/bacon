@@ -44,6 +44,28 @@ sub _build_env {
     return $env;
 }
 
+sub const_args {
+    my ($self) = @_;
+    my @cargs = ();
+
+    my @args = @{$self->args};
+
+    for my $arg (@args) {
+        my $var = $self->env->lookup($arg->name);
+
+        if ($var->is_const) {
+            push @cargs, $var->name;
+        }
+        elsif ($var->has_dims) {
+            for my $dim (@{$var->type->dims}) {
+                push @cargs, $var->name . '.' . $dim;
+            }
+        }
+    }
+
+    return @cargs;
+}
+
 sub kids {
     my ($self) = @_;
     return (@{$self->args}, $self->body);
@@ -103,6 +125,14 @@ sub eval_const_vars {
             $var->value(embiggen($value));
         }
     }
+}
+
+sub to_spec_opencl {
+    my ($self, $pgm) = @_;
+    assert_type($pgm, "Bacon::Program");
+
+    $self->deduce_image_modes($self->env);
+    $self->eval_const_vars($self->env);
 }
 
 sub to_opencl {

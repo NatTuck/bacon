@@ -22,29 +22,6 @@ has etab => (is => 'rw', isa => 'Item', lazy_build => 1);
 use Bacon::Utils;
 use Bacon::MagicVars;
 
-sub const_args {
-    my ($self) = @_;
-    my @cargs = ();
-
-    my @args = @{$self->args};
-    push @args, grep { $_->isa('Bacon::Stmt::VarDecl') } $self->setup->subnodes;
-
-    for my $arg (@args) {
-        my $var = $self->env->lookup($arg->name);
-
-        if ($var->is_const) {
-            push @cargs, $var->name;
-        }
-        elsif ($var->has_dims) {
-            for my $dim (@{$var->type->dims}) {
-                push @cargs, $var->name . '.' . $dim;
-            }
-        }
-    }
-
-    return @cargs;
-}
-
 after _build_env => sub {
     my ($self) = @_;
     my @rvs = $self->returnable_vars;
@@ -174,6 +151,8 @@ sub list_to_text {
 
 sub to_spec_opencl {
     my ($self, $pgm, @const_vals) = @_;
+    my $code = '';
+
     assert_type($pgm, "Bacon::Program");
     assert_type($self->rets, "Bacon::Type");
     $self->etab or die;
@@ -193,6 +172,13 @@ sub to_spec_opencl {
     }
 
     my $env = $self->env->update_with(%const_vals);
+
+    my %funs = ();
+    for my $fun ($pgm->non_kernel_functions()) {
+        $funs{$fun->name} = $fun;
+    }
+    $env->funs(\%funs);
+
     $self->eval_const_vars($env);
 
     my @args = $self->expanded_args;
@@ -204,7 +190,13 @@ sub to_spec_opencl {
         $decl_locals .= $var->decl_to_opencl($env, 1);
     }
 
-    return $self->fill_section(
+    my $body_code = $self->body->contents_to_opencl($env, 1);
+
+    for my $spec (keys %{$env->specs}) {
+        $code .= $env->specs->{$spec};
+    }
+
+    $code .= $self->fill_section(
         spec_opencl => 0,
         name        => $self->name,
         source      => $self->source,
@@ -219,6 +211,8 @@ sub to_spec_opencl {
         arg_list    => $arg_list,
         decl_locals => $decl_locals,
     );
+
+    return $code;
 }
 
 sub wrapper_args {

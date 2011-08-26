@@ -50,6 +50,11 @@ sub get_kernel {
     die "No such kernel: $name";
 }
 
+sub non_kernel_functions {
+    my ($self) = @_;
+    return grep { !$_->isa('Bacon::Kernel') } @{$self->functions};
+}
+
 sub to_spec_opencl {
     my ($self, $kern_name, @const_args) = @_;
     my $code = '';
@@ -59,15 +64,9 @@ sub to_spec_opencl {
         #$code .= $var->to_opencl(0);
     }
 
-    for my $fun (@{$self->functions}) {
-        if ($fun->isa('Bacon::Kernel')) {
-            next unless $fun->name eq $kern_name;
-            $code .= $fun->to_spec_opencl($self, @const_args);
-        } 
-        else {
-            $code .= $fun->to_opencl($self);
-        }
-    }
+    # First generate code for specialized kernel.
+    my $kernel = $self->get_kernel($kern_name);
+    $code .= $kernel->to_spec_opencl($self, @const_args);
 
     return $self->fill_section(
         spec_opencl => 0,
