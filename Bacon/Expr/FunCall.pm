@@ -22,6 +22,18 @@ sub new_args {
     return $class->new_from_token0(name => $op, args => [@args]);
 }
 
+sub cost {
+    my ($self, $env) = @_;
+    my $fun = $env->funs->{$self->name};
+    
+    if (defined $fun) {
+        return $fun->cost;
+    }
+    else {
+        return 1;
+    }
+}
+
 sub kids {
     my ($self) = @_;
     return @{$self->args};

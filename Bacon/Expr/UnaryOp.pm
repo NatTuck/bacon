@@ -51,6 +51,20 @@ sub normalize_increment {
     return undef;
 }
 
+sub static_eval {
+    my ($self, $env) = @_;
+    my $op = $self->name;
+
+    my $aa = $self->arg0->static_eval($env);
+
+    if ($self->post) {
+        return 0 + eval "$aa $op";
+    }
+    else {
+        return 0 + eval "$op $aa";
+    }
+}
+
 sub kids {
     my ($self) = @_;
     return ($self->arg0,);

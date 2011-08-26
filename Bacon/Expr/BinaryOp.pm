@@ -156,6 +156,11 @@ sub to_ocl {
         }
     }
 
+    my $val = $self->try_static_eval($env);
+    if (defined $val) {
+        return "$val";
+    }
+
     return "("
         . $self->arg0->to_ocl($env)
         . $self->name 

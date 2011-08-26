@@ -195,7 +195,11 @@ sub to_spec_opencl {
     my $body_code = $self->body->contents_to_opencl($env, 1);
 
     for my $spec (keys %{$env->specs}) {
-        $code .= $env->specs->{$spec};
+        $code .= $env->specs->{$spec}->{'proto'};
+    }
+
+    for my $spec (keys %{$env->specs}) {
+        $code .= $env->specs->{$spec}->{'code'};
     }
 
     $code .= $self->fill_section(

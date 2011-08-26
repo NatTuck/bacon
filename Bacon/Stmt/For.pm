@@ -13,9 +13,8 @@ use Bacon::Stmt;
 use Bacon::Template;
 extends 'Bacon::Stmt', 'Bacon::Template';
 
-our $MAX_UNROLL_SIZE = 2;
-our $MAX_UNROLL_COST = 10e9;
-#our $MAX_UNROLL_COST = 0;
+our $MAX_UNROLL_SIZE = 16;
+our $MAX_UNROLL_COST = 256;
 
 has init => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
 has cond => (is => 'ro', isa => 'Bacon::Expr', required => 1);
@@ -28,6 +27,9 @@ has unroll_info => (is => 'rw', isa => 'Maybe[Item]');
 use Bacon::Utils;
 use Bacon::Expr::BinaryOp qw(mkop);
 use Bacon::Expr::Literal qw(mklit);
+
+use List::Util qw(min);
+use POSIX qw(ceil);
 
 sub kids {
     my ($self) = @_;
@@ -138,9 +140,9 @@ sub unroll_full {
 }
 
 sub unroll_partial {
-    my ($self, $env, $depth) = @_;
+    my ($self, $env, $depth, $unroll) = @_;
     my ($var, $r0, $rN, $range, $incr, $cond) = @{$self->unroll_info};
-    my $factor = greatest_factor_not_above($range, $MAX_UNROLL_SIZE);
+    my $factor = greatest_factor_not_above($range, $unroll);
     my $loops = $range / $factor;
 
     my $unroll_init = "$var = $r0";
@@ -172,13 +174,18 @@ sub unroll {
     my ($self, $env, $depth) = @_;
     my ($var, $r0, $rN, $range, $incr, $cond) = @{$self->unroll_info};
 
-    if ($range <= $MAX_UNROLL_SIZE) {
-        #say "loop $var ($range) can be unrolled fully";
-        return $self->unroll_full($env, $depth);
+    my $body_cost   = $self->body->cost($env);
+    my $unroll_size = ceil(min($MAX_UNROLL_SIZE, $MAX_UNROLL_COST / $body_cost));
+
+    if ($range > $unroll_size) {
+        #say "loop $var ($range) can be partially unrolled";
+        #say "$range > $unroll_size";
+        return $self->unroll_partial($env, $depth, $unroll_size);
     }
     else {
-        #say "loop $var ($range) can be partially unrolled";
-        return $self->unroll_partial($env, $depth);
+        #say "loop $var ($range) can be unrolled fully";
+        #say "$range <= $unroll_size";
+        return $self->unroll_full($env, $depth);
     }
 }
 

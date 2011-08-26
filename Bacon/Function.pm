@@ -44,6 +44,11 @@ sub _build_env {
     return $env;
 }
 
+sub cost {
+    my ($self, $external_env) = @_;
+    return $self->body->cost($self->env);
+}
+
 sub const_args {
     my ($self) = @_;
     my @cargs = ();
@@ -150,7 +155,7 @@ sub to_spec_opencl {
     my $fun_args = join(', ', 
         map { $_->to_fun_arg($env) } $self->expanded_args);
 
-    my $fun_body = $self->body->contents_to_opencl($self->env, 1);
+    my $fun_body = $self->body->contents_to_opencl($env, 1);
 
     my @vars = $self->local_decls;
     my $decl_locals = '';
@@ -158,17 +163,29 @@ sub to_spec_opencl {
         $decl_locals .= $var->decl_to_opencl($env, 1);
     }
 
+    my $spec_name = $self->spec_name(@const_vals);
+
     my $code = $self->fill_section(
         spec_function => 0,
         name          => $self->name,
         source        => $self->source,
         spec_text     => join(', ', $self->const_args) . ' = ' . join(', ', @const_vals),
         ret_type      => $self->rets->to_ocl,
-        spec_name     => $self->spec_name(@const_vals),
+        spec_name     => $spec_name,
         fun_args      => $fun_args,
         decl_locals   => $decl_locals,
         fun_body      => $fun_body);
-    return $code;
+
+    my $proto = $self->fill_section(
+        spec_proto     => 0,
+        ret_type      => $self->rets->to_ocl,
+        spec_name     => $spec_name,
+        fun_args      => $fun_args);
+
+    return {
+        code  => $code,
+        proto => $proto,
+    };
 }
 
 sub to_opencl {
@@ -219,6 +236,10 @@ __PACKAGE__->meta->make_immutable;
 
 __DATA__
 <<"END_OF_DATA";
+
+__[ spec_proto ]__
+
+<% $ret_type %> <% $spec_name %>(<% $fun_args %>);
 
 __[ spec_function ]__
 

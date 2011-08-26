@@ -103,10 +103,10 @@ sgm_penalty(int aa, int bb)
 
 int
 score_row_offset_window(Image2D<ulong> aa, Image2D<ulong> bb, 
-    int ii, int jj, int kk, int window_size)
+    int ii, int jj, int kk, const int window_size)
 {
     //const int WINDOW_SIZE = 1;
-    int rad = window_size / 2;
+    const int rad = window_size / 2;
 
     int cost = 0;
 
@@ -219,10 +219,12 @@ median_filter(Image2D<uchar> im)
     int px[9];
     
     for (int ii = 0; ii < 3; ++ii) {
-        int iii = clamp($y + ii - 1, 0, im.rows);
+        //int iii = clamp($y + ii - 1, 0, im.rows);
+        int iii = $y + ii - 1;
 
         for (int jj = 0; jj < 3; ++jj) {
-            int jjj = clamp($x + jj - 1, 0, im.cols);
+            //int jjj = clamp($x + jj - 1, 0, im.cols);
+            int jjj = $x + jj - 1;
             int nn = 3 * ii + jj;
             
             px[nn] = im[iii, jjj];

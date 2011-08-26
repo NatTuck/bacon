@@ -20,7 +20,7 @@ has in_kernel => (is => 'ro', isa => 'Bool', required => 1);
 # "fun__spec__a_b_c" => "code"
 has funs      => (is => 'rw', isa => 'HashRef[Bacon::Function]',
                       default => sub { {} });
-has specs     => (is => 'rw', isa => 'HashRef[String]',
+has specs     => (is => 'rw', isa => 'HashRef[Item]',
                       default => sub { {} });
 
 use Clone qw(clone);
@@ -87,7 +87,8 @@ sub update_with {
     my ($self, %vals) = @_;
     
     my $env = Bacon::Environment->new(
-        parent => $self, in_kernel => $self->in_kernel);
+        parent => $self, in_kernel => $self->in_kernel,
+        funs => $self->funs, specs => $self->specs);
     
     for my $name (keys %vals) {
         my $var = clone($self->lookup($name));
