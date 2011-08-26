@@ -35,6 +35,7 @@ sub to_ocl {
 
     unless (defined $fun) {
         # External function.
+
         my @args = @{$self->args};
         my @ac   = map { $_->to_ocl($env) } @args;
         return $name
@@ -63,8 +64,6 @@ sub to_ocl {
             my $nn = $slot->name;
             my $vv = $expr->static_eval($env);
 
-            say "$nn = vv";
-
             push @const_vals, $vv;
             $cv_by_name{$nn} = $vv;
 
@@ -87,8 +86,6 @@ sub to_ocl {
                     $env->dump_values();
                     croak();
                 }
-
-                say "$nn = $vv";
 
                 push @const_vals, $vv;
                 $cv_by_name{$nn} = $vv;

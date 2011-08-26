@@ -176,6 +176,8 @@ sub to_spec_opencl {
     my %funs = ();
     for my $fun ($pgm->non_kernel_functions()) {
         $funs{$fun->name} = $fun;
+        $fun->env->funs(\%funs);
+        $fun->env->specs($env->specs);
     }
     $env->funs(\%funs);
 

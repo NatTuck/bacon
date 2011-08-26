@@ -142,10 +142,21 @@ sub to_spec_opencl {
     my ($self, $env, @const_vals) = @_;
     assert_type($env, "Bacon::Environment");
 
-    my @const_vars = $self->const_vars;
+    my @const_args = $self->const_args;
 
     $self->deduce_image_modes($env);
     $self->eval_const_vars($env);
+
+    my $fun_args = join(', ', 
+        map { $_->to_fun_arg($env) } $self->expanded_args);
+
+    my $fun_body = $self->body->contents_to_opencl($self->env, 1);
+
+    my @vars = $self->local_decls;
+    my $decl_locals = '';
+    for my $var (@vars) {
+        $decl_locals .= $var->decl_to_opencl($env, 1);
+    }
 
     my $code = $self->fill_section(
         spec_function => 0,
@@ -154,8 +165,9 @@ sub to_spec_opencl {
         spec_text     => join(', ', $self->const_args) . ' = ' . join(', ', @const_vals),
         ret_type      => $self->rets->to_ocl,
         spec_name     => $self->spec_name(@const_vals),
-        
-        );
+        fun_args      => $fun_args,
+        decl_locals   => $decl_locals,
+        fun_body      => $fun_body);
     return $code;
 }
 
@@ -216,9 +228,10 @@ __[ spec_function ]__
  */
 
 <% $ret_type %>
-<% $spec_name %>(<% fun_args %>)
+<% $spec_name %>(<% $fun_args %>)
 {
-    <% fun_body %>
+    <% $decl_locals %>
+    <% $fun_body %>
 }
 
 __[ EOF ]__
