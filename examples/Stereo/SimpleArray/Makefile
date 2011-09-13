@@ -15,7 +15,7 @@ OBJS=$(BCOS) $(CCOS)
 #	@echo "skipping Stereo example"
 
 $(BINARY): $(OBJS)
-	$(CXX) $(LDFLAGS) -o $@ *.o
+	$(CXX) -o $@ *.o $(LDFLAGS)
 
 $(BCOS): %.o: %.bc Makefile
 	$(BACON) $<

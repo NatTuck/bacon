@@ -45,15 +45,13 @@ sub ocl_ldflags {
     my %cfg = find_opencl_config();
     my $base = $ENV{BACON_BASE};
 
-    my $ldflags = qq{-L "$base/lib" -lbacon };
+    my $ldflags = qq{-L "$base/lib" };
 
     if ($cfg{lib}) {
         $ldflags .= '-L "' . $cfg{lib} . '" ' . $ldflags;
     }
 
-    $ldflags .= " -lOpenCL";
-
-
+    $ldflags .= " -lbacon -lOpenCL -lperl ";
 
     return $ldflags;
 }

@@ -12,7 +12,7 @@ CCOS=$(shell ls *.cc | perl -pe 's/\b(\w+)\.cc\b/\1.o/')
 OBJS=$(BCOS) $(CCOS)
 
 $(BINARY): $(OBJS)
-	$(CXX) $(LDFLAGS) -o $@ *.o
+	$(CXX) -o $@ *.o $(LDFLAGS)
 
 $(BCOS): %.o: %.bc Makefile
 	$(BACON) $<
