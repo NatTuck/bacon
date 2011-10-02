@@ -81,7 +81,13 @@ sub normalize_const_cond {
     }
 
     if ($op =~ /=/) {
-        die "TODO: Correct loop bounds";
+        if ($num > 0) {
+            $op =~ s/=//;
+            $num += 1;
+        }
+        else {
+            die "TODO: Fix normalize const cond";
+        }
     }
 
     return ($op, $num);

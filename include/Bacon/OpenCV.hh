@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <stdint.h>
+#include <stddef.h>
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
