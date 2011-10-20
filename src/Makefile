@@ -4,7 +4,7 @@ LIB=libbacon.so
 BACON="../bin/bacon"
 
 CC=$(CXX)
-CXXFLAGS=-g -fPIC $(shell $(BACON) --ccflags) `perl -MExtUtils::Embed -e ccopts`
+CXXFLAGS=-g -fPIC -Wall $(shell $(BACON) --ccflags) `perl -MExtUtils::Embed -e ccopts`
 LDFLAGS=`perl -MExtUtils::Embed -e ldopts`
 #LDFLAGS =-g $(shell $(BACON) --ldflags)
 

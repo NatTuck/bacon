@@ -34,11 +34,14 @@ xs_init(pTHX)
 
 Runtime::Runtime()
 {
-    PERL_SYS_INIT3(0, 0, 0);
+    int    argc = 1;
+    char** argv = sa_alloc(3, "", "-e", "0");
+    char** env  = sa_alloc(2, "", "");
+
+    PERL_SYS_INIT3(&argc, &argv, &env);
     my_perl = perl_alloc();
     perl_construct(my_perl);
     PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
-    char **argv = sa_alloc(3, "", "-e", "0");
     perl_parse(my_perl, xs_init, 3, argv, 0);
     //sa_alloc(3);
     perl_run(my_perl);

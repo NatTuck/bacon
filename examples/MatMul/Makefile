@@ -3,7 +3,7 @@ BINARY=mmul
 
 BACON=bacon
 
-CXXFLAGS=-g $(shell $(BACON) --ccflags)
+CXXFLAGS=-g -Wall $(shell $(BACON) --ccflags)
 LDFLAGS =$(shell $(BACON) --ldflags)
 
 BCS=$(shell ls *.bc)
