@@ -28,8 +28,8 @@ mat_to_array2d(cv::Mat& aa, int rtn = 1)
 
     Array2D<NumT> bb(rows, cols);
 
-    for (int ii = 0; ii < aa.rows; ++ii) {
-        for (int jj = 0; jj < aa.cols; ++jj) {
+    for (unsigned int ii = 0; ii < aa.rows; ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols; ++jj) {
             bb.set(ii, jj, aa.at<NumT>(ii, jj));
         }
     }
@@ -43,8 +43,8 @@ array2d_to_mat(Array2D<NumT>& aa)
 {
     cv::Mat bb(aa.rows(), aa.cols(), CV_8UC1);
 
-    for (int ii = 0; ii < aa.rows(); ++ii) {
-        for (int jj = 0; jj < aa.cols(); ++jj) {
+    for (unsigned int ii = 0; ii < aa.rows(); ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols(); ++jj) {
             bb.at<uint8_t>(ii, jj) = aa.get(ii, jj);
         }
     }
@@ -63,8 +63,8 @@ mat_to_image2d(cv::Mat& aa, int rtn = 1)
 
     Image2D<NumT> bb(rows, cols);
 
-    for (int ii = 0; ii < aa.rows; ++ii) {
-        for (int jj = 0; jj < aa.cols; ++jj) {
+    for (unsigned int ii = 0; ii < aa.rows; ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols; ++jj) {
             bb.set(ii, jj, aa.at<NumT>(ii, jj));
         }
     }
@@ -78,8 +78,8 @@ image2d_to_mat(Image2D<NumT>& aa)
 {
     cv::Mat bb(aa.rows(), aa.cols(), CV_8UC1);
 
-    for (int ii = 0; ii < aa.rows(); ++ii) {
-        for (int jj = 0; jj < aa.cols(); ++jj) {
+    for (unsigned int ii = 0; ii < aa.rows(); ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols(); ++jj) {
             bb.at<uint8_t>(ii, jj) = aa.get(ii, jj);
         }
     }
