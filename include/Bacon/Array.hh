@@ -77,7 +77,7 @@ class Array {
 
     void fill(NumT vv)
     {
-        for(int ii = 0; ii < size(); ++ii)
+        for(unsigned int ii = 0; ii < size(); ++ii)
             data_ptr[ii] = vv;
         on_gpu = false;
         valid_data = true;
@@ -85,7 +85,7 @@ class Array {
 
     void fill_random()
     {
-        for(int ii = 0; ii < size(); ++ii)
+        for(unsigned int ii = 0; ii < size(); ++ii)
             data_ptr[ii] = (NumT)(random() % 100);
         on_gpu = false;
         valid_data = true;
@@ -189,7 +189,7 @@ inline
 void 
 Array<NumT>::read_items(std::istream* in_file)
 {
-    for (int ii = 0; ii < size(); ++ii) {
+    for (unsigned int ii = 0; ii < size(); ++ii) {
         *in_file >> data_ptr[ii];
     }
     
@@ -205,7 +205,7 @@ Array<NumT>::write_items(std::ostream* out_file)
     if (on_gpu)
         this->recv_dev();
     
-    for (int ii = 0; ii < size(); ++ii) {
+    for (unsigned int ii = 0; ii < size(); ++ii) {
         *out_file << data_ptr[ii] << " ";
     }
     
@@ -217,7 +217,7 @@ inline
 void 
 Array<cl_uchar>::read_items(std::istream* in_file)
 {
-    for (int ii = 0; ii < size(); ++ii) {
+    for (unsigned int ii = 0; ii < size(); ++ii) {
         int tmp;
         *in_file >> tmp;
         data_ptr[ii] = (cl_uchar) tmp;
@@ -235,7 +235,7 @@ Array<cl_uchar>::write_items(std::ostream* out_file)
     if (on_gpu)
         this->recv_dev();
 
-    for (int ii = 0; ii < size(); ++ii) {
+    for (unsigned int ii = 0; ii < size(); ++ii) {
         *out_file << (cl_uint) data_ptr[ii] << " ";
     }
     
@@ -249,7 +249,7 @@ operator==(Array<NumT>& aa, Array<NumT>& bb)
     if (aa.size() != bb.size())
         return false;
     
-    for (int ii = 0; ii < aa.size(); ++ii) {
+    for (unsigned int ii = 0; ii < aa.size(); ++ii) {
         if (aa.get(ii) != bb.get(ii))
                 return false;
     }
@@ -261,13 +261,13 @@ template <class NumT>
 class Array2D : public Array<NumT> {
   public:
     Array2D()
-        : data_rows(0), data_cols(0), Array<NumT>()
+        : Array<NumT>(), data_rows(0), data_cols(0)
     {
         // do nothing
     }
 
     Array2D(cl_uint yy, cl_uint xx) 
-        : data_rows(yy), data_cols(xx), Array<NumT>(yy*xx)
+        : Array<NumT>(yy*xx), data_rows(yy), data_cols(xx)
     {
         // do nothing
     }
@@ -284,8 +284,8 @@ class Array2D : public Array<NumT> {
 
     void fill_identity_matrix()
     {
-        for (int ii = 0; ii < rows(); ++ii) {
-            for (int jj = 0; jj < cols(); ++jj) {
+        for (unsigned int ii = 0; ii < rows(); ++ii) {
+            for (unsigned int jj = 0; jj < cols(); ++jj) {
                 set(ii, jj, (NumT)(ii == jj ? 1 : 0));
             }
         }
@@ -328,8 +328,8 @@ Array2D<NumT>::write(std::ostream* out_file)
     *out_file << rows() << " ";
     *out_file << cols() << "\n";
     
-    for (int ii = 0; ii < rows(); ++ii) {
-        for (int jj = 0; jj < cols(); ++jj) {
+    for (unsigned int ii = 0; ii < rows(); ++ii) {
+        for (unsigned int jj = 0; jj < cols(); ++jj) {
             *out_file << get(ii, jj) << " ";
         }
         * out_file << endl;
@@ -347,8 +347,8 @@ Array2D<cl_uchar>::write(std::ostream* out_file)
     *out_file << rows() << " ";
     *out_file << cols() << "\n";
     
-    for (int ii = 0; ii < rows(); ++ii) {
-        for (int jj = 0; jj < cols(); ++jj) {
+    for (unsigned int ii = 0; ii < rows(); ++ii) {
+        for (unsigned int jj = 0; jj < cols(); ++jj) {
             *out_file << (cl_uint) get(ii, jj) << " ";
         }
         *out_file << endl;
@@ -362,8 +362,8 @@ operator==(Array2D<NumT>& aa, Array2D<NumT>& bb)
     if (aa.size() != bb.size() || aa.rows() != bb.rows() || aa.cols() != bb.cols())
         return false;
 
-    for (int ii = 0; ii < aa.rows(); ++ii) {
-        for (int jj = 0; jj < aa.cols(); ++jj) {
+    for (unsigned int ii = 0; ii < aa.rows(); ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols(); ++jj) {
             if (aa.get(ii, jj) != bb.get(ii, jj))
                 return false;
         }
@@ -379,8 +379,8 @@ array_equals_debug(Array2D<NumT>& aa, Array2D<NumT>& bb)
     if (aa.size() != bb.size() || aa.rows() != bb.rows() || aa.cols() != bb.cols())
         return false;
 
-    for (int ii = 0; ii < aa.rows(); ++ii) {
-        for (int jj = 0; jj < aa.cols(); ++jj) {
+    for (unsigned int ii = 0; ii < aa.rows(); ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols(); ++jj) {
             if (aa.get(ii, jj) != bb.get(ii, jj)) {
                 cout << aa.get(ii, jj) << " != " << bb.get(ii, jj) << endl
                      << " at " << ii << " " << jj << endl;
@@ -397,7 +397,7 @@ template <class NumT>
 class Array3D : public Array<NumT> {
   public:
     Array3D(cl_uint zz, cl_uint yy, cl_uint xx) 
-        : data_deep(zz), data_rows(yy), data_cols(xx), Array<NumT>(zz*yy*xx)
+        : Array<NumT>(zz*yy*xx), data_deep(zz), data_rows(yy), data_cols(xx)
     {
         // do nothing
     }
@@ -438,9 +438,9 @@ class Array3D : public Array<NumT> {
         *out_file << rows() << " ";
         *out_file << cols() << "\n";
 
-        for (int kk = 0; kk < deep(); ++kk) {
-            for (int ii = 0; ii < rows(); ++ii) {
-                for (int jj = 0; jj < cols(); ++jj) {
+        for (unsigned int kk = 0; kk < deep(); ++kk) {
+            for (unsigned int ii = 0; ii < rows(); ++ii) {
+                for (unsigned int jj = 0; jj < cols(); ++jj) {
                     *out_file << get(kk, ii, jj) << " ";
                 }
                 *out_file << "\n";
@@ -463,9 +463,9 @@ operator==(Array3D<NumT>& aa, Array3D<NumT>& bb)
         || aa.cols() != bb.cols() || aa.deep() != bb.deep())
         return false;
 
-    for (int ii = 0; ii < aa.rows(); ++ii) {
-        for (int jj = 0; jj < aa.cols(); ++jj) {
-            for (int kk = 0; kk < aa.deep(); ++kk) {
+    for (unsigned int ii = 0; ii < aa.rows(); ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols(); ++jj) {
+            for (unsigned int kk = 0; kk < aa.deep(); ++kk) {
                 if (aa.get(ii, jj, kk) != bb.get(ii, jj, kk))
                     return false;
             }

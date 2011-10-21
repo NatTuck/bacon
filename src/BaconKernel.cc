@@ -14,7 +14,7 @@ join_ints(std::string sep, std::vector<int> is)
     std::ostringstream result;
     if (is.size() == 0)
         return result.str();
-    for (int ii = 0; ii < is.size() - 1; ++ii) {
+    for (unsigned int ii = 0; ii < is.size() - 1; ++ii) {
         result << is[ii];
         result << "-";
     }
@@ -44,7 +44,7 @@ Kernel::spec_kernel(std::string bname, std::string kname, std::vector<int> cargs
         char **argv = new char*[cargs.size() + 3];
         argv[0] = strdupa(ast_fn.str().c_str());
         argv[1] = strdupa(kname.c_str());
-        for (int ii = 0; ii < cargs.size(); ++ii) {
+        for (unsigned int ii = 0; ii < cargs.size(); ++ii) {
             std::ostringstream itoa;
             itoa << cargs[ii];
             argv[ii + 2] = strdupa(itoa.str().c_str());

@@ -58,7 +58,7 @@ sub new0 {
 
 sub basefn {
     my ($self) = @_;
-    my ($basefn) = $self->source =~ /^(.*)\.(bcn|bc):\d+$/;
+    my ($basefn) = $self->source =~ /([^\/]*)\.(bcn|bc):\d+$/;
     return $basefn;
 }
 
