@@ -7,7 +7,7 @@ project is to provide both easier programmability and better performance.
 
 == Installing Bacon ==
 
-First, install the AMD OpenCL SDK and make sure the ATISTREAMSDKROOT is properly set
+First, install the AMD OpenCL SDK and make sure the AMDAPPSDKROOT is properly set
 in your ~/.bashrc file.
 
 Next, type "make prereqs" in the base Bacon directory.
