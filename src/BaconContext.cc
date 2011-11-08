@@ -174,6 +174,10 @@ Context::load_opencl_program(std::string src_fn)
     // optimizations.
     std::string opts("-I gen/ocl -cl-strict-aliasing -cl-mad-enable -cl-fast-relaxed-math");
 
+    if (use_opencl_cpu) {
+        opts += " -DBACON_ON_CPU";
+    }
+
     try {
         pgm.build(devs, opts.c_str());
     } 

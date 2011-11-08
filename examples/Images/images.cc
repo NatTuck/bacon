@@ -47,6 +47,23 @@ test_add_ten_long()
 }
 
 void
+test_image3d(int nn)
+{
+    Images bcn;
+
+    Bacon::Image2D<cl_uchar> tmp1(nn, nn);
+    tmp1.send_dev();
+
+    Bacon::Image3D<cl_uchar> tmp(nn, nn, nn);
+    tmp.send_dev();
+
+    Bacon::Image3D<cl_uchar> a3d = bcn.write_image3D(nn);
+
+    Bacon::Array<cl_int>   csums = bcn.sum_image3D_cols(a3d, nn);
+    csums.write(&cout);
+}
+
+void
 show_usage()
 {
     cout << "Usage: ./arrays [ -i -y N -x N | -t ]" << endl;
@@ -66,8 +83,9 @@ main(int argc, char* argv[])
     const int INDEX_MODE = 1;
     const int COPYA_MODE = 2;
     const int ADD10_MODE = 3;
+    const int IMG3D_MODE = 4;
 
-    while ((opt = getopt(argc, argv, "itax:y:")) != -1) {
+    while ((opt = getopt(argc, argv, "ita3x:y:")) != -1) {
         switch(opt) {
         case 'x':
             xx = atoi(optarg);
@@ -83,6 +101,9 @@ main(int argc, char* argv[])
             break;
         case 'a':
             mode = ADD10_MODE;
+            break;
+        case '3':
+            mode = IMG3D_MODE;
             break;
         case 'h':
             show_usage();
@@ -107,6 +128,9 @@ main(int argc, char* argv[])
         break;
     case ADD10_MODE:
         test_add_ten_long();
+        break;
+    case IMG3D_MODE:
+        test_image3d(8);
         break;
     default:
         show_usage();

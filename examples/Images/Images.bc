@@ -49,3 +49,39 @@ add_ten_long(Image2D<ulong> aa)
  
     return bb;
 }
+
+kernel
+Image3D<uchar>
+write_image3D(const int nn)
+{
+ SETUP:
+    Image3D<uchar> image[nn, nn, nn];
+
+ BODY:
+    @range [image.deep, image.rows, image.cols];
+
+    image[$dep, $row, $col] = $col;
+
+    return image;
+}
+
+kernel
+Array<int>
+sum_image3D_cols(Image3D<uchar> image, const int nn)
+{
+ SETUP:
+    Array<int> sums[nn];
+
+ BODY:
+    @range [nn];
+
+    sums[$col] = 0;
+
+    for (int ii = 0; ii < nn; ++ii) {
+        for (int jj = 0; jj < nn; ++jj) {
+            sums[$col] += image[ii, jj, $col];
+        }
+    }
+
+    return sums;
+}

@@ -20,6 +20,7 @@ namespace Bacon {
 
 extern unsigned long Bacon_Array_random_seed;
 
+#if 0
 inline
 cl_uint
 round_to_next(int xx, int nn)
@@ -33,6 +34,7 @@ round_to_next(int xx, int nn)
         return xx + (nn - rem);
     }
 }
+#endif
 
 template <class NumT>
 class Array {
@@ -63,8 +65,8 @@ class Array {
         Bacon_Array_random_seed *= random();
     }
 
-    virtual void 
-    reallocate(int nn)
+    virtual void
+    reallocate(int nn)   
     {
         assert(ctx != 0);
         data_size = nn;
@@ -396,6 +398,12 @@ array_equals_debug(Array2D<NumT>& aa, Array2D<NumT>& bb)
 template <class NumT>
 class Array3D : public Array<NumT> {
   public:
+    Array3D()
+        : Array<NumT>(), data_deep(0), data_rows(0), data_cols(0)
+    {
+        // do nothing
+    }
+
     Array3D(cl_uint zz, cl_uint yy, cl_uint xx) 
         : Array<NumT>(zz*yy*xx), data_deep(zz), data_rows(yy), data_cols(xx)
     {
@@ -449,7 +457,7 @@ class Array3D : public Array<NumT> {
         }
     }
 
-  private:
+  protected:
     cl_uint data_deep;
     cl_uint data_rows;
     cl_uint data_cols;
