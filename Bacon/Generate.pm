@@ -89,7 +89,7 @@ sub bacon_generate_ast {
     system(qq{ln -s "$base/include/ocl" gen/ocl});
 
     # Generate opencl_perror code.
-    ocl_write_perror("gen");    
+    #ocl_write_perror("gen");    
 }
 
 sub kernel_spec_name {

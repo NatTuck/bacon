@@ -28,8 +28,8 @@ mat_to_array2d(cv::Mat& aa, int rtn = 1)
 
     Array2D<NumT> bb(rows, cols);
 
-    for (unsigned int ii = 0; ii < aa.rows; ++ii) {
-        for (unsigned int jj = 0; jj < aa.cols; ++jj) {
+    for (cl_uint ii = 0; ii < aa.rows; ++ii) {
+        for (cl_uint jj = 0; jj < aa.cols; ++jj) {
             bb.set(ii, jj, aa.at<NumT>(ii, jj));
         }
     }

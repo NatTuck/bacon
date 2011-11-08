@@ -4,6 +4,7 @@ LIB=libbacon.so
 HDRS=include/ocl/Bacon/Array.cl
 
 all: Bacon/Parser.pm doc lib/$(LIB) $(HDRS)
+	cp src/cl_perror.hh include
 
 Bacon/Parser.pm: Bacon/grammar.yp
 	yapp -v -m Bacon::Parser -o Bacon/Parser.pm Bacon/grammar.yp
@@ -35,6 +36,7 @@ test: examples
 clean:
 	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~
 	rm -f lib/$(LIB) $(HDRS)
+	rm -f include/cl_perror.hh
 	(cd src && make clean)
 	(cd doc && make clean)
 	find examples -maxdepth 1 -mindepth 1 -type d \

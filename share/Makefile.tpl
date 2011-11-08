@@ -8,7 +8,7 @@ HDRS=$(shell ls *.hh)
 
 all: $(OBJS)
 
-$(OBJS): %.o: %.cc cl_perror.hh $(HDRS) Makefile
+$(OBJS): %.o: %.cc $(HDRS) Makefile
 
 clean:
 	rm -f *.o
