@@ -17,6 +17,8 @@ using std::endl;
 
 namespace Bacon {
 
+inline cl_uint round_to_next(cl_uint aa, cl_uint) { return aa; }
+
 template <class NumT>
 Array2D<NumT>
 mat_to_array2d(cv::Mat& aa, int rtn = 1)
@@ -28,8 +30,8 @@ mat_to_array2d(cv::Mat& aa, int rtn = 1)
 
     Array2D<NumT> bb(rows, cols);
 
-    for (cl_uint ii = 0; ii < aa.rows; ++ii) {
-        for (cl_uint jj = 0; jj < aa.cols; ++jj) {
+    for (uint32_t ii = 0; ii < (uint32_t) aa.rows; ++ii) {
+        for (uint32_t jj = 0; jj < (uint32_t) aa.cols; ++jj) {
             bb.set(ii, jj, aa.at<NumT>(ii, jj));
         }
     }
@@ -39,7 +41,7 @@ mat_to_array2d(cv::Mat& aa, int rtn = 1)
 
 template <class NumT>
 cv::Mat
-array2d_to_mat(Array2D<NumT>& aa)
+array2d_to_mat(const Array2D<NumT>& aa)
 {
     cv::Mat bb(aa.rows(), aa.cols(), CV_8UC1);
 
@@ -54,7 +56,7 @@ array2d_to_mat(Array2D<NumT>& aa)
 
 template <class NumT>
 Image2D<NumT>
-mat_to_image2d(cv::Mat& aa, int rtn = 1)
+mat_to_image2d(const cv::Mat& aa, int rtn = 1)
 {
     assert(aa.elemSize() == sizeof(NumT));
 
@@ -63,8 +65,8 @@ mat_to_image2d(cv::Mat& aa, int rtn = 1)
 
     Image2D<NumT> bb(rows, cols);
 
-    for (unsigned int ii = 0; ii < aa.rows; ++ii) {
-        for (unsigned int jj = 0; jj < aa.cols; ++jj) {
+    for (uint32_t ii = 0; ii < (uint32_t) aa.rows; ++ii) {
+        for (uint32_t jj = 0; jj < (uint32_t) aa.cols; ++jj) {
             bb.set(ii, jj, aa.at<NumT>(ii, jj));
         }
     }

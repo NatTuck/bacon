@@ -23,6 +23,23 @@ _bacon__image2d_write_uchar(write_only image2d_t image, uint yy, uint xx, uchar 
     write_imageui(image, (int2)(xx, yy), vec);
 }
 
+ushort
+_bacon__image2d_read_ushort(read_only image2d_t image, uint yy, uint xx)
+{
+   const sampler_t SAMP = CLK_FILTER_NEAREST | CLK_NORMALIZED_COORDS_FALSE
+       | CLK_ADDRESS_CLAMP_TO_EDGE;
+   uint4 vec = read_imageui(image, SAMP, (int2)(xx, yy));
+   return convert_ushort_sat(vec.x);
+}
+
+void
+_bacon__image2d_write_ushort(write_only image2d_t image, uint yy, uint xx, ushort vv)
+{
+    uint4 vec;
+    vec.x = vv;
+    write_imageui(image, (int2)(xx, yy), vec);
+}
+
 ulong
 _bacon__image2d_read_ulong(read_only image2d_t image, uint yy, uint xx)
 {

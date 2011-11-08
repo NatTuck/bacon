@@ -98,6 +98,14 @@ Image2D<cl_uchar>::image_format()
 template<>
 inline
 cl::ImageFormat
+Image2D<cl_ushort>::image_format()
+{
+    return cl::ImageFormat(CL_R, CL_UNSIGNED_INT16);
+}
+
+template<>
+inline
+cl::ImageFormat
 Image2D<cl_ulong>::image_format()
 {
     return cl::ImageFormat(CL_RGBA, CL_UNSIGNED_INT16);
@@ -188,6 +196,14 @@ cl::ImageFormat
 Image3D<cl_uchar>::image_format()
 {
     return cl::ImageFormat(CL_R, CL_UNSIGNED_INT8);
+}
+
+template<>
+inline
+cl::ImageFormat
+Image3D<cl_ushort>::image_format()
+{
+    return cl::ImageFormat(CL_R, CL_UNSIGNED_INT16);
 }
 
 template<>
