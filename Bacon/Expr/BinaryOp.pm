@@ -5,6 +5,7 @@ use 5.10.0;
 
 use Moose;
 use namespace::autoclean;
+use Carp;
 
 use Bacon::Expr;
 use Exporter;
@@ -155,7 +156,8 @@ sub to_ocl {
 
     if ($self->op_mutates && 
             $self->arg0->isa('Bacon::Expr::ArrayIndex')) {
-        my $var = $env->lookup($self->arg0->name);
+        my $var = $env->lookup($self->arg0->name)
+           or confess("No variable named " . $self->arg0->name);
         if ($var->type_isa("Bacon::Type::Image")) {
             return $var->type->image_write_to_ocl(
                 $var, $env, @{$self->arg0->dims}, $self->arg1);

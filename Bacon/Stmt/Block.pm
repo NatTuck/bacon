@@ -4,6 +4,7 @@ use strict;
 use 5.10.0;
 
 use Data::Dumper;
+use Devel::Leak;
 
 use Moose;
 use namespace::autoclean;
@@ -38,7 +39,6 @@ sub contents_to_opencl {
     for my $smt (@stmts) {
         $code .= $smt->to_opencl($env, $depth);
     }
-
     return $code;
 }
 

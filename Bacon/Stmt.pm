@@ -6,13 +6,15 @@ use 5.10.0;
 use Moose;
 use namespace::autoclean;
 
+use Data::Dumper;
+
 use Bacon::AstNode;
 extends 'Bacon::AstNode';
 
 use Bacon::Utils;
 
 sub to_opencl {
-    my (undef, $depth) = @_;
+    my ($self, $env, $depth) = @_;
     return indent($depth) . "/* pass */ ;\n";
 }
 

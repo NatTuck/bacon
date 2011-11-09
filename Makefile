@@ -24,7 +24,7 @@ $(HDRS): Bacon/Parser.pm
 	$(BACON) --genstdlib include
 
 prereqs:
-	sudo apt-get install build-essential libboost-dev libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-full libclone-perl libdata-section-perl libdevel-cover-perl indent mesa-common-dev libperl-dev
+	sudo apt-get install build-essential libboost-dev libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-full libclone-perl libdata-section-perl libdevel-cover-perl indent mesa-common-dev libperl-dev libdevel-size-perl libdevel-cycle-perl libdevel-leak-perl
 
 examples: all
 	find examples -maxdepth 1 -mindepth 1 -type d \

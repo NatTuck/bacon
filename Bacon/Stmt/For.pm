@@ -7,13 +7,16 @@ use Moose;
 use namespace::autoclean;
 
 use Data::Dumper;
+use Devel::Leak;
+use Devel::Size;
+use Devel::Cycle;
 use Try::Tiny;
 
 use Bacon::Stmt;
 use Bacon::Template;
 extends 'Bacon::Stmt', 'Bacon::Template';
 
-our $MAX_UNROLL_SIZE = 16;
+our $MAX_UNROLL_SIZE = 4;
 our $MAX_UNROLL_COST = 256;
 
 has init => (is => 'ro', isa => 'Bacon::Stmt', required => 1);
@@ -191,15 +194,14 @@ sub unroll {
 
 sub to_opencl {
     my ($self, $env, $depth) = @_;
+
     $self->build_unroll_info($env);
 
     if ($self->can_unroll && $self->body->cost($env) < $MAX_UNROLL_COST) {
-        return $self->unroll($env, $depth);
-    }
+        my $unrolled = $self->unroll($env, $depth);
 
-    # Cannot unroll, so just generate the loop.
-    #my $text = $self->cond->to_ocl($env);
-    #say "Loop for $text can't unroll.";
+        return $unrolled;
+    }
 
     my $init = $self->init->to_opencl($env, 0);
     $init =~ s/;$//;
