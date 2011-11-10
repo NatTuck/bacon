@@ -106,6 +106,14 @@ Image2D<cl_ushort>::image_format()
 template<>
 inline
 cl::ImageFormat
+Image2D<cl_short>::image_format()
+{
+    return cl::ImageFormat(CL_R, CL_SIGNED_INT16);
+}
+
+template<>
+inline
+cl::ImageFormat
 Image2D<cl_ulong>::image_format()
 {
     return cl::ImageFormat(CL_RGBA, CL_UNSIGNED_INT16);

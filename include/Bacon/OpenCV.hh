@@ -76,13 +76,32 @@ mat_to_image2d(const cv::Mat& aa, int rtn = 1)
 
 template <class NumT>
 cv::Mat
-image2d_to_mat(Image2D<NumT>& aa)
+image2d_to_mat(Image2D<NumT>& aa);
+
+template<>
+cv::Mat
+image2d_to_mat(Image2D<cl_uchar>& aa)
 {
     cv::Mat bb(aa.rows(), aa.cols(), CV_8UC1);
 
     for (unsigned int ii = 0; ii < aa.rows(); ++ii) {
         for (unsigned int jj = 0; jj < aa.cols(); ++jj) {
             bb.at<uint8_t>(ii, jj) = aa.get(ii, jj);
+        }
+    }
+
+    return bb;
+}
+
+template<>
+cv::Mat
+image2d_to_mat(Image2D<cl_short>& aa)
+{
+    cv::Mat bb(aa.rows(), aa.cols(), CV_16SC1);
+
+    for (unsigned int ii = 0; ii < aa.rows(); ++ii) {
+        for (unsigned int jj = 0; jj < aa.cols(); ++jj) {
+            bb.at<int16_t>(ii, jj) = aa.get(ii, jj);
         }
     }
 

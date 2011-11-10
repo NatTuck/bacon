@@ -33,5 +33,10 @@ sub to_opencl {
     }
 }
 
+sub to_setup_cc {
+    my ($self, $fun) = @_;
+    return $self->expr->to_cpp($fun) . ";\n";
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

@@ -483,6 +483,12 @@ operator==(Array3D<NumT>& aa, Array3D<NumT>& bb)
     return true;
 }
 
+template <class NumT>
+inline void
+array_fill(Array<NumT> aa, NumT vv)
+{
+    aa.fill(vv);
+}
 
 } // namespace Bacon
 #endif
