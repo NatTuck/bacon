@@ -41,7 +41,7 @@ mat_to_array2d(cv::Mat& aa, int rtn = 1)
 
 template <class NumT>
 cv::Mat
-array2d_to_mat(const Array2D<NumT>& aa)
+array2d_to_mat(Array2D<NumT>& aa)
 {
     cv::Mat bb(aa.rows(), aa.cols(), CV_8UC1);
 
