@@ -20,7 +20,7 @@ use Bacon::Token;
 my @symbols = qw#
     enum extern register
     global local private
-    auto break case char const continue default do double else
+    auto break case char const continue default double do else
     float for goto if int long return short signed
     sizeof static struct switch typedef union void volatile while
     inline uchar ushort uint ulong

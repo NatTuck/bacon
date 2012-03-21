@@ -50,6 +50,28 @@ run_test(string c_file, string a_file, string b_file, int nn)
 }
 
 void
+run_doubles_test(string c_file, int nn)
+{
+    Add adder;
+
+    Bacon::Array2D<double> aa(nn, nn);
+    Bacon::Array2D<double> bb(nn, nn);
+
+    aa.fill(1.5);
+    bb.fill(2.0);
+
+    Bacon::Array2D<double> cc = adder.add_doubles(aa, bb);
+
+    if (c_file == "") {
+        cc.write(&cout);
+    }
+    else {
+        std::ofstream outf(c_file.c_str());
+        cc.write(&outf);
+    }
+}
+
+void
 show_usage()
 {
     cout << "Usage: ./add -o output -a matrix1 -b matrix2" << endl;
@@ -67,7 +89,9 @@ main(int argc, char* argv[])
 
     int gen_size = 2;
 
-    while ((opt = getopt(argc, argv, "hca:b:o:n:")) != -1) {
+    bool use_doubles = false;
+
+    while ((opt = getopt(argc, argv, "hcda:b:o:n:")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
@@ -84,6 +108,9 @@ main(int argc, char* argv[])
         case 'c':
             Bacon::use_opencl_cpu = true;
             break;
+        case 'd':
+            use_doubles = true;
+            break;
         case 'h':
         default:
             show_usage();
@@ -91,6 +118,11 @@ main(int argc, char* argv[])
         }
     }
 
-    run_test(c_file, a_file, b_file, gen_size);
+    if (use_doubles) {
+        run_doubles_test(c_file, gen_size);
+    }
+    else {
+        run_test(c_file, a_file, b_file, gen_size);
+    }
     return 0;
 }

@@ -28,3 +28,20 @@ add(Array2D<int> aa, Array2D<int> bb)
     return cc;
 }
 
+kernel
+Array2D<double>
+add_doubles(Array2D<double> aa, Array2D<double> bb) 
+{
+ SETUP:
+    global Array2D<double> cc[aa.rows, aa.cols];
+
+ BODY:
+    @range [aa.rows];
+
+    for (int ii = 0; ii < aa.cols; ++ii) {
+        cc[$x, ii] = aa[$x, ii] + bb[$x, ii];
+    }
+
+    return cc;
+}
+

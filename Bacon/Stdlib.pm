@@ -13,7 +13,7 @@ our @ISA = qw(Bacon::Template);
 use IO::Handle;
 
 # TODO: Add "double"
-our @TYPES  = qw(char short int long uchar ushort uint ulong float);
+our @TYPES  = qw(char short int long uchar ushort uint ulong float double);
 our @SCOPES = qw(global local private);
 
 sub write_structs {
@@ -51,9 +51,11 @@ __[ array_top ]__
 #ifndef BACON_ARRAY_CL
 #define BACON_ARRAY_CL
 
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
 /* == Bacon/Array.cl
-#* Structure definitions for Bacon's array data types.
-#*/
+# * Structure definitions for Bacon's array data types.
+# */
 
 <% $structs %>
 
