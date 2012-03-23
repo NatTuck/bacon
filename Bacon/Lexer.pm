@@ -34,7 +34,7 @@ my @token = (
     SETUP   => 'SETUP:',
     BODY    => 'BODY:',
     SPACE   => '\s+',
-    CONSTANT => '(?:0[xX][0-9a-fA-F]+|[0-9]+(\.[0-9]*)?[uU]?[lL]?f?)',
+    CONSTANT => '(?:0[xX][0-9a-fA-F]+|[0-9]+(\.[0-9]*)?[uU]?[lL]?f?(e[+-]?\d+)?)',
     STRING => '\"[^"]*\"',
     ELLIPSIS => q("..."),
     RIGHT_ASSIGN => q(">>="),

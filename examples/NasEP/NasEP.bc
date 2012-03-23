@@ -1,0 +1,141 @@
+/* -*- c -*- */
+
+double
+mul46(double a, double b)
+{
+    const double r23 = 1.1920928955078125e-07;
+    const double t23 = 8.388608e+06;
+    const double r46 = 1.42108547152020037174224853515625e-14;
+    const double t46 = 7.0368744177664e+13;
+
+    double a1, a2, b1, b2, t1, t2, t3, t4, t5;
+
+    a1 = floor(r23 * a);
+    a2 = a - t23 * a1;
+
+    b1 = floor(r23 * b);
+    b2 = b - t23 * b1;
+
+    t1 = a1 * b2 + a2 * b1;
+    t2 = floor(r23 * t1);
+    t3 = t1 - t23 * t2;
+    t4 = t23 * t3 + a2 * b2;
+    t5 = floor(r46 * t4);
+
+    return t4 - t46 * t5;
+}
+
+double
+randlc(double *b)
+{
+    const double r46 = 1.42108547152020037174224853515625e-14;
+    const double a = 1220703125.00;
+    *b = mul46(*b, a);
+    return (*b) * r46;
+}
+
+double 
+randlc_jump(double b, int k)
+{
+    const double a = 1220703125.00;
+
+    double m = floor(log2((double)k) + 1);
+    double t = a;
+    double j;
+
+    for (int i = 0; i < m; ++i) {
+        j = floor((double)k / 2);
+        if (2*j != k)
+            b = mul46(b, t);
+        t = mul46(t, t);
+        k = j;
+    }
+
+    return b;
+}
+
+kernel
+Array2D<double>
+class_a(const int workers)
+{
+ SETUP:
+    Array2D<double> cc[14, workers];
+    const long size = 1 << 28;
+    //const long size = 10;
+    const int  step = size / workers;
+
+ BODY:
+    @range [workers];
+
+    const double s0 = 271828183;
+
+    int ii = $col * step;
+    int nn = ($col + 1) * step;
+
+    //cc[12, $col] = ii;
+    //cc[13, $col] = nn;
+
+    double s = randlc_jump(s0, 2*ii);
+
+    double x, y, X, Y, m, t;
+
+    double SumX = 0.0;
+    double SumY = 0.0;
+
+    int count[10];
+    for (int kk = 0; kk < 10; ++kk) {
+        count[kk] = 0.0;
+    }
+
+    for (; ii < nn; ++ii) {
+        x = 2 * randlc(&s) - 1;
+        y = 2 * randlc(&s) - 1;
+
+        t = x * x + y * y;
+
+        if (t <= 1) {
+            X = x * sqrt((-2 * log(t)) / t);
+            Y = y * sqrt((-2 * log(t)) / t);
+            
+            SumX = SumX + X;
+            SumY = SumY + Y;
+            
+            m = (fabs(X) >= fabs(Y)) ? fabs(X) : fabs(Y);
+            
+            for (int L = 0; L < 10; L++) {
+                if ((L <= m) && (m < L + 1))
+                    count[L] = count[L] + 1;
+            }
+        }
+    }
+
+    for (ii = 0; ii < 10; ++ii) {
+        cc[ii, $col] = count[ii];
+    }
+
+    cc[10, $col] = SumX;
+    cc[11, $col] = SumY;
+
+    return cc;
+}
+
+kernel
+Array<double>
+chunks(const int size)
+{
+ SETUP:
+    Array<double> cc[size];
+
+ BODY:
+    @range[size / 2];
+
+    int ii = 2 * $col;
+
+    double s0 = 271828183;
+    double s  = randlc_jump(s0, ii);
+
+    cc[ii]     = randlc(&s);
+    cc[ii + 1] = randlc(&s);
+
+    return cc;
+}

@@ -132,7 +132,7 @@ sub eval_const_vars {
             }
         }
         elsif ($var->is_const) {
-            my $value = int($decl->init->static_eval($env));
+            my $value = $decl->init->static_eval($env);
             $var->value(embiggen($value));
         }
     }
