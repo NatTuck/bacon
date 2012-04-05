@@ -443,7 +443,7 @@ for_var_init
 
 iteration_statement
     : WHILE '(' expression ')' statement
-        { Bacon::WhileLoop->new(token => $_[1], cond => $_[3], body => $_[5]) }
+        { Bacon::Stmt::While->new(token => $_[1], cond => $_[3], body => $_[5]) }
     | DO statement WHILE '(' expression ')' ';'
         { Bacon::DoLoop->new(token => $_[1], cond => $_[5], body => $_[2]) }
     | FOR '(' for_var_init expression_statement ')' statement

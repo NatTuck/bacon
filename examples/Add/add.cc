@@ -72,6 +72,32 @@ run_doubles_test(string c_file, int nn)
 }
 
 void
+run_sum_test(string c_file, string a_file)
+{
+    Add adder;
+
+    Bacon::Array2D<int> aa(4, 4);
+
+    if (a_file == "") {
+        aa.fill(1);
+    }
+    else {
+        std::ifstream aaf(a_file.c_str());
+        aa.read(&aaf);
+    }
+
+    Bacon::Array<int> cc = adder.sum_take_pos(aa);
+
+    if (c_file == "") {
+        cc.write(&cout);
+    }
+    else {
+        std::ofstream outf(c_file.c_str());
+        cc.write(&outf);
+    }
+}
+
+void
 show_usage()
 {
     cout << "Usage: ./add -o output -a matrix1 -b matrix2" << endl;
@@ -90,8 +116,9 @@ main(int argc, char* argv[])
     int gen_size = 2;
 
     bool use_doubles = false;
+    bool do_sum_test = false;
 
-    while ((opt = getopt(argc, argv, "hcda:b:o:n:")) != -1) {
+    while ((opt = getopt(argc, argv, "hcdsa:b:o:n:")) != -1) {
         switch(opt) {
         case 'a':
             a_file = string(optarg);
@@ -111,6 +138,9 @@ main(int argc, char* argv[])
         case 'd':
             use_doubles = true;
             break;
+        case 's':
+            do_sum_test = true;
+            break;
         case 'h':
         default:
             show_usage();
@@ -118,11 +148,16 @@ main(int argc, char* argv[])
         }
     }
 
+    if (do_sum_test) {
+        run_sum_test(c_file, a_file);
+        return 0;
+    }
+
     if (use_doubles) {
         run_doubles_test(c_file, gen_size);
+        return 0;
     }
-    else {
-        run_test(c_file, a_file, b_file, gen_size);
-    }
+
+    run_test(c_file, a_file, b_file, gen_size);
     return 0;
 }

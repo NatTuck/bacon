@@ -13,7 +13,7 @@ if (defined $ENV{LD_LIBRARY_PATH}) {
 
 $ENV{LD_LIBRARY_PATH} = "../../lib" . $ldpath;
 
-use Test::Simple tests => 2;
+use Test::Simple tests => 3;
 use Bacon::Test;
 
 my $tmp = "t/out-$$.dat";
@@ -23,5 +23,9 @@ files_eq($tmp, "t/out.dat", "Array2D add");
 unlink($tmp);
 
 system("./add -d -o $tmp");
-files_eq($tmp, "t/dub.dat", "Array2D add");
+files_eq($tmp, "t/dub.dat", "Array2D add doubles");
+unlink($tmp);
+
+system("./add -s -a t/sums.dat -o $tmp");
+files_eq($tmp, "t/sums-out.dat", "Test while loop");
 unlink($tmp);

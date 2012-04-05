@@ -45,3 +45,25 @@ add_doubles(Array2D<double> aa, Array2D<double> bb)
     return cc;
 }
 
+kernel
+Array<int>
+sum_take_pos(Array2D<int> aa)
+{
+ SETUP:
+    Array<int> sums[aa.cols];
+
+ BODY:
+    @range [aa.rows];
+
+    int ii  = 0;
+    int sum = 0;
+
+    while (aa[$col, ii] >= 0 && ii < aa.cols) {
+        sum += aa[$col, ii];
+        ii  += 1;
+    }
+
+    sums[$col] = sum;
+
+    return sums;
+}
