@@ -1,0 +1,131 @@
+/* -*- c++ -*- */
+
+// Settings for a class 'B' problem.
+#define  TOTAL_KEYS_LOG_2    25
+#define  MAX_KEY_LOG_2       21
+#define  NUM_BUCKETS_LOG_2   10
+
+#define  TOTAL_KEYS          (1 << TOTAL_KEYS_LOG_2)
+#define  MAX_KEY             (1 << MAX_KEY_LOG_2)
+#define  NUM_BUCKETS         (1 << NUM_BUCKETS_LOG_2)
+#define  NUM_KEYS            TOTAL_KEYS
+#define  SIZE_OF_BUFFERS     NUM_KEYS  
+
+#define  MAX_ITERATIONS      10
+#define  TEST_ARRAY_SIZE     5
+
+double
+randlc(double *X, double *A)
+{
+    double T1, T2, T3, T4;
+    double A1;
+    double A2;
+    double X1;
+    double X2;
+    double Z;
+    int    j;
+    
+    const double R23 = 1.1920928955078125e-07;
+    const double T23 = 8.388608e+06;
+    const double R46 = 1.42108547152020037174224853515625e-14;
+    const double T46 = 7.0368744177664e+13;
+    
+    /*  Break A into two parts such that A = 2^23 * A1 + A2 and set X = N.  */
+    T1 = R23 * *A;
+    j  = T1;
+    A1 = j;
+    A2 = *A - T23 * A1;
+    
+    /*  Break X into two parts such that X = 2^23 * X1 + X2, compute
+        Z = A1 * X2 + A2 * X1  (mod 2^23), and then
+        X = 2^23 * Z + A2 * X2  (mod 2^46).                            */
+    
+    T1 = R23 * *X;
+    j  = T1;
+    X1 = j;
+    X2 = *X - T23 * X1;
+    T1 = A1 * X2 + A2 * X1;
+      
+    j  = R23 * T1;
+    T2 = j;
+    Z = T1 - T23 * T2;
+    T3 = T23 * Z + A2 * X2;
+    j  = R46 * T3;
+    T4 = j;
+
+    *X = T3 - T46 * T4;
+
+    return(R46 * *X);
+} 
+
+
+double
+find_my_seed( int kn,        /* my processor rank, 0<=kn<=num procs */
+              int np,        /* np = num procs                      */
+              long nn,       /* total num of ran numbers, all procs */
+              double s,      /* Ran num seed, for ex.: 314159265.00 */
+              double a )     /* Ran num gen mult, try 1220703125.00 */
+{
+    double t1,t2;
+    long   mq,nq,kk,ik;
+    
+    if ( kn == 0 ) return s;
+    
+    mq = (nn/4 + np - 1) / np;
+    nq = mq * 4 * kn;               /* number of rans to be skipped */
+    
+    t1 = s;
+    t2 = a;
+    kk = nq;
+    while ( kk > 1 ) {
+        ik = kk / 2;
+        if( 2 * ik ==  kk ) {
+            (void) randlc( &t2, &t2 );
+            kk = ik;
+        }
+        else {
+            (void) randlc( &t1, &t2 );
+            kk = kk - 1;
+        }
+    }
+
+    (void) randlc(&t1, &t2);
+    
+    return t1;
+}
+
+kernel
+Array<int>
+create_seq(double seed, double a, const int num_procs)
+{
+ SETUP:
+    Array<int> keys[NUM_KEYS];
+
+ BODY:
+    @range[num_procs];
+
+	double an = a;
+    double x;
+
+    int myid = $col;
+
+    int mq = (NUM_KEYS + num_procs - 1) / num_procs;
+	int k1 = mq * myid;
+	int k2 = k1 + mq;
+
+	if (k2 > NUM_KEYS) 
+        k2 = NUM_KEYS;
+
+	double s = find_my_seed(myid, num_procs, (long)4*NUM_KEYS, seed, an);
+    int    k = MAX_KEY/4;
+
+	for (int i = k1; i < k2; i++) {
+	    x  = randlc(&s, &an);
+	    x += randlc(&s, &an);
+        x += randlc(&s, &an);
+	    x += randlc(&s, &an);  
+        keys[i] = k*x;
+	}
+
+    return keys;
+}
