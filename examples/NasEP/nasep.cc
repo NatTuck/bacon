@@ -7,23 +7,11 @@
 
 
 void
-run_chunks()
-{
-    const int SIZE = 10;
-    NasEP ep;
-
-    Bacon::Array<double> cc = ep.chunks(SIZE);
-
-    for (int ii = 0; ii < SIZE; ++ii) {
-        printf("%.02f\n", cc.get(ii));
-    }
-}
-
-void
-run_class_a(bool approx)
+run_class_a(bool approx, bool show_timing)
 {
     const int SIZE = 2048;
     NasEP ep;
+    ep.show_timing = show_timing;
 
     Bacon::Array2D<double> cc = ep.class_a(SIZE);
 
@@ -65,25 +53,24 @@ int
 main(int argc, char* argv[])
 {
     int opt;
-    bool do_chunks = false;
     bool do_approx = false;
+    bool show_timing = false;
 
-    while ((opt = getopt(argc, argv, "ac")) != -1) {
+    while ((opt = getopt(argc, argv, "act")) != -1) {
         switch(opt) {
         case 'a':
             do_approx = true;
             break;
         case 'c':
-            do_chunks = true;
+            Bacon::use_opencl_cpu = true;
+            break;
+        case 't':
+            show_timing = true;
             break;
         }
     }
 
-    if (do_chunks) {
-        run_chunks();
-    }
-    else {
-        run_class_a(do_approx);
-    }
+    run_class_a(do_approx, show_timing);
+
     return 0;
 }

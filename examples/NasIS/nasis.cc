@@ -50,8 +50,9 @@
 
 NasIS* bcn;
 
+#define CLASS    'B'
+#define WORKERS  1024
 
-#define CLASS 'B'
 
 /*****************************************************************/
 /* For serial IS, buckets are not really req'd to solve NPB1 IS  */
@@ -67,7 +68,6 @@ NasIS* bcn;
 
 /* Uncomment below for cyclic schedule */
 /*#define SCHED_CYCLIC*/
-
 
 /******************/
 /* default values */
@@ -176,7 +176,11 @@ int      passed_verification;
 /* These are the three main arrays. */
 /* See SIZE_OF_BUFFERS def above    */
 /************************************/
-INT_TYPE key_array[SIZE_OF_BUFFERS],    
+
+Bacon::Array<int> keys;
+
+INT_TYPE 
+//key_array[SIZE_OF_BUFFERS],    
          key_buff1[MAX_KEY],
          key_buff2[SIZE_OF_BUFFERS],
          partial_verify_vals[TEST_ARRAY_SIZE],
@@ -275,180 +279,10 @@ double  timer_read( int n ) { return 0.0; }
 /*************    portable random number generator    ************/
 /*****************************************************************/
 
-#if 0
-
-static int      KS=0;
-static double	R23, R46, T23, T46;
-#pragma omp threadprivate(KS, R23, R46, T23, T46)
-
-double	randlc( double *X, double *A )
-{
-      double		T1, T2, T3, T4;
-      double		A1;
-      double		A2;
-      double		X1;
-      double		X2;
-      double		Z;
-      int     		i, j;
-
-      if (KS == 0) 
-      {
-        R23 = 1.0;
-        R46 = 1.0;
-        T23 = 1.0;
-        T46 = 1.0;
-    
-        for (i=1; i<=23; i++)
-        {
-          R23 = 0.50 * R23;
-          T23 = 2.0 * T23;
-        }
-        for (i=1; i<=46; i++)
-        {
-          R46 = 0.50 * R46;
-          T46 = 2.0 * T46;
-        }
-        KS = 1;
-      }
-
-/*  Break A into two parts such that A = 2^23 * A1 + A2 and set X = N.  */
-
-      T1 = R23 * *A;
-      j  = T1;
-      A1 = j;
-      A2 = *A - T23 * A1;
-
-/*  Break X into two parts such that X = 2^23 * X1 + X2, compute
-    Z = A1 * X2 + A2 * X1  (mod 2^23), and then
-    X = 2^23 * Z + A2 * X2  (mod 2^46).                            */
-
-      T1 = R23 * *X;
-      j  = T1;
-      X1 = j;
-      X2 = *X - T23 * X1;
-      T1 = A1 * X2 + A2 * X1;
-      
-      j  = R23 * T1;
-      T2 = j;
-      Z = T1 - T23 * T2;
-      T3 = T23 * Z + A2 * X2;
-      j  = R46 * T3;
-      T4 = j;
-      *X = T3 - T46 * T4;
-      return(R46 * *X);
-} 
-
-
-
-
-/*****************************************************************/
-/************   F  I  N  D  _  M  Y  _  S  E  E  D    ************/
-/************                                         ************/
-/************ returns parallel random number seq seed ************/
-/*****************************************************************/
-
-/*
- * Create a random number sequence of total length nn residing
- * on np number of processors.  Each processor will therefore have a
- * subsequence of length nn/np.  This routine returns that random
- * number which is the first random number for the subsequence belonging
- * to processor rank kn, and which is used as seed for proc kn ran # gen.
- */
-
-double   find_my_seed( int kn,        /* my processor rank, 0<=kn<=num procs */
-                       int np,        /* np = num procs                      */
-                       long nn,       /* total num of ran numbers, all procs */
-                       double s,      /* Ran num seed, for ex.: 314159265.00 */
-                       double a )     /* Ran num gen mult, try 1220703125.00 */
-{
-
-      double t1,t2;
-      long   mq,nq,kk,ik;
-
-      if ( kn == 0 ) return s;
-
-      mq = (nn/4 + np - 1) / np;
-      nq = mq * 4 * kn;               /* number of rans to be skipped */
-
-      t1 = s;
-      t2 = a;
-      kk = nq;
-      while ( kk > 1 ) {
-      	 ik = kk / 2;
-         if( 2 * ik ==  kk ) {
-            (void)randlc( &t2, &t2 );
-	    kk = ik;
-	 }
-	 else {
-            (void)randlc( &t1, &t2 );
-	    kk = kk - 1;
-	 }
-      }
-      (void)randlc( &t1, &t2 );
-
-      return( t1 );
-
-}
-
-
-
-/*****************************************************************/
-/*************      C  R  E  A  T  E  _  S  E  Q      ************/
-/*****************************************************************/
-
-void	create_seq( double seed, double a )
-{
-	double x, s;
-	INT_TYPE i, k;
-
-#pragma omp parallel private(x,s,i,k)
-    {
-	INT_TYPE k1, k2;
-	double an = a;
-	int myid, num_procs;
-        INT_TYPE mq;
-
-#ifdef _OPENMP
-	myid = omp_get_thread_num();
-	num_procs = omp_get_num_threads();
-#else
-	myid = 0;
-	num_procs = 1;
-#endif
-
-	mq = (NUM_KEYS + num_procs - 1) / num_procs;
-	k1 = mq * myid;
-	k2 = k1 + mq;
-	if ( k2 > NUM_KEYS ) k2 = NUM_KEYS;
-
-	KS = 0;
-	s = find_my_seed( myid, num_procs,
-			  (long)4*NUM_KEYS, seed, an );
-
-        k = MAX_KEY/4;
-
-	for (i=k1; i<k2; i++)
-	{
-	    x = randlc(&s, &an);
-	    x += randlc(&s, &an);
-    	    x += randlc(&s, &an);
-	    x += randlc(&s, &an);  
-
-            key_array[i] = k*x;
-	}
-    } /*omp parallel*/
-}
-
-#endif
-
 void
 create_seq(double seed, double a)
 {
-    Bacon::Array<int> keys = bcn->create_seq(seed, a, 1024);
-
-    for (int i = 0; i < NUM_KEYS; ++i) {
-        key_array[i] = keys.get(i);
-    }
+    keys = bcn->create_seq(seed, a, WORKERS);
 }
 
 /*****************************************************************/
@@ -506,6 +340,8 @@ void full_verify( void )
 
 /*  Copy keys into work array; keys in key_array will be reassigned. */
 
+    
+
     /* Buckets are already sorted.  Sorting keys within each bucket */
 #ifdef SCHED_CYCLIC
     #pragma omp parallel for private(i,j,k,k1) schedule(static,1)
@@ -519,6 +355,14 @@ void full_verify( void )
             k = --key_buff_ptr_global[key_buff2[i]];
             key_array[k] = key_buff2[i];
         }
+    }
+
+    bcn->full_verify0(+*+derp+*+);
+
+    int* key_array = new int[NUM_KEYS];
+
+    for (int i = 0; i < NUM_KEYS; ++i) {
+        key_array[i] = keys.get(i);
     }
 
 
@@ -536,6 +380,7 @@ void full_verify( void )
     else
         passed_verification++;
 
+    delete[] key_array;
 }
 
 
@@ -555,9 +400,14 @@ void rank( int iteration )
     int shift = MAX_KEY_LOG_2 - NUM_BUCKETS_LOG_2;
     INT_TYPE num_bucket_keys = (1L << shift);
 
+    int *key_array = new int[NUM_KEYS];
+
+    for (int i = 0; i < NUM_KEYS; ++i) {
+        key_array[i] = keys.get(i);
+    }
+
     key_array[iteration] = iteration;
     key_array[iteration+MAX_ITERATIONS] = MAX_KEY - iteration;
-
 
 /*  Determine where the partial verify test keys are, load into  */
 /*  top of array bucket_size                                     */
@@ -568,7 +418,6 @@ void rank( int iteration )
 /*  Setup pointers to key buffers  */
     key_buff_ptr2 = key_buff2;
     key_buff_ptr  = key_buff1;
-
 
 #pragma omp parallel private(i, k)
   {
@@ -676,114 +525,26 @@ void rank( int iteration )
         {
             INT_TYPE key_rank = key_buff_ptr[k-1];
             int failed = 0;
-
-            switch( CLASS )
-            {
-                case 'S':
-                    if( i <= 2 )
-                    {
-                        if( key_rank != test_rank_array[i]+iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    else
-                    {
-                        if( key_rank != test_rank_array[i]-iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    break;
-                case 'W':
-                    if( i < 2 )
-                    {
-                        if( key_rank != test_rank_array[i]+(iteration-2) )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    else
-                    {
-                        if( key_rank != test_rank_array[i]-iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    break;
-                case 'A':
-                    if( i <= 2 )
-        	    {
-                        if( key_rank != test_rank_array[i]+(iteration-1) )
-                            failed = 1;
-                        else
-                            passed_verification++;
-        	    }
-                    else
-                    {
-                        if( key_rank != test_rank_array[i]-(iteration-1) )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    break;
-                case 'B':
-                    if( i == 1 || i == 2 || i == 4 )
-        	    {
-                        if( key_rank != test_rank_array[i]+iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-        	    }
-                    else
-                    {
-                        if( key_rank != test_rank_array[i]-iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    break;
-                case 'C':
-                    if( i <= 2 )
-        	    {
-                        if( key_rank != test_rank_array[i]+iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-        	    }
-                    else
-                    {
-                        if( key_rank != test_rank_array[i]-iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    break;
-                case 'D':
-                    if( i < 2 )
-        	    {
-                        if( key_rank != test_rank_array[i]+iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-        	    }
-                    else
-                    {
-                        if( key_rank != test_rank_array[i]-iteration )
-                            failed = 1;
-                        else
-                            passed_verification++;
-                    }
-                    break;
+            
+            if( i == 1 || i == 2 || i == 4 ) {
+                if( key_rank != test_rank_array[i]+iteration )
+                    failed = 1;
+                else
+                    passed_verification++;
             }
+            else {
+                if( key_rank != test_rank_array[i]-iteration )
+                    failed = 1;
+                else
+                    passed_verification++;
+            }
+            
             if( failed == 1 )
                 printf( "Failed partial verification: "
-                        "iteration %d, test key %d\n", 
-                         iteration, (int)i );
+                    "iteration %d, test key %d\n", 
+                    iteration, (int)i );
         }
     }
-
-
 
 
 /*  Make copies of rank info for use by full_verify: these variables
@@ -793,8 +554,13 @@ void rank( int iteration )
     if( iteration == MAX_ITERATIONS ) 
         key_buff_ptr_global = key_buff_ptr;
 
-}      
 
+    for (int i = 0; i < NUM_KEYS; ++i) {
+        keys.set(i, key_array[i]);
+    }
+
+    delete[] key_array;
+}      
 
 /*****************************************************************/
 /*************             M  A  I  N             ****************/
@@ -887,7 +653,7 @@ int main( int argc, char **argv )
 
 /*  Start timer  */             
     timer_start( 0 );
-
+    Bacon::Timer tmr;
 
 /*  This is the main iteration */
     for( iteration=1; iteration<=MAX_ITERATIONS; iteration++ )
@@ -898,8 +664,10 @@ int main( int argc, char **argv )
 
 
 /*  End of timing, obtain maximum time of all processors */
+    timecounter = tmr.time();
+
     timer_stop( 0 );
-    timecounter = timer_read( 0 );
+    //timecounter = timer_read( 0 );
 
 
 /*  This tests that keys are in sequence: sorting of last ranked key seq
@@ -915,55 +683,11 @@ int main( int argc, char **argv )
     if( passed_verification != 5*MAX_ITERATIONS + 1 )
         passed_verification = 0;
 
-    printf("\n\nAll done. Passed %d checks.\n\n", passed_verification);
-
-    /*
-    c_print_results( "IS",
-                     CLASS,
-                     (int)(TOTAL_KEYS/64),
-                     64,
-                     0,
-                     MAX_ITERATIONS,
-                     timecounter,
-                     ((double) (MAX_ITERATIONS*TOTAL_KEYS))
-                                                  /timecounter/1000000.,
-                     "keys ranked", 
-                     passed_verification,
-                     NPBVERSION,
-                     COMPILETIME,
-                     CC,
-                     CLINK,
-                     C_LIB,
-                     C_INC,
-                     CFLAGS,
-                     CLINKFLAGS );
-    */
-
-
-/*  Print additional timers  */
-    if (timer_on) {
-       double t_total, t_percent;
-
-       t_total = timer_read( 3 );
-       printf("\nAdditional timers -\n");
-       printf(" Total execution: %8.3f\n", t_total);
-       if (t_total == 0.0) t_total = 1.0;
-       timecounter = timer_read(1);
-       t_percent = timecounter/t_total * 100.;
-       printf(" Initialization : %8.3f (%5.2f%%)\n", timecounter, t_percent);
-       timecounter = timer_read(0);
-       t_percent = timecounter/t_total * 100.;
-       printf(" Benchmarking   : %8.3f (%5.2f%%)\n", timecounter, t_percent);
-       timecounter = timer_read(2);
-       t_percent = timecounter/t_total * 100.;
-       printf(" Sorting        : %8.3f (%5.2f%%)\n", timecounter, t_percent);
-    }
+    printf("\n\nAll done. Passed %d checks.\n", passed_verification);
+    printf("Iterations took %.02f seconds.\n\n", timecounter);
 
     return 0;
-         /**************************/
-}        /*  E N D  P R O G R A M  */
-         /**************************/
-
+}
 
 
 
