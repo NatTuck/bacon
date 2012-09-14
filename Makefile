@@ -1,30 +1,22 @@
 
 BACON="./bin/bacon"
-LIB=libbacon.so
-HDRS=include/ocl/Bacon/Array.cl
 
-all: Bacon/Parser.pm doc lib/$(LIB) $(HDRS)
+all: parser lib hdrs
 	cp src/cl_perror.hh include
 
-Bacon/Parser.pm: Bacon/grammar.yp
-	yapp -v -m Bacon::Parser -o Bacon/Parser.pm Bacon/grammar.yp
-	mv Bacon/grammar.output Bacon/yapp.output
+parser:
+	(cd perl && make)
 
-lib/$(LIB): src/$(LIB)
-	mkdir -p lib
-	cp src/$(LIB) lib/$(LIB)
-
-src/$(LIB):
+lib:
 	(cd src && make)
+	mkdir -p lib
+	cp src/*.so lib
 
-doc:
-	(cd doc && make)
-
-$(HDRS): Bacon/Parser.pm
+hdrs: parser
 	$(BACON) --genstdlib include
 
 prereqs:
-	sudo apt-get install build-essential libboost-dev libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl texlive-full libclone-perl libdata-section-perl libdevel-cover-perl indent mesa-common-dev libperl-dev libdevel-size-perl libdevel-cycle-perl libdevel-leak-perl
+	sudo apt-get install build-essential libboost-dev libparse-yapp-perl libfile-slurp-perl libmoose-perl libnamespace-autoclean-perl libtext-template-perl libclone-perl libdata-section-perl libdevel-cover-perl indent mesa-common-dev libperl-dev libdevel-size-perl
 
 examples: all
 	find examples -maxdepth 1 -mindepth 1 -type d \
@@ -34,13 +26,12 @@ test: examples
 	prove examples/*/t/*.t
 
 clean:
-	rm -f Bacon/Parser.pm Bacon/yapp.output *~ Bacon/*~
-	rm -f lib/$(LIB) $(HDRS)
-	rm -f include/cl_perror.hh
+	find . -name "*~" -exec rm {} \;
+	(cd perl && make clean)
+	rm -f lib/*.so
+	rm -f include/cl_perror.hh include/ocl/Bacon/Array.cl
 	(cd src && make clean)
-	(cd doc && make clean)
 	find examples -maxdepth 1 -mindepth 1 -type d \
 		-exec sh -c '(cd {} && make clean)' \;
-	find . -name "*~" -exec rm {} \; 
 
-.PHONY: all clean prereqs test doc stdlib
+.PHONY: all parser lib hdrs prereqs examples test clean

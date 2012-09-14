@@ -14,14 +14,10 @@ Next, type "make prereqs" in the base Bacon directory.
 
 Type "make" to build the Bacon shared library.
 
-Finally, add the following lines to your ~/.bashrc file, with BACON_BASE set to point
-at the top level directory of your Bacon install.
+Finally, add one line to your ~/.bashrc to setup the environment variables bacon
+needs to operate.
 
-export BACON_BASE="/path/to/bacon"
-export LD_LIBRARY_PATH="$BACON_BASE/lib:$LD_LIBRARY_PATH"
-export PERL5LIB="$BACON_BASE/$PERL5LIB"
-export PATH="$BACON_BASE/bin:$PATH"
-
+  . /path/to/bacon/env.sh
 
 == Using Bacon ==
 
